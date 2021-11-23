@@ -1,0 +1,17 @@
+version: "3.2"
+
+services:
+
+  db:
+    image: postgres
+    volumes:
+      - postgres-db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=volume_tracker
+      - POSTGRES_USER=paraswap
+      - POSTGRES_PASSWORD=paraswap
+    ports:
+      - "32780:5432"
+
+volumes:
+  postgres-db:
