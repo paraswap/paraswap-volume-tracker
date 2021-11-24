@@ -288,9 +288,26 @@ const EpochDetails: {
       endBlockNumber: number;
       calcTimeStamp: number;
       reward: string;
+      poolRewards: {
+        [poolAddress: string]: string; // poolAddress must be all in lowercase!!
+      }
     };
   };
 } = {};
+// Uncomment, and change the current epoch to 1 for testing earning endpoint
+// This can be removed later
+//   1: { 
+//     0: {
+//       endBlockNumber: 13678069,
+//       calcTimeStamp: 1637769046,
+//       reward: '2500000000000000000000000',
+//       poolRewards: {
+//         '0xea02df45f56a690071022c45c95c46e7f61d3eab': '2000000000000000000000000',
+//         '0x6b1d394ca67fdb9c90bbd26fe692dda4f4f53ecd': '500000000000000000000000'
+//       }
+//     }
+//   }
+// };
 
 const PSPDecimals = 18;
 const DayDuration = 60 * 60 * 24;
@@ -306,6 +323,7 @@ export class PoolInfo {
   spspInterface: Interface;
   provider: JsonRpcProvider;
   poolStates: { [blockNumber: number]: CompletePoolState };
+  poolSPSPSupply: { [blockNumber: number]: {[poolAddress: string]: bigint}};
   volumeTracker = volumeTracker; // TODO: make this network specific in future
   private latestBlockNumber: number;
   private latestBlockTimestamp: number;
@@ -324,6 +342,7 @@ export class PoolInfo {
     this.erc20Interface = new Interface(ERC20ABI);
     this.spspInterface = new Interface(SPSPABI);
     this.poolStates = {};
+    this.poolSPSPSupply = {};
     this.blockInfo = BlockInfo.getInstance(this.network);
   }
 
@@ -356,6 +375,85 @@ export class PoolInfo {
       StakingSettings[this.network].BlockUpdateInterval,
     );
     await this.setLatestBlockNumber();
+  }
+
+  // This is not fully correct as the deposits done on the same block after the reward tx is
+  // also considered. epochEndBlock is used instead of epochEndBlock - 1 as with epochEndBlock
+  // the earnedPSP is a lower bound while on the other case its an upper bound.
+  // TODO: memorize this on db to avoid archive calls
+  async fetchEarnedPSPEpoch(userAddress: string, epoch: number): Promise<{[poolAddress: string]: bigint}> {
+    const epochInfo = EpochDetails[this.network][epoch];
+    if(!epochInfo)
+      throw new Error(`Epoch details not found.`);
+
+    const epochEndBlockNumber = epochInfo.endBlockNumber;
+
+    const pools = this.poolConfigs.filter(p => p.poolReleaseBlockNumber <= epochEndBlockNumber);
+
+    if(!this.poolSPSPSupply[epochEndBlockNumber]) {
+      const multiCallData = pools.map(p => {
+        return {
+          target: p.address,
+          callData: this.spspInterface.encodeFunctionData('totalSupply'),
+        };
+      });
+      const rawResult = await this.multicallContract.functions.aggregate(
+        multiCallData,
+        { blockTag: epochEndBlockNumber },
+      );
+      const SPSPSupply: {[address: string]: bigint} = {};
+      pools.forEach((p, i) => SPSPSupply[p.address.toLowerCase()] = BigInt(
+        this.spspInterface
+          .decodeFunctionResult('totalSupply', rawResult.returnData[i])
+          .toString(),
+      ));
+      this.poolSPSPSupply[epochEndBlockNumber] = SPSPSupply;
+    }
+    const SPSPSupply = this.poolSPSPSupply[epochEndBlockNumber];
+
+    const multiCallData = pools.map(p => {
+      return {
+        target: p.address,
+        callData: this.erc20Interface.encodeFunctionData('balanceOf', [
+          userAddress,
+        ]),
+      };
+    });
+
+    const rawResult = await this.multicallContract.functions.aggregate(
+        multiCallData,
+        { blockTag: epochEndBlockNumber },
+      );
+    const SPSPBalances = pools.map((p, i) => BigInt(
+      this.erc20Interface
+        .decodeFunctionResult('balanceOf', rawResult.returnData[i])
+        .toString(),
+    ));
+
+    const PSPEarned = pools.reduce((acc: {[address: string]: bigint}, p, i) => {
+      const pAddr = p.address.toLowerCase();
+      if (pAddr in epochInfo.poolRewards)
+        acc[p.address.toLowerCase()] = (SPSPBalances[i] * BigInt(epochInfo.poolRewards[pAddr])) / SPSPSupply[p.address.toLowerCase()];
+      return acc;
+    }, {})
+
+    return PSPEarned;
+  }
+
+  public async fetchEarnedPSP(userAddress: string): Promise<{[poolAddress: string]: string}> {
+    const currentEpoch = this.getCurrentEpoch();
+    const epochEarnings = await Promise.all(Array.from(Array(currentEpoch).keys()).map(i => this.fetchEarnedPSPEpoch(userAddress, i)));
+    const totalEarnings = epochEarnings.reduce((acc: {[poolAddress: string]: bigint}, e) => {
+      Object.entries(e).forEach(([key, value]) => {
+        if(!(key in acc))
+          acc[key] = BigInt(0);
+        acc[key] += value;
+      });
+      return acc;
+    }, {});
+    const totalEarningsS: {[poolAddress: string]: string} = {};
+    Object.entries(totalEarnings).forEach(([key, value]) => totalEarningsS[key] = value.toString());
+    return totalEarningsS;
   }
 
   private async fetchOnChainPoolStates(
