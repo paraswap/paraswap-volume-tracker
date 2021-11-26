@@ -626,16 +626,18 @@ export class PoolInfo {
   async getCurrentEpochRewardParams(
     calcTimeStamp: number,
   ): Promise<{
-    addresses: string[];
-    amounts: string[];
-    calcTimeStamp: number;
-    epochReward: string;
-    volumes: string[];
-    stakes: string[];
-    blockNumber: number;
+    poolAddresses: string[];
+    poolAmounts: string[];
     vestingBeneficiaries: string[];
     vestingAmounts: string[];
     vestingDurations: number[];
+    vesting: string;
+    calcTimeStamp: number;
+    epochPoolReward: string;
+    epochMarketMakerReward: string;
+    volumes: string[];
+    stakes: string[];
+    blockNumber: number;
     rewardDistributionAddress: string;
     calldata: string;
   }> {
@@ -694,14 +696,16 @@ export class PoolInfo {
     ])
 
     return {
+      poolAddresses: addresses,
+      poolAmounts: amounts,
       volumes: marketMakerVolumes,
       stakes,
-      addresses,
-      amounts,
       calcTimeStamp,
-      epochReward,
+      epochPoolReward: epochReward,
+      epochMarketMakerReward: epochReward,
       blockNumber: epochEndBlockNumber,
       vestingBeneficiaries,
+      vesting: RewardVestingAddress[this.network],
       vestingAmounts,
       vestingDurations,
       rewardDistributionAddress: RewardDistributionAddress[this.network],
