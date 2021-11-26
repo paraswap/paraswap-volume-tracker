@@ -12,16 +12,18 @@ import { Provider } from './provider';
 import * as MultiCallerABI from './abi/multicaller.abi.json';
 import * as ERC20ABI from './abi/erc20.abi.json';
 import * as SPSPABI from './abi/spsp.abi.json';
+import * as RewardDistributionABI from './abi/reward-distribution.abi.json'
 import BigNumber from 'bignumber.js';
 import volumeTracker from './volume-tracker';
 import { BlockInfo } from './block-info';
+import { EpochInfo } from './epoch-info';
 
 export enum PoolType {
   AMMPool = 'AMMPool',
   MarketMakerPool = 'MarketMakerPool',
-}
+};
 
-type UnderlyingTokenInfo = {
+export type UnderlyingTokenInfo = {
   tokens: {
     address: string;
     percent: number;
@@ -29,7 +31,7 @@ type UnderlyingTokenInfo = {
   DEXName: string; // [Balancer, UniswapV2, etc]
 };
 
-type PoolConfig = {
+export type PoolConfig = {
   address: string;
   underlyingTokenAddress: string;
   type: PoolType;
@@ -38,6 +40,134 @@ type PoolConfig = {
   poolReleaseBlockNumber: number;
   underlyingTokenInfo?: UnderlyingTokenInfo;
   isActive: boolean;
+  beneficiary: string;
+};
+
+export const PoolConfigsMap: { [network: number]: PoolConfig[] } = {
+  [CHAIN_ID_ROPSTEN]: [
+    {
+      name: 'ParaSwapPool1',
+      address: '0x60402d0018bFa960e75d70D7671293BB4fA5bb33',
+      underlyingTokenAddress: '0xd3f80dfa27a803e5de3b4a08150692f9462297e4',
+      type: PoolType.MarketMakerPool,
+      marketMakerIdentifier: 'ParaswapPool',
+      poolReleaseBlockNumber: 11253673,
+      isActive: true,
+      beneficiary: '0x0000000000000000000000000000000000000000'
+    },
+    {
+      name: 'ParaSwapPool2',
+      address: '0xFB00942071623bd0766A01794025d0d7FD3F8F1D',
+      underlyingTokenAddress: '0xd3f80dfa27a803e5de3b4a08150692f9462297e4',
+      type: PoolType.MarketMakerPool,
+      marketMakerIdentifier: 'ParaswapPool2',
+      poolReleaseBlockNumber: 11253673,
+      isActive: false,
+      beneficiary: '0x0000000000000000000000000000000000000000'
+    },
+    {
+      name: 'ParaSwapPool3',
+      address: '0x856e4a97bF555d9e8cb53D3b8341F93884af9aF2',
+      underlyingTokenAddress: '0xd3f80dfa27a803e5de3b4a08150692f9462297e4',
+      type: PoolType.MarketMakerPool,
+      marketMakerIdentifier: 'ParaswapPool3',
+      poolReleaseBlockNumber: 11253673,
+      isActive: true,
+      beneficiary: '0x3726771431089578E8541c03630EB954250E4cf4'
+    },
+    {
+      name: 'ParaSwapPool4',
+      address: '0x75635e0b419683896BFE83F4A175B4F7ba70F952',
+      underlyingTokenAddress: '0xd3f80dfa27a803e5de3b4a08150692f9462297e4',
+      type: PoolType.MarketMakerPool,
+      marketMakerIdentifier: 'ParaswapPool4',
+      poolReleaseBlockNumber: 11253673,
+      isActive: true,
+      beneficiary: '0x4f3a120E72C76c22ae802D129F599BFDbc31cb81'
+    },
+    {
+      name: 'ParaSwapPool5',
+      address: '0xD04504CD7f47ca9431a7A23b43fCC0e9E647D466',
+      underlyingTokenAddress: '0xd3f80dfa27a803e5de3b4a08150692f9462297e4',
+      type: PoolType.MarketMakerPool,
+      marketMakerIdentifier: 'ParaswapPool5',
+      poolReleaseBlockNumber: 11253673,
+      isActive: false,
+      beneficiary: '0x0000000000000000000000000000000000000000'
+    },
+    {
+      name: 'ParaSwapPool6',
+      address: '0x6bDA531A9C610caC7a0229372532ED3c13233797',
+      underlyingTokenAddress: '0xd3f80dfa27a803e5de3b4a08150692f9462297e4',
+      type: PoolType.MarketMakerPool,
+      marketMakerIdentifier: 'ParaswapPool6',
+      poolReleaseBlockNumber: 11253673,
+      isActive: false,
+      beneficiary: '0x0000000000000000000000000000000000000000'
+    },
+    {
+      name: 'ParaSwapPool7',
+      address: '0x1490832d701AceF24A938984E6a2D78A98de6207',
+      underlyingTokenAddress: '0xd3f80dfa27a803e5de3b4a08150692f9462297e4',
+      type: PoolType.MarketMakerPool,
+      marketMakerIdentifier: 'ParaswapPool7',
+      poolReleaseBlockNumber: 11253673,
+      isActive: true,
+      beneficiary: '0x9E21cAB04Fb4fd1790Bb7ceC2d0582cA1B839e13'
+    },
+  ],
+  [CHAIN_ID_MAINNET]: [
+    {
+      name: 'ParaSwapPool1',
+      address: '0x55A68016910A7Bcb0ed63775437e04d2bB70D570',
+      underlyingTokenAddress: '0xcafe001067cdef266afb7eb5a286dcfd277f3de5',
+      type: PoolType.MarketMakerPool,
+      marketMakerIdentifier: 'ParaswapPool',
+      poolReleaseBlockNumber: 13619800,
+      isActive: true,
+      beneficiary: '0x0000000000000000000000000000000000000000'
+    },
+    {
+      name: 'ParaSwapPool3',
+      address: '0xea02DF45f56A690071022c45c95c46E7F61d3eAb',
+      underlyingTokenAddress: '0xcafe001067cdef266afb7eb5a286dcfd277f3de5',
+      type: PoolType.MarketMakerPool,
+      marketMakerIdentifier: 'ParaswapPool3',
+      poolReleaseBlockNumber: 13619806,
+      isActive: true,
+      beneficiary: '0x3726771431089578E8541c03630EB954250E4cf4'
+    },
+    {
+      name: 'ParaSwapPool4',
+      address: '0x6b1D394Ca67fDB9C90BBd26FE692DdA4F4f53ECD',
+      underlyingTokenAddress: '0xcafe001067cdef266afb7eb5a286dcfd277f3de5',
+      type: PoolType.MarketMakerPool,
+      marketMakerIdentifier: 'ParaswapPool4',
+      poolReleaseBlockNumber: 13619811,
+      isActive: true,
+      beneficiary: '0x4f3a120E72C76c22ae802D129F599BFDbc31cb81'
+    },
+    {
+      name: 'ParaSwapPool7',
+      address: '0x37b1E4590638A266591a9C11d6f945fe7A1adAA7',
+      underlyingTokenAddress: '0xcafe001067cdef266afb7eb5a286dcfd277f3de5',
+      type: PoolType.MarketMakerPool,
+      marketMakerIdentifier: 'ParaswapPool7',
+      poolReleaseBlockNumber: 13619812,
+      isActive: true,
+      beneficiary: '0x9E21cAB04Fb4fd1790Bb7ceC2d0582cA1B839e13'
+    },
+    {
+      name: 'ParaSwapPool9',
+      address: '0xC3359DbdD579A3538Ea49669002e8E8eeA191433',
+      underlyingTokenAddress: '0xcafe001067cdef266afb7eb5a286dcfd277f3de5',
+      type: PoolType.MarketMakerPool,
+      marketMakerIdentifier: 'ParaswapPool9',
+      poolReleaseBlockNumber: 13631761,
+      isActive: true,
+      beneficiary: '0x8Bc3b61825F7aF1F683a205b05139143Bcef4fB7'
+    },
+  ],
 };
 
 export type StakingPoolInfo = {
@@ -136,167 +266,29 @@ type OnChainPoolState = {
   timeLockBlocks: number;
 };
 
-const PoolConfigsMap: { [network: number]: PoolConfig[] } = {
-  [CHAIN_ID_ROPSTEN]: [
-    {
-      name: 'ParaSwapPool1',
-      address: '0x60402d0018bFa960e75d70D7671293BB4fA5bb33',
-      underlyingTokenAddress: '0xd3f80dfa27a803e5de3b4a08150692f9462297e4',
-      type: PoolType.MarketMakerPool,
-      marketMakerIdentifier: 'ParaswapPool',
-      poolReleaseBlockNumber: 11253673,
-      isActive: true,
-    },
-    {
-      name: 'ParaSwapPool2',
-      address: '0xFB00942071623bd0766A01794025d0d7FD3F8F1D',
-      underlyingTokenAddress: '0xd3f80dfa27a803e5de3b4a08150692f9462297e4',
-      type: PoolType.MarketMakerPool,
-      marketMakerIdentifier: 'ParaswapPool2',
-      poolReleaseBlockNumber: 11253673,
-      isActive: false,
-    },
-    {
-      name: 'ParaSwapPool3',
-      address: '0x856e4a97bF555d9e8cb53D3b8341F93884af9aF2',
-      underlyingTokenAddress: '0xd3f80dfa27a803e5de3b4a08150692f9462297e4',
-      type: PoolType.MarketMakerPool,
-      marketMakerIdentifier: 'ParaswapPool3',
-      poolReleaseBlockNumber: 11253673,
-      isActive: true,
-    },
-    {
-      name: 'ParaSwapPool4',
-      address: '0x75635e0b419683896BFE83F4A175B4F7ba70F952',
-      underlyingTokenAddress: '0xd3f80dfa27a803e5de3b4a08150692f9462297e4',
-      type: PoolType.MarketMakerPool,
-      marketMakerIdentifier: 'ParaswapPool4',
-      poolReleaseBlockNumber: 11253673,
-      isActive: true,
-    },
-    {
-      name: 'ParaSwapPool5',
-      address: '0xD04504CD7f47ca9431a7A23b43fCC0e9E647D466',
-      underlyingTokenAddress: '0xd3f80dfa27a803e5de3b4a08150692f9462297e4',
-      type: PoolType.MarketMakerPool,
-      marketMakerIdentifier: 'ParaswapPool5',
-      poolReleaseBlockNumber: 11253673,
-      isActive: false,
-    },
-    {
-      name: 'ParaSwapPool6',
-      address: '0x6bDA531A9C610caC7a0229372532ED3c13233797',
-      underlyingTokenAddress: '0xd3f80dfa27a803e5de3b4a08150692f9462297e4',
-      type: PoolType.MarketMakerPool,
-      marketMakerIdentifier: 'ParaswapPool6',
-      poolReleaseBlockNumber: 11253673,
-      isActive: false,
-    },
-    {
-      name: 'ParaSwapPool7',
-      address: '0x1490832d701AceF24A938984E6a2D78A98de6207',
-      underlyingTokenAddress: '0xd3f80dfa27a803e5de3b4a08150692f9462297e4',
-      type: PoolType.MarketMakerPool,
-      marketMakerIdentifier: 'ParaswapPool7',
-      poolReleaseBlockNumber: 11253673,
-      isActive: true,
-    },
-  ],
-  [CHAIN_ID_MAINNET]: [
-    {
-      name: 'ParaSwapPool1',
-      address: '0x55A68016910A7Bcb0ed63775437e04d2bB70D570',
-      underlyingTokenAddress: '0xcafe001067cdef266afb7eb5a286dcfd277f3de5',
-      type: PoolType.MarketMakerPool,
-      marketMakerIdentifier: 'ParaswapPool',
-      poolReleaseBlockNumber: 13619800,
-      isActive: true,
-    },
-    {
-      name: 'ParaSwapPool3',
-      address: '0xea02DF45f56A690071022c45c95c46E7F61d3eAb',
-      underlyingTokenAddress: '0xcafe001067cdef266afb7eb5a286dcfd277f3de5',
-      type: PoolType.MarketMakerPool,
-      marketMakerIdentifier: 'ParaswapPool3',
-      poolReleaseBlockNumber: 13619806,
-      isActive: true,
-    },
-    {
-      name: 'ParaSwapPool4',
-      address: '0x6b1D394Ca67fDB9C90BBd26FE692DdA4F4f53ECD',
-      underlyingTokenAddress: '0xcafe001067cdef266afb7eb5a286dcfd277f3de5',
-      type: PoolType.MarketMakerPool,
-      marketMakerIdentifier: 'ParaswapPool4',
-      poolReleaseBlockNumber: 13619811,
-      isActive: true,
-    },
-    {
-      name: 'ParaSwapPool7',
-      address: '0x37b1E4590638A266591a9C11d6f945fe7A1adAA7',
-      underlyingTokenAddress: '0xcafe001067cdef266afb7eb5a286dcfd277f3de5',
-      type: PoolType.MarketMakerPool,
-      marketMakerIdentifier: 'ParaswapPool7',
-      poolReleaseBlockNumber: 13619812,
-      isActive: true,
-    },
-    {
-      name: 'ParaSwapPool9',
-      address: '0xC3359DbdD579A3538Ea49669002e8E8eeA191433',
-      underlyingTokenAddress: '0xcafe001067cdef266afb7eb5a286dcfd277f3de5',
-      type: PoolType.MarketMakerPool,
-      marketMakerIdentifier: 'ParaswapPool9',
-      poolReleaseBlockNumber: 13631761,
-      isActive: true,
-    },
-  ],
+const BlockUpdateInterval: {[network: number]: number} = {
+  [CHAIN_ID_MAINNET]: 3000,
+  [CHAIN_ID_ROPSTEN]: 3000
 };
 
-type StakingSetting = {
-  CurrentPSPEpochReward: string;
-  EpochDuration: number;
-  BlockDelay: number;
-  BlockUpdateInterval: number;
-  GenesisBlockNumber: number;
-  CurrentEpoch: number;
-};
-const StakingSettings: {
-  [network: number]: StakingSetting;
-} = {
-  [CHAIN_ID_MAINNET]: {
-    CurrentPSPEpochReward: '2500000000000000000000000',
-    EpochDuration: 14 * 60 * 60 * 24,
-    BlockDelay: 7,
-    BlockUpdateInterval: 3000,
-    GenesisBlockNumber: 13620219, // This is start of the epoch 0
-    CurrentEpoch: 0,
-  },
-  [CHAIN_ID_ROPSTEN]: {
-    CurrentPSPEpochReward: '2500000000000000000000000',
-    EpochDuration: 14 * 60 * 60 * 24,
-    BlockDelay: 10,
-    BlockUpdateInterval: 3000,
-    GenesisBlockNumber: 11348236, // This is start of the epoch 0
-    CurrentEpoch: 0,
-  },
-};
+const BlockDelay: {[network: number]: number} = {
+  [CHAIN_ID_MAINNET]: 7,
+  [CHAIN_ID_ROPSTEN]: 7
+}
 
-// TODO: automate this
-// The blocknumber at which the epoch reward is sent.
-const EpochDetails: {
-  [network: number]: {
-    [epoch: number]: {
-      endBlockNumber: number;
-      calcTimeStamp: number;
-      reward: string;
-    };
-  };
-} = {};
+const VestingSchedule = [{percent: 50, duration: 15768000}, {percent: 50, duration: 31536000}];
 
 const PSPDecimals = 18;
 const DayDuration = 60 * 60 * 24;
 
 const ProjectedVolumes = [1, 2, 3, 4, 5, 6, 7].map(e => new BigNumber(10).pow(e + PSPDecimals));
 const ProjectedVolumesStr = ProjectedVolumes.map(p => p.toFixed());
+const RewardDistributionAddress: {[network: number]: string} = {
+  [CHAIN_ID_MAINNET]: '0x8145cDeeD63e2E3c103F885CbB2cD02a00F54873'
+};
+const RewardVestingAddress: {[network: number]: string} = {
+  [CHAIN_ID_MAINNET]: '0x7cADB05Be17234c22FB7cf414BE37078D3C0239e'
+};
 
 export class PoolInfo {
   static instances: { [network: number]: PoolInfo } = {};
@@ -304,12 +296,14 @@ export class PoolInfo {
   multicallContract: Contract;
   erc20Interface: Interface;
   spspInterface: Interface;
+  rewardDistributionInterface: Interface;
   provider: JsonRpcProvider;
   poolStates: { [blockNumber: number]: CompletePoolState };
   volumeTracker = volumeTracker; // TODO: make this network specific in future
   private latestBlockNumber: number;
   private latestBlockTimestamp: number;
   private blockInfo: BlockInfo;
+  private epochInfo: EpochInfo;
 
   private constructor(
     private network: number,
@@ -323,8 +317,10 @@ export class PoolInfo {
     );
     this.erc20Interface = new Interface(ERC20ABI);
     this.spspInterface = new Interface(SPSPABI);
+    this.rewardDistributionInterface = new Interface(RewardDistributionABI);
     this.poolStates = {};
     this.blockInfo = BlockInfo.getInstance(this.network);
+    this.epochInfo = EpochInfo.getInstance(this.network);
   }
 
   static getInstance(network: number = DEFAULT_CHAIN_ID) {
@@ -339,7 +335,7 @@ export class PoolInfo {
   private async setLatestBlockNumber() {
     const latestBlock = await this.provider.getBlock('latest');
     this.latestBlockNumber =
-      latestBlock.number - StakingSettings[this.network].BlockDelay;
+      latestBlock.number - BlockDelay[this.network];
   }
 
   static initStartListening() {
@@ -353,7 +349,7 @@ export class PoolInfo {
   async startListening() {
     setInterval(
       this.setLatestBlockNumber.bind(this),
-      StakingSettings[this.network].BlockUpdateInterval,
+      BlockUpdateInterval[this.network],
     );
     await this.setLatestBlockNumber();
   }
@@ -419,68 +415,6 @@ export class PoolInfo {
     }));
   }
 
-  async getCurrentEpochRewardParams(
-    calcTimeStamp: number,
-    epochReward: string = StakingSettings[this.network].CurrentPSPEpochReward,
-  ): Promise<{
-    addresses: string[];
-    amounts: string[];
-    calcTimeStamp: number;
-    epochReward: string;
-    volumes: string[];
-    stakes: string[];
-    blockNumber: number;
-  }> {
-    const currentEpoch = this.getCurrentEpoch();
-    const epochCalcStartTime = await this.getEpochStartCalcTime(currentEpoch);
-
-    const marketMakerVolumeMap = await this.volumeTracker.getVolumeUSD(
-      epochCalcStartTime,
-      calcTimeStamp,
-    );
-    if (!Object.keys(marketMakerVolumeMap).length)
-      throw new Error('Unable to fetch marketMakerVolumes');
-
-    const marketMakerVolumes = this.poolConfigs.map(
-      p => marketMakerVolumeMap[p.marketMakerIdentifier.toLowerCase()] || '0',
-    );
-
-    const epochEndBlockNumber = await this.blockInfo.getBlockAfterTimeStamp(
-      calcTimeStamp,
-    );
-    if (!epochEndBlockNumber)
-      throw new Error(
-        `Unable to fetch the blockNumber for network: ${this.network} timestamp: ${calcTimeStamp}`,
-      );
-
-    const onChainPoolStates = await this.fetchOnChainPoolStates(
-      epochEndBlockNumber,
-      this.poolConfigs,
-    );
-
-    const stakes = onChainPoolStates.map(s =>
-      (s.underlyingTokenBalance - s.underlyingTokenLocked).toString(),
-    );
-
-    const amounts = this.calculatePoolRewards(
-      marketMakerVolumes,
-      stakes,
-      epochReward,
-    ).map(a => a.toFixed(0));
-
-    const addresses = this.poolConfigs.map(p => p.address);
-
-    return {
-      volumes: marketMakerVolumes,
-      stakes,
-      addresses,
-      amounts,
-      calcTimeStamp,
-      epochReward,
-      blockNumber: epochEndBlockNumber,
-    };
-  }
-
   private async getAllPoolStates(epoch: number): Promise<CompletePoolState> {
     if (epoch < 0)
       return {
@@ -496,23 +430,21 @@ export class PoolInfo {
         },
       };
 
-    const isCurrentEpoch = epoch === this.getCurrentEpoch();
+    const isCurrentEpoch = epoch === this.epochInfo.getCurrentEpoch();
 
     const blockNumber = isCurrentEpoch
       ? this.latestBlockNumber
-      : this.getEpochEndBlock(epoch);
+      : this.epochInfo.getEpochEndBlock(epoch);
 
     if (blockNumber in this.poolStates) return this.poolStates[blockNumber];
 
-    const epochStartCalcTime = await this.getEpochStartCalcTime(epoch);
+    const epochStartCalcTime = await this.epochInfo.getEpochStartCalcTime(epoch);
 
     const epochEndCalcTime = isCurrentEpoch
       ? undefined
-      : this.getEpochEndCalcTime(epoch);
+      : this.epochInfo.getEpochEndCalcTime(epoch);
 
-    const epochReward = isCurrentEpoch
-      ? StakingSettings[this.network].CurrentPSPEpochReward
-      : this.getReward(epoch);
+    const epochReward = this.epochInfo.getPSPPoolReward(epoch);
 
     // TODO: handle different pool types
     const poolConfigs = this.poolConfigs.filter(
@@ -590,7 +522,7 @@ export class PoolInfo {
       {},
     );
     const EpochDurationDays =
-      StakingSettings[this.network].EpochDuration / (60 * 60 * 24);
+      this.epochInfo.getEpochDuration() / (60 * 60 * 24);
     const averagePoolAPY = new BigNumber(epochReward)
       .times(100)
       .times(365 / EpochDurationDays)
@@ -609,7 +541,7 @@ export class PoolInfo {
         epochStartTime: epochStartCalcTime,
         epochEndTime:
           epochEndCalcTime ||
-          epochStartCalcTime + StakingSettings[this.network].EpochDuration,
+          epochStartCalcTime + this.epochInfo.getEpochDuration(),
       },
     };
 
@@ -666,7 +598,7 @@ export class PoolInfo {
     );
 
     const EpochDurationDays =
-      StakingSettings[this.network].EpochDuration / (60 * 60 * 24);
+      this.epochInfo.getEpochDuration() / (60 * 60 * 24);
     const factor = new BigNumber(100).times(365 / EpochDurationDays);
     const poolAPYs = rewards.map((r, i) =>
       poolStakedUnderlyingTokens[i] == '0'
@@ -691,47 +623,94 @@ export class PoolInfo {
     return null;
   }
 
-  private getCurrentEpoch(): number {
-    return StakingSettings[this.network].CurrentEpoch;
-  }
+  async getCurrentEpochRewardParams(
+    calcTimeStamp: number,
+  ): Promise<{
+    addresses: string[];
+    amounts: string[];
+    calcTimeStamp: number;
+    epochReward: string;
+    volumes: string[];
+    stakes: string[];
+    blockNumber: number;
+    vestingBeneficiaries: string[];
+    vestingAmounts: string[];
+    vestingDurations: number[];
+    rewardDistributionAddress: string;
+    calldata: string;
+  }> {
+    const epochReward = this.epochInfo.getCurrentPSPPoolReward();
+    const currentEpoch = this.epochInfo.getCurrentEpoch();
+    const epochCalcStartTime = await this.epochInfo.getEpochStartCalcTime(currentEpoch);
 
-  private getEpochStartBlock(epoch: number): number {
-    return epoch < 1
-      ? StakingSettings[this.network].GenesisBlockNumber
-      : this.getEpochEndBlock(epoch - 1);
-  }
+    const marketMakerVolumeMap = await this.volumeTracker.getVolumeUSD(
+      epochCalcStartTime,
+      calcTimeStamp,
+    );
+    if (!Object.keys(marketMakerVolumeMap).length)
+      throw new Error('Unable to fetch marketMakerVolumes');
 
-  private async getEpochStartCalcTime(epoch: number): Promise<number> {
-    if (epoch === 0) {
-      const epochStartTime = await this.blockInfo.getBlockTimeStamp(
-        StakingSettings[this.network].GenesisBlockNumber,
+    const marketMakerVolumes = this.poolConfigs.map(
+      p => marketMakerVolumeMap[p.marketMakerIdentifier.toLowerCase()] || '0',
+    );
+
+    const epochEndBlockNumber = await this.blockInfo.getBlockAfterTimeStamp(
+      calcTimeStamp,
+    );
+    if (!epochEndBlockNumber)
+      throw new Error(
+        `Unable to fetch the blockNumber for network: ${this.network} timestamp: ${calcTimeStamp}`,
       );
-      if (!epochStartTime)
-        throw new Error(
-          `Unable to fetch the timestamp for network: ${this.network} block: ${
-            StakingSettings[this.network].GenesisBlockNumber
-          }`,
-        );
-      return epochStartTime;
-    } else {
-      return this.getEpochEndCalcTime(epoch - 1);
-    }
-  }
 
-  private getEpochEndCalcTime(epoch: number): number {
-    return EpochDetails[this.network][epoch].calcTimeStamp;
-  }
+    const onChainPoolStates = await this.fetchOnChainPoolStates(
+      epochEndBlockNumber,
+      this.poolConfigs,
+    );
 
-  private getEpochEndBlock(epoch: number): number {
-    return EpochDetails[this.network][epoch].endBlockNumber;
-  }
+    const stakes = onChainPoolStates.map(s =>
+      (s.underlyingTokenBalance - s.underlyingTokenLocked).toString(),
+    );
 
-  private getReward(epoch: number): string {
-    return EpochDetails[this.network][epoch].reward;
+    const amounts = this.calculatePoolRewards(
+      marketMakerVolumes,
+      stakes,
+      epochReward,
+    ).map(a => a.toFixed(0, BigNumber.ROUND_FLOOR));
+
+    const addresses = this.poolConfigs.map(p => p.address);
+
+    let vestingBeneficiaries: string[] = [];
+    let vestingAmounts: string[] = [];
+    let vestingDurations: number[] = [];
+    this.poolConfigs.forEach((p, i) => VestingSchedule.forEach(v => {
+      vestingBeneficiaries.push(p.beneficiary);
+      vestingAmounts.push((BigInt(amounts[i]) * BigInt(v.percent) / BigInt(100)).toString());
+      vestingDurations.push(v.duration);
+    }))
+
+    const calldata = this.rewardDistributionInterface.encodeFunctionData('multiSendReward', [
+      addresses, amounts, vestingBeneficiaries, vestingAmounts, vestingDurations,
+      RewardVestingAddress[this.network], calcTimeStamp
+    ])
+
+    return {
+      volumes: marketMakerVolumes,
+      stakes,
+      addresses,
+      amounts,
+      calcTimeStamp,
+      epochReward,
+      blockNumber: epochEndBlockNumber,
+      vestingBeneficiaries,
+      vestingAmounts,
+      vestingDurations,
+      rewardDistributionAddress: RewardDistributionAddress[this.network],
+      calldata
+    };
   }
 
   async getLatestPoolData(): Promise<StakingPoolInfo> {
-    const currentEpoch = this.getCurrentEpoch();
+    const currentEpoch = this.epochInfo.getCurrentEpoch();
     const currentState = await this.getAllPoolStates(currentEpoch);
     const lastEpochState = await this.getAllPoolStates(currentEpoch - 1);
     const isZeroEpoch = currentEpoch === 0;
