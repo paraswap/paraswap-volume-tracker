@@ -39,6 +39,9 @@ export const EpochDetails: {
       endBlockNumber: number;
       calcTimeStamp: number;
       reward: string;
+      poolRewards: {
+        [poolAddress: string]: string; // poolAddress must be all in lowercase!!
+      }
     };
   };
 } = {};
@@ -105,5 +108,11 @@ export class EpochInfo {
     if (epoch == this.getCurrentEpoch())
       return this.getCurrentPSPPoolReward();
     return EpochDetails[this.network][epoch].reward;
+  }
+
+  getPoolRewards(epoch: number): {[poolAddress: string]: string;} {
+    if (epoch >= this.getCurrentEpoch())
+      throw new Error('Epoch rewards not send yet');
+    return EpochDetails[this.network][epoch].poolRewards;
   }
 }

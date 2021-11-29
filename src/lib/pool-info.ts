@@ -361,11 +361,7 @@ export class PoolInfo {
   // the earnedPSP is a lower bound while on the other case its an upper bound.
   // TODO: memorize this on db to avoid archive calls
   async fetchEarnedPSPEpoch(userAddress: string, epoch: number): Promise<{[poolAddress: string]: bigint}> {
-    const epochInfo = EpochDetails[this.network][epoch];
-    if(!epochInfo)
-      throw new Error(`Epoch details not found.`);
-
-    const epochEndBlockNumber = epochInfo.endBlockNumber;
+    const epochEndBlockNumber = this.epochInfo.getEpochEndBlock(epoch);
 
     const pools = this.poolConfigs.filter(p => p.poolReleaseBlockNumber <= epochEndBlockNumber);
 
@@ -409,10 +405,11 @@ export class PoolInfo {
         .toString(),
     ));
 
+    const poolRewards = this.epochInfo.getPoolRewards(epoch);
     const PSPEarned = pools.reduce((acc: {[address: string]: bigint}, p, i) => {
       const pAddr = p.address.toLowerCase();
-      if (pAddr in epochInfo.poolRewards)
-        acc[p.address.toLowerCase()] = (SPSPBalances[i] * BigInt(epochInfo.poolRewards[pAddr])) / SPSPSupply[p.address.toLowerCase()];
+      if (pAddr in poolRewards)
+        acc[p.address.toLowerCase()] = (SPSPBalances[i] * BigInt(poolRewards[pAddr])) / SPSPSupply[p.address.toLowerCase()];
       return acc;
     }, {})
 
@@ -420,7 +417,7 @@ export class PoolInfo {
   }
 
   public async fetchEarnedPSP(userAddress: string): Promise<{[poolAddress: string]: string}> {
-    const currentEpoch = this.getCurrentEpoch();
+    const currentEpoch = this.epochInfo.getCurrentEpoch();
     const epochEarnings = await Promise.all(Array.from(Array(currentEpoch).keys()).map(i => this.fetchEarnedPSPEpoch(userAddress, i)));
     const totalEarnings = epochEarnings.reduce((acc: {[poolAddress: string]: bigint}, e) => {
       Object.entries(e).forEach(([key, value]) => {
