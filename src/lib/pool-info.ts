@@ -160,6 +160,16 @@ export const PoolConfigsMap: { [network: number]: PoolConfig[] } = {
       beneficiary: '0x9E21cAB04Fb4fd1790Bb7ceC2d0582cA1B839e13'
     },
     {
+      name: 'ParaSwapPool8',
+      address: '0x03c1eaff32c4bd67ee750ab75ce85ba7e5aa65fb',
+      underlyingTokenAddress: '0xcafe001067cdef266afb7eb5a286dcfd277f3de5',
+      type: PoolType.MarketMakerPool,
+      marketMakerIdentifier: 'ParaswapPool8',
+      poolReleaseBlockNumber: 13631757,
+      isActive: true,
+      beneficiary: '0x0000000000000000000000000000000000000000'
+    },
+    {
       name: 'ParaSwapPool9',
       address: '0xC3359DbdD579A3538Ea49669002e8E8eeA191433',
       underlyingTokenAddress: '0xcafe001067cdef266afb7eb5a286dcfd277f3de5',
