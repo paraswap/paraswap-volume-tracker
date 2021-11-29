@@ -20,7 +20,7 @@ export const StakingSettings: {
     EpochDuration: 14 * 60 * 60 * 24,
     BlockDelay: 7,
     GenesisBlockNumber: 13620219, // This is start of the epoch 0
-    CurrentEpoch: 0,
+    CurrentEpoch: 1,
   },
   [CHAIN_ID_ROPSTEN]: {
     CurrentPSPEpochReward: '2500000000000000000000000',
@@ -44,7 +44,22 @@ export const EpochDetails: {
       }
     };
   };
-} = {};
+} = {
+  1: {
+    0: {
+      endBlockNumber: 13708712,
+      calcTimeStamp: 1638187200,
+      reward: '2500000000000000000000000',
+      poolRewards: {
+        '0x55a68016910a7bcb0ed63775437e04d2bb70d570': '203015682868967481713265',
+        '0xea02df45f56a690071022c45c95c46e7f61d3eab': '1535733555815482353633734',
+        '0x6b1d394ca67fdb9c90bbd26fe692dda4f4f53ecd': '418877093653364093502327',
+        '0x37b1e4590638a266591a9c11d6f945fe7a1adaa7': '148062142616895333279866',
+        '0xc3359dbdd579a3538ea49669002e8e8eea191433': '194311525045290737870806'
+      }
+    } 
+  }
+};
 
 export class EpochInfo {
   private blockInfo: BlockInfo;
