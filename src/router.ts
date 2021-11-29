@@ -1,4 +1,5 @@
 import * as express from 'express';
+import { isAddress } from '@ethersproject/address';
 import volumeTracker from './lib/volume-tracker';
 import { PoolInfo } from './lib/pool-info';
 import { Claim } from './models/Claim';
@@ -59,6 +60,28 @@ export default class Router {
             .send({ error: `Unsupported network: ${network}` });
         }
         const result = await PoolInfo.getInstance(network).getLatestPoolData();
+        res.json(result);
+      } catch (e) {
+        logger.error(req.path, e);
+        res.status(403).send({ error: 'VolumeTracker Error' });
+      }
+    });
+
+    router.get('/pools/earning/:address/:network?', async (req, res) => {
+      try {
+        const network = Number(req.params.network || DEFAULT_CHAIN_ID);
+        if (!STAKING_CHAIN_IDS_SET.has(network)) {
+          return res
+            .status(403)
+            .send({ error: `Unsupported network: ${network}` });
+        }
+        const address = <string>req.params.address;
+        if(!isAddress(address)) {
+          return res
+            .status(403)
+            .send({ error: `Invalid address: ${address}` }); 
+        }
+        const result = await PoolInfo.getInstance(network).fetchEarnedPSP(address);
         res.json(result);
       } catch (e) {
         logger.error(req.path, e);
