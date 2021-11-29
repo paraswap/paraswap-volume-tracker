@@ -56,28 +56,20 @@ export const PoolConfigsMap: { [network: number]: PoolConfig[] } = {
       beneficiary: '0x56178a0d5F301bAf6CF3e1Cd53d9863437345Bf9'
     },
     {
-      name: 'ParaSwapPool2',
-      address: '0xFB00942071623bd0766A01794025d0d7FD3F8F1D',
-      underlyingTokenAddress: '0xd3f80dfa27a803e5de3b4a08150692f9462297e4',
-      type: PoolType.MarketMakerPool,
-      marketMakerIdentifier: 'ParaswapPool2',
-      poolReleaseBlockNumber: 11253673,
-      isActive: false,
-      beneficiary: '0x0000000000000000000000000000000000000000'
-    },
-    {
       name: 'ParaSwapPool3',
-      address: '0x856e4a97bF555d9e8cb53D3b8341F93884af9aF2',
+      address: '0xFB00942071623bd0766A01794025d0d7FD3F8F1D',
       underlyingTokenAddress: '0xd3f80dfa27a803e5de3b4a08150692f9462297e4',
       type: PoolType.MarketMakerPool,
       marketMakerIdentifier: 'ParaswapPool3',
       poolReleaseBlockNumber: 11253673,
       isActive: true,
-      beneficiary: '0x3726771431089578E8541c03630EB954250E4cf4'
+      // beneficiary: '0x3726771431089578E8541c03630EB954250E4cf4' 
+      // For testing purposes the beneficiary is set to test address
+      beneficiary: '0xeb262c0FEca7E98b58DFaCEF6b4EF17966A907d5'
     },
     {
       name: 'ParaSwapPool4',
-      address: '0x75635e0b419683896BFE83F4A175B4F7ba70F952',
+      address: '0x856e4a97bF555d9e8cb53D3b8341F93884af9aF2',
       underlyingTokenAddress: '0xd3f80dfa27a803e5de3b4a08150692f9462297e4',
       type: PoolType.MarketMakerPool,
       marketMakerIdentifier: 'ParaswapPool4',
@@ -86,28 +78,8 @@ export const PoolConfigsMap: { [network: number]: PoolConfig[] } = {
       beneficiary: '0x4f3a120E72C76c22ae802D129F599BFDbc31cb81'
     },
     {
-      name: 'ParaSwapPool5',
-      address: '0xD04504CD7f47ca9431a7A23b43fCC0e9E647D466',
-      underlyingTokenAddress: '0xd3f80dfa27a803e5de3b4a08150692f9462297e4',
-      type: PoolType.MarketMakerPool,
-      marketMakerIdentifier: 'ParaswapPool5',
-      poolReleaseBlockNumber: 11253673,
-      isActive: false,
-      beneficiary: '0x0000000000000000000000000000000000000000'
-    },
-    {
-      name: 'ParaSwapPool6',
-      address: '0x6bDA531A9C610caC7a0229372532ED3c13233797',
-      underlyingTokenAddress: '0xd3f80dfa27a803e5de3b4a08150692f9462297e4',
-      type: PoolType.MarketMakerPool,
-      marketMakerIdentifier: 'ParaswapPool6',
-      poolReleaseBlockNumber: 11253673,
-      isActive: false,
-      beneficiary: '0x0000000000000000000000000000000000000000'
-    },
-    {
       name: 'ParaSwapPool7',
-      address: '0x1490832d701AceF24A938984E6a2D78A98de6207',
+      address: '0x75635e0b419683896BFE83F4A175B4F7ba70F952',
       underlyingTokenAddress: '0xd3f80dfa27a803e5de3b4a08150692f9462297e4',
       type: PoolType.MarketMakerPool,
       marketMakerIdentifier: 'ParaswapPool7',
@@ -115,6 +87,36 @@ export const PoolConfigsMap: { [network: number]: PoolConfig[] } = {
       isActive: true,
       beneficiary: '0x9E21cAB04Fb4fd1790Bb7ceC2d0582cA1B839e13'
     },
+    {
+      name: 'ParaSwapPool9',
+      address: '0xD04504CD7f47ca9431a7A23b43fCC0e9E647D466',
+      underlyingTokenAddress: '0xd3f80dfa27a803e5de3b4a08150692f9462297e4',
+      type: PoolType.MarketMakerPool,
+      marketMakerIdentifier: 'ParaswapPool9',
+      poolReleaseBlockNumber: 11253673,
+      isActive: false,
+      beneficiary: '0x8Bc3b61825F7aF1F683a205b05139143Bcef4fB7'
+    },
+    // {
+    //   name: 'ParaSwapPool6',
+    //   address: '0x6bDA531A9C610caC7a0229372532ED3c13233797',
+    //   underlyingTokenAddress: '0xd3f80dfa27a803e5de3b4a08150692f9462297e4',
+    //   type: PoolType.MarketMakerPool,
+    //   marketMakerIdentifier: 'ParaswapPool6',
+    //   poolReleaseBlockNumber: 11253673,
+    //   isActive: false,
+    //   beneficiary: '0x0000000000000000000000000000000000000000'
+    // },
+    // {
+    //   name: 'ParaSwapPool7',
+    //   address: '0x1490832d701AceF24A938984E6a2D78A98de6207',
+    //   underlyingTokenAddress: '0xd3f80dfa27a803e5de3b4a08150692f9462297e4',
+    //   type: PoolType.MarketMakerPool,
+    //   marketMakerIdentifier: 'ParaswapPool7',
+    //   poolReleaseBlockNumber: 11253673,
+    //   isActive: true,
+    //   beneficiary: '0x9E21cAB04Fb4fd1790Bb7ceC2d0582cA1B839e13'
+    // },
   ],
   [CHAIN_ID_MAINNET]: [
     {
@@ -284,10 +286,12 @@ const DayDuration = 60 * 60 * 24;
 const ProjectedVolumes = [1, 2, 3, 4, 5, 6, 7].map(e => new BigNumber(10).pow(e + PSPDecimals));
 const ProjectedVolumesStr = ProjectedVolumes.map(p => p.toFixed());
 const RewardDistributionAddress: {[network: number]: string} = {
-  [CHAIN_ID_MAINNET]: '0x8145cDeeD63e2E3c103F885CbB2cD02a00F54873'
+  [CHAIN_ID_MAINNET]: '0x8145cDeeD63e2E3c103F885CbB2cD02a00F54873',
+  [CHAIN_ID_ROPSTEN]: '0x8F4390cdE2BA908c60cd27bDf6be352361Af4f5a'
 };
 const RewardVestingAddress: {[network: number]: string} = {
-  [CHAIN_ID_MAINNET]: '0x7cADB05Be17234c22FB7cf414BE37078D3C0239e'
+  [CHAIN_ID_MAINNET]: '0x7cADB05Be17234c22FB7cf414BE37078D3C0239e',
+  [CHAIN_ID_ROPSTEN]: '0x4daa1bF3fB372B2A0B7e1Da85EAFff1D57629213'
 };
 
 export class PoolInfo {
