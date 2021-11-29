@@ -107,9 +107,6 @@ export default class Router {
         if (!req.query.epochEndTime)
           return res.status(403).send({ error: 'epochEndTime is required' });
         const epochEndTime = parseInt(<string>req.query.epochEndTime);
-        const epochReward = req.query.epochReward
-          ? <string>req.query.epochReward
-          : undefined;
         const network = Number(req.params.network || DEFAULT_CHAIN_ID);
         if (!STAKING_CHAIN_IDS_SET.has(network)) {
           return res
@@ -118,7 +115,7 @@ export default class Router {
         }
         const result = await PoolInfo.getInstance(
           network,
-        ).getCurrentEpochRewardParams(epochEndTime, epochReward);
+        ).getCurrentEpochRewardParams(epochEndTime);
         res.json(result);
       } catch (e) {
         logger.error(req.path, e);
