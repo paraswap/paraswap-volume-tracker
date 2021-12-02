@@ -1,6 +1,6 @@
 import * as express from 'express';
 import { isAddress } from '@ethersproject/address';
-import volumeTracker from './lib/volume-tracker';
+import VolumeTracker from './lib/volume-tracker'
 import { PoolInfo } from './lib/pool-info';
 import { Claim } from './models/Claim';
 import { DEFAULT_CHAIN_ID, STAKING_CHAIN_IDS_SET } from './lib/constants';
@@ -11,7 +11,6 @@ const router = express.Router({});
 
 export default class Router {
   app: express.Express;
-  volumeTracker = volumeTracker;
 
   configure(app: express.Express) {
     this.app = app;
@@ -31,7 +30,7 @@ export default class Router {
         const toTime = req.query.toTime
           ? parseInt(<string>req.query.toTime)
           : undefined;
-        const result = await this.volumeTracker.getVolumeUSD(fromTime, toTime);
+        const result = await VolumeTracker.getInstance(+req.params.network).getVolumeUSD(fromTime, toTime);
         res.json(result);
       } catch (e) {
         logger.error('VolumeTracker_Error', e);
@@ -43,7 +42,7 @@ export default class Router {
       try {
         const period = req.query.period || '30d';
         res.json(
-          await this.volumeTracker.getVolumeAggregationUSD(period as string),
+          await VolumeTracker.getInstance(+req.params.network).getVolumeAggregationUSD(period as string),
         );
       } catch (e) {
         logger.error('VolumeTracker_Error', e);
@@ -79,7 +78,7 @@ export default class Router {
         if(!isAddress(address)) {
           return res
             .status(403)
-            .send({ error: `Invalid address: ${address}` }); 
+            .send({ error: `Invalid address: ${address}` });
         }
         const result = await PoolInfo.getInstance(network).fetchEarnedPSP(address);
         res.json(result);

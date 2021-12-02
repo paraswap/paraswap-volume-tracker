@@ -446,7 +446,7 @@ const isWhitelistedToken = (network: number, token: string, timestamp: number) =
 }
 
 export class VolumeTracker {
-  static instance: VolumeTracker;
+  static instances: { [network: number]: VolumeTracker };
   // We can't fetch more than 10000 logs at once
   // we can assume that 5000 blocks will not have
   // more than 10000 0x logs.
@@ -462,6 +462,30 @@ export class VolumeTracker {
   volumeCache: VolumesCache;
   initBlock: number | null = null;
   marketMakerAddressMap: { [address: string]: string };
+
+  static createInstance (
+    initTime: number,
+    network: number,
+    blockDelay = defaultBlockDelay,
+    indexRefreshDelay = defaultIndexRefreshDelay
+  ) {
+    if (!VolumeTracker.instances[network]) {
+      VolumeTracker.instances[network] = new VolumeTracker(
+        initTime,
+        network,
+        blockDelay,
+        indexRefreshDelay
+      );
+    }
+    return VolumeTracker.instances[network];
+  }
+
+  static getInstance (network: number) {
+    if (VolumeTracker.instances[network]) {
+      return VolumeTracker.instances[network];
+    }
+    throw new Error(`VolumeTracker instance for network ${network} is not yet initialized!`);
+  }
 
   constructor(
     protected initTime: number,
@@ -853,4 +877,4 @@ export class VolumeTracker {
   }
 }
 
-export default new VolumeTracker(INIT_TIME);
+export default VolumeTracker;

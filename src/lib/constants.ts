@@ -7,6 +7,10 @@ export const CHAIN_ID_AVALANCHE = 43114;
 export const STAKING_CHAIN_IDS = [CHAIN_ID_MAINNET, CHAIN_ID_ROPSTEN];
 export const STAKING_CHAIN_IDS_SET = new Set([CHAIN_ID_MAINNET, CHAIN_ID_ROPSTEN]);
 
+export const VOLUME_TRACKER_SUPPORTED_NETWORKS = [CHAIN_ID_MAINNET]
+export const VOLUME_TRACKER_INIT_TIME: { [network: number]: number } = {
+  [CHAIN_ID_MAINNET]: parseInt(process.env.INIT_TIME || '0') //TODO: use the block info to the init time from the init block
+}
 
 export const Web3Provider: { [network: number]: string } = {
   [CHAIN_ID_MAINNET]: process.env.HTTP_PROVIDER || '',

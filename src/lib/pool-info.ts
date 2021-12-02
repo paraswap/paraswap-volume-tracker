@@ -14,7 +14,7 @@ import * as ERC20ABI from './abi/erc20.abi.json';
 import * as SPSPABI from './abi/spsp.abi.json';
 import * as RewardDistributionABI from './abi/reward-distribution.abi.json'
 import BigNumber from 'bignumber.js';
-import volumeTracker from './volume-tracker';
+import VolumeTracker from './volume-tracker'
 import { BlockInfo } from './block-info';
 import { EpochInfo } from './epoch-info';
 
@@ -63,7 +63,7 @@ export const PoolConfigsMap: { [network: number]: PoolConfig[] } = {
       marketMakerIdentifier: 'ParaswapPool3',
       poolReleaseBlockNumber: 11253673,
       isActive: true,
-      // beneficiary: '0x3726771431089578E8541c03630EB954250E4cf4' 
+      // beneficiary: '0x3726771431089578E8541c03630EB954250E4cf4'
       // For testing purposes the beneficiary is set to test address
       beneficiary: '0xeb262c0FEca7E98b58DFaCEF6b4EF17966A907d5'
     },
@@ -314,7 +314,7 @@ export class PoolInfo {
   provider: JsonRpcProvider;
   poolStates: { [blockNumber: number]: CompletePoolState };
   poolSPSPSupply: { [blockNumber: number]: {[poolAddress: string]: bigint}};
-  volumeTracker = volumeTracker; // TODO: make this network specific in future
+  volumeTracker: VolumeTracker
   private latestBlockNumber: number;
   private latestBlockTimestamp: number;
   private blockInfo: BlockInfo;
@@ -337,6 +337,7 @@ export class PoolInfo {
     this.poolSPSPSupply = {};
     this.blockInfo = BlockInfo.getInstance(this.network);
     this.epochInfo = EpochInfo.getInstance(this.network);
+    this.volumeTracker = VolumeTracker.getInstance(this.network)
   }
 
   static getInstance(network: number = DEFAULT_CHAIN_ID) {
