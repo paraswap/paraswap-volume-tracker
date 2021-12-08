@@ -33,6 +33,10 @@ export const AugustusV4Address: { [network: number]: string } = {
   [CHAIN_ID_POLYGON]: '0x90249ed4d69D70E709fFCd8beE2c5A566f65dADE',
 };
 
+export const RewardDistributionAddress: { [network: string]: string } = {
+  [CHAIN_ID_MAINNET]: '0x8145cDeeD63e2E3c103F885CbB2cD02a00F54873'
+}
+
 // TODO: in future we can fetch it from the api directly
 export const ZeroXV2Address: { [network: number]: string } = {
   [CHAIN_ID_MAINNET]: '0x080bf510fcbf18b91105470639e9561022937712',

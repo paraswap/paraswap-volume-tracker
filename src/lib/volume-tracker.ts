@@ -446,7 +446,7 @@ const isWhitelistedToken = (network: number, token: string, timestamp: number) =
 }
 
 export class VolumeTracker {
-  static instances: { [network: number]: VolumeTracker };
+  static instances: { [network: number]: VolumeTracker } = {};
   // We can't fetch more than 10000 logs at once
   // we can assume that 5000 blocks will not have
   // more than 10000 0x logs.

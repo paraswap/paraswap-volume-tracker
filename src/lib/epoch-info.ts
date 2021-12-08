@@ -1,8 +1,12 @@
+import { Interface } from '@ethersproject/abi';
+import { JsonRpcProvider } from '@ethersproject/providers';
+import { id } from '@ethersproject/hash';
 import {
   CHAIN_ID_ROPSTEN,
-  CHAIN_ID_MAINNET,
+  CHAIN_ID_MAINNET, RewardDistributionAddress,
 } from './constants';
 import { BlockInfo } from './block-info';
+import { Provider } from './provider';
 
 export type StakingSetting = {
   CurrentPSPEpochReward: string;
@@ -31,20 +35,23 @@ export const StakingSettings: {
   },
 };
 
+type EpochDetailsInfo = {
+  endBlockNumber: number;
+  calcTimeStamp: number;
+  reward: string;
+  poolRewards: {
+    [poolAddress: string]: string; // poolAddress must be all in lowercase!!
+  }
+};
+type EpochDetailsI = {
+  [network: number]: {
+    [epoch: number]: EpochDetailsInfo
+  };
+};
+
 // TODO: automate this
 // The blocknumber at which the epoch reward is sent.
-export const EpochDetails: {
-  [network: number]: {
-    [epoch: number]: {
-      endBlockNumber: number;
-      calcTimeStamp: number;
-      reward: string;
-      poolRewards: {
-        [poolAddress: string]: string; // poolAddress must be all in lowercase!!
-      }
-    };
-  };
-} = {
+export const EpochDetails: EpochDetailsI = {
   1: {
     0: {
       endBlockNumber: 13708712,
@@ -57,23 +64,122 @@ export const EpochDetails: {
         '0x37b1e4590638a266591a9c11d6f945fe7a1adaa7': '148062142616895333279866',
         '0xc3359dbdd579a3538ea49669002e8e8eea191433': '194311525045290737870806'
       }
-    } 
+    }
   }
 };
 
+/**
+ * Reward distribution Event decoding
+ */
+const RewardDistributionEventAbi = [` event RewardDistribution(
+        uint256 indexed epoch,
+        address[] poolAddresses,
+        uint256[] poolAmounts,
+        address[] vestingBeneficiaries,
+        uint256[] vestingAmounts,
+        uint256[] vestingDurations,
+        address vesting
+    )`]
+const RewardDistributionEventSignature = id('RewardDistribution(uint256,address[],uint256[],address[],uint256[],uint256[],address)')
+const iface = new Interface(RewardDistributionEventAbi)
+/**/
+
 export class EpochInfo {
+  static EpochDetails: EpochDetailsI = {
+    1: {}
+  };
+
   private blockInfo: BlockInfo;
+  private provider: JsonRpcProvider;
 
   constructor(protected network: number) {
     this.blockInfo = BlockInfo.getInstance(this.network);
+    this.provider = Provider.getJsonRpcProvider(this.network);
+    this.getEpochDetails().then(this.startListeningForEpochDetails.bind(this))
   }
 
   static instances: {[network: number]: EpochInfo} = {};
 
   static getInstance(network: number): EpochInfo {
-    if(!this.instances[network]) 
+    if(!this.instances[network])
       this.instances[network] = new EpochInfo(network);
     return this.instances[network];
+  }
+
+  async startListeningForEpochDetails () {
+    // const eventFilter = {
+    //   address: RewardDistributionAddress[this.network],
+    //   topics: [RewardDistributionEventSignature]
+    // }
+    // this.provider.on(eventFilter, (log, event) => {
+    //   const [epoch, info] = this.parseEpochDetailsLog(Object.assign(log, { decodedLog: iface.parseLog(event) }));
+    //   EpochInfo.EpochDetails[this.network][epoch] = info;
+    // })
+    const res = await this.provider.getLogs({
+      fromBlock: 13765517,
+      address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+      topics: [id('Transfer(address,address,uint256')]
+    });
+    this.provider.on({
+      address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+      topics: [id('Transfer(address,address,uint256')]
+    }, (log, event) => {
+      console.log('here')
+    })
+    this.provider.on({
+      address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+      topics: [id('Transfer(address,address,uint256')]
+    }, (log, event) => {
+      console.log('here')
+    })
+    this.provider.on({
+      address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+      topics: [id('Transfer(address,address,uint256')]
+    }, (log, event) => {
+      console.log('here')
+    })
+  }
+
+  async getEpochDetails () {
+    // TODO move to config
+    const fromBlock = 13708712;
+    if (!fromBlock) {
+      throw new Error(`Epoch do not exist for network ${this.network}`);
+    }
+
+    try {
+      const res = await this.provider.getLogs({
+        fromBlock,
+        address: RewardDistributionAddress[this.network],
+        topics: [RewardDistributionEventSignature]
+      });
+      const decodedEvents = res.map((log: any) => Object.assign(log, { decodedLog: iface.parseLog(log) }));
+      decodedEvents.forEach(event => {
+        const [epoch, info] = this.parseEpochDetailsLog(event)
+        EpochInfo.EpochDetails[this.network][epoch] = info
+      })
+    } catch (e) {
+      console.log(`Get Epoch Details Error: ${e.message}`);
+    }
+  }
+
+  parseEpochDetailsLog (event: any): [number, EpochDetailsInfo] {
+    const { blockNumber, decodedLog } = event
+    return [
+      decodedLog.args.epoch.toString(),
+      {
+        endBlockNumber: blockNumber,
+        calcTimeStamp: 1,
+        reward: decodedLog.args.poolAmounts.reduce((acc: any, el: any) => acc.add(el.toString())).toString(), // TODO check the rounding issue
+        poolRewards: decodedLog.args.poolAddresses.reduce(
+          (poolRewards: any, poolAddress: string, i: number) => {
+            poolRewards[poolAddress] = decodedLog.args.poolAmounts[i].toString();
+            return poolRewards;
+          },
+          {}
+        )
+      }
+    ];
   }
 
   getCurrentEpoch(): number {

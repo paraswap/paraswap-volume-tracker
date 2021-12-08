@@ -30,7 +30,8 @@ export default class Router {
         const toTime = req.query.toTime
           ? parseInt(<string>req.query.toTime)
           : undefined;
-        const result = await VolumeTracker.getInstance(+req.params.network).getVolumeUSD(fromTime, toTime);
+        const network = parseInt(req.params.network || '1')
+        const result = await VolumeTracker.getInstance(network).getVolumeUSD(fromTime, toTime);
         res.json(result);
       } catch (e) {
         logger.error('VolumeTracker_Error', e);
@@ -41,8 +42,9 @@ export default class Router {
     router.get('/volume/aggregation/:network?', async (req, res) => {
       try {
         const period = req.query.period || '30d';
+        const network = parseInt(req.params.network || '1')
         res.json(
-          await VolumeTracker.getInstance(+req.params.network).getVolumeAggregationUSD(period as string),
+          await VolumeTracker.getInstance(network).getVolumeAggregationUSD(period as string),
         );
       } catch (e) {
         logger.error('VolumeTracker_Error', e);
