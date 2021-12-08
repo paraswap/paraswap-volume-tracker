@@ -51,22 +51,22 @@ type EpochDetailsI = {
 
 // TODO: automate this
 // The blocknumber at which the epoch reward is sent.
-export const EpochDetails: EpochDetailsI = {
-  1: {
-    0: {
-      endBlockNumber: 13708712,
-      calcTimeStamp: 1638187200,
-      reward: '2500000000000000000000000',
-      poolRewards: {
-        '0x55a68016910a7bcb0ed63775437e04d2bb70d570': '203015682868967481713265',
-        '0xea02df45f56a690071022c45c95c46e7f61d3eab': '1535733555815482353633734',
-        '0x6b1d394ca67fdb9c90bbd26fe692dda4f4f53ecd': '418877093653364093502327',
-        '0x37b1e4590638a266591a9c11d6f945fe7a1adaa7': '148062142616895333279866',
-        '0xc3359dbdd579a3538ea49669002e8e8eea191433': '194311525045290737870806'
-      }
-    }
-  }
-};
+// export const EpochDetails: EpochDetailsI = {
+//   1: {
+//     0: {
+//       endBlockNumber: 13708712,
+//       calcTimeStamp: 1638187200,
+//       reward: '2500000000000000000000000',
+//       poolRewards: {
+//         '0x55a68016910a7bcb0ed63775437e04d2bb70d570': '203015682868967481713265',
+//         '0xea02df45f56a690071022c45c95c46e7f61d3eab': '1535733555815482353633734',
+//         '0x6b1d394ca67fdb9c90bbd26fe692dda4f4f53ecd': '418877093653364093502327',
+//         '0x37b1e4590638a266591a9c11d6f945fe7a1adaa7': '148062142616895333279866',
+//         '0xc3359dbdd579a3538ea49669002e8e8eea191433': '194311525045290737870806'
+//       }
+//     }
+//   }
+// };
 
 /**
  * Reward distribution Event decoding
@@ -107,36 +107,13 @@ export class EpochInfo {
   }
 
   async startListeningForEpochDetails () {
-    // const eventFilter = {
-    //   address: RewardDistributionAddress[this.network],
-    //   topics: [RewardDistributionEventSignature]
-    // }
-    // this.provider.on(eventFilter, (log, event) => {
-    //   const [epoch, info] = this.parseEpochDetailsLog(Object.assign(log, { decodedLog: iface.parseLog(event) }));
-    //   EpochInfo.EpochDetails[this.network][epoch] = info;
-    // })
-    const res = await this.provider.getLogs({
-      fromBlock: 13765517,
-      address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
-      topics: [id('Transfer(address,address,uint256')]
-    });
-    this.provider.on({
-      address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
-      topics: [id('Transfer(address,address,uint256')]
-    }, (log, event) => {
-      console.log('here')
-    })
-    this.provider.on({
-      address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-      topics: [id('Transfer(address,address,uint256')]
-    }, (log, event) => {
-      console.log('here')
-    })
-    this.provider.on({
-      address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-      topics: [id('Transfer(address,address,uint256')]
-    }, (log, event) => {
-      console.log('here')
+    const eventFilter = {
+      address: RewardDistributionAddress[this.network],
+      topics: [RewardDistributionEventSignature]
+    }
+    this.provider.on(eventFilter, (log) => {
+      const [epoch, info] = this.parseEpochDetailsLog(Object.assign(log, { decodedLog: iface.parseLog(log) }));
+      EpochInfo.EpochDetails[this.network][epoch] = info;
     })
   }
 
@@ -210,11 +187,11 @@ export class EpochInfo {
   }
 
   getEpochEndCalcTime(epoch: number): number {
-    return EpochDetails[this.network][epoch].calcTimeStamp;
+    return EpochInfo.EpochDetails[this.network][epoch].calcTimeStamp;
   }
 
   getEpochEndBlock(epoch: number): number {
-    return EpochDetails[this.network][epoch].endBlockNumber;
+    return EpochInfo.EpochDetails[this.network][epoch].endBlockNumber;
   }
 
   getCurrentPSPPoolReward(): string {
@@ -228,12 +205,12 @@ export class EpochInfo {
   getPSPPoolReward(epoch: number): string {
     if (epoch == this.getCurrentEpoch())
       return this.getCurrentPSPPoolReward();
-    return EpochDetails[this.network][epoch].reward;
+    return EpochInfo.EpochDetails[this.network][epoch].reward;
   }
 
   getPoolRewards(epoch: number): {[poolAddress: string]: string;} {
     if (epoch >= this.getCurrentEpoch())
       throw new Error('Epoch rewards not send yet');
-    return EpochDetails[this.network][epoch].poolRewards;
+    return EpochInfo.EpochDetails[this.network][epoch].poolRewards;
   }
 }
