@@ -49,25 +49,6 @@ type EpochDetailsI = {
   };
 };
 
-// TODO: automate this
-// The blocknumber at which the epoch reward is sent.
-// export const EpochDetails: EpochDetailsI = {
-//   1: {
-//     0: {
-//       endBlockNumber: 13708712,
-//       calcTimeStamp: 1638187200,
-//       reward: '2500000000000000000000000',
-//       poolRewards: {
-//         '0x55a68016910a7bcb0ed63775437e04d2bb70d570': '203015682868967481713265',
-//         '0xea02df45f56a690071022c45c95c46e7f61d3eab': '1535733555815482353633734',
-//         '0x6b1d394ca67fdb9c90bbd26fe692dda4f4f53ecd': '418877093653364093502327',
-//         '0x37b1e4590638a266591a9c11d6f945fe7a1adaa7': '148062142616895333279866',
-//         '0xc3359dbdd579a3538ea49669002e8e8eea191433': '194311525045290737870806'
-//       }
-//     }
-//   }
-// };
-
 /**
  * Reward distribution Event decoding
  */
@@ -118,8 +99,7 @@ export class EpochInfo {
   }
 
   async getEpochDetails () {
-    // TODO move to config
-    const fromBlock = 13708712;
+    const fromBlock = StakingSettings[this.network].GenesisBlockNumber;
     if (!fromBlock) {
       throw new Error(`Epoch do not exist for network ${this.network}`);
     }
@@ -147,7 +127,11 @@ export class EpochInfo {
       {
         endBlockNumber: blockNumber,
         calcTimeStamp: 1,
-        reward: decodedLog.args.poolAmounts.reduce((acc: any, el: any) => acc.add(el.toString())).toString(), // TODO check the rounding issue
+        reward: decodedLog.args.poolAmounts.reduce(
+          (acc: any, el: any) => {
+            return acc.add(el)
+          }
+        ).toString(),
         poolRewards: decodedLog.args.poolAddresses.reduce(
           (poolRewards: any, poolAddress: string, i: number) => {
             poolRewards[poolAddress] = decodedLog.args.poolAmounts[i].toString();
