@@ -167,7 +167,7 @@ export const PoolConfigsMap: { [network: number]: PoolConfig[] } = {
       marketMakerIdentifier: 'ParaswapPool8',
       poolReleaseBlockNumber: 13631757,
       isActive: true,
-      beneficiary: '0x0000000000000000000000000000000000000000'
+      beneficiary: '0xE88CAE87eb5e60b8C834075c78944EA4B9Fa92b6'
     },
     {
       name: 'ParaSwapPool9',
