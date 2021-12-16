@@ -854,3 +854,4 @@ export class VolumeTracker {
 }
 
 export default new VolumeTracker(INIT_TIME);
+export { MarketMakerAddresses };
