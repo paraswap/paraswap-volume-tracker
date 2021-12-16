@@ -36,7 +36,7 @@ const defaultIndexRefreshDelay = 5 * 60 * 1000;
 
 const BN_0 = new BigNumber('0');
 
-const MarketMakerAddresses: {
+export const MarketMakerAddresses: {
   [identifier: string]: { [network: number]: string[] }
 } = {
   ParaswapPool: {
@@ -854,4 +854,3 @@ export class VolumeTracker {
 }
 
 export default new VolumeTracker(INIT_TIME);
-export { MarketMakerAddresses };

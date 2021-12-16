@@ -124,9 +124,8 @@ export default class Router {
       }
     });
 
-    router.get('/addresses', async (req, res) => {
+    router.get('/marketmaker/addresses', async (req, res) => {
       try {
-        // const claim = await Claim.findByPk(req.params.user);
         res.json(MarketMakerAddresses);
       } catch (e) {
         logger.error(req.path, e);
