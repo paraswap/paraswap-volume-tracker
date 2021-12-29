@@ -1,12 +1,18 @@
+import { retry } from 'ts-retry-promise';
 import { Interface } from '@ethersproject/abi';
+import { Contract } from '@ethersproject/contracts';
 import { JsonRpcProvider } from '@ethersproject/providers';
 import { id } from '@ethersproject/hash';
+import * as RewardDistributionAbi from './abi/reward-distribution.abi.json';
 import {
   CHAIN_ID_ROPSTEN,
-  CHAIN_ID_MAINNET, RewardDistributionAddress,
+  CHAIN_ID_MAINNET,
+  RewardDistributionAddress
 } from './constants';
 import { BlockInfo } from './block-info';
 import { Provider } from './provider';
+
+const logger = global.LOGGER();
 
 export type StakingSetting = {
   CurrentPSPEpochReward: string;
@@ -71,12 +77,23 @@ export class EpochInfo {
   };
 
   private blockInfo: BlockInfo;
-  private provider: JsonRpcProvider;
+  private readonly provider: JsonRpcProvider;
+  private rewardDistribution: Contract;
 
   constructor(protected network: number) {
     this.blockInfo = BlockInfo.getInstance(this.network);
     this.provider = Provider.getJsonRpcProvider(this.network);
-    this.getEpochDetails().then(this.startListeningForEpochDetails.bind(this))
+    this.rewardDistribution = new Contract(
+      RewardDistributionAddress[this.network],
+      RewardDistributionAbi,
+      this.provider,
+    );
+    retry(() => this.getEpochDetails(), { retries: 5 })
+      .then(this.startListeningForEpochDetails.bind(this))
+      .catch(e => {
+        logger.error(`Exit on epoch info update error: ${e.message}`)
+        process.exit(1)
+      })
   }
 
   static instances: {[network: number]: EpochInfo} = {};
@@ -87,36 +104,46 @@ export class EpochInfo {
     return this.instances[network];
   }
 
-  async startListeningForEpochDetails () {
+  startListeningForEpochDetails () {
     const eventFilter = {
       address: RewardDistributionAddress[this.network],
       topics: [RewardDistributionEventSignature]
     }
-    this.provider.on(eventFilter, (log) => {
-      const [epoch, info] = this.parseEpochDetailsLog(Object.assign(log, { decodedLog: iface.parseLog(log) }));
-      EpochInfo.EpochDetails[this.network][epoch] = info;
+    this.provider.on(eventFilter, async (log) => {
+      try {
+        const [epoch, info] = this.parseEpochDetailsLog(Object.assign(log, { decodedLog: iface.parseLog(log) }));
+        const epochHistory = await this.rewardDistribution.functions.epochHistory(epoch)
+        info.calcTimeStamp = epochHistory.calcTimestamp.toNumber()
+        EpochInfo.EpochDetails[this.network][epoch] = info;
+      } catch (e) {
+        logger.error(`Update epoch info error: ${e.message}`)
+      }
     })
   }
 
   async getEpochDetails () {
-    const fromBlock = StakingSettings[this.network].GenesisBlockNumber;
-    if (!fromBlock) {
-      throw new Error(`Epoch do not exist for network ${this.network}`);
-    }
-
     try {
-      const res = await this.provider.getLogs({
-        fromBlock,
-        address: RewardDistributionAddress[this.network],
-        topics: [RewardDistributionEventSignature]
-      });
-      const decodedEvents = res.map((log: any) => Object.assign(log, { decodedLog: iface.parseLog(log) }));
-      decodedEvents.forEach(event => {
-        const [epoch, info] = this.parseEpochDetailsLog(event)
-        EpochInfo.EpochDetails[this.network][epoch] = info
-      })
+      const [currentEpoch] = await this.rewardDistribution.functions.currentEpoch();
+      for (let i = 0; i < currentEpoch.toNumber(); i++) {
+        const epochHistory = await this.rewardDistribution.functions.epochHistory(i)
+
+        const res = await this.provider.getLogs({
+          fromBlock: epochHistory.sendBlockNumber.toNumber(),
+          toBlock: epochHistory.sendBlockNumber.toNumber(),
+          address: RewardDistributionAddress[this.network],
+          topics: [RewardDistributionEventSignature]
+        });
+
+        const decodedEvents = res.map((log: any) => Object.assign(log, { decodedLog: iface.parseLog(log) }));
+        decodedEvents.forEach(event => {
+          const [epoch, info] = this.parseEpochDetailsLog(event)
+          info.calcTimeStamp = epochHistory.calcTimestamp.toNumber()
+          EpochInfo.EpochDetails[this.network][epoch] = info
+        })
+      }
     } catch (e) {
-      console.log(`Get Epoch Details Error: ${e.message}`);
+      logger.error(`Get Epoch Details Error: ${e.message}`);
+      throw e
     }
   }
 
