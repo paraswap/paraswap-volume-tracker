@@ -93,7 +93,7 @@ export class EpochInfo {
             log,
             epochHistory,
           );
-          this.currentEpoch = epoch;
+          this.currentEpoch = epoch + 1;
         } catch (e) {
           logger.error(`Update epoch info error: ${e.message}`);
         }
