@@ -1,6 +1,7 @@
 import * as express from 'express';
 import { isAddress } from '@ethersproject/address';
 import VolumeTracker from './lib/volume-tracker';
+import { MarketMakerAddresses } from './lib/volume-tracker';
 import { PoolInfo } from './lib/pool-info';
 import { Claim } from './models/Claim';
 import { DEFAULT_CHAIN_ID, STAKING_CHAIN_IDS_SET } from './lib/constants';
@@ -128,6 +129,16 @@ export default class Router {
         res.status(403).send({ error: 'VolumeTracker Error' });
       }
     });
+
+    router.get('/marketmaker/addresses', async (req, res) => {
+      try {
+        res.json(MarketMakerAddresses);
+      } catch (e) {
+        logger.error(req.path, e);
+        res.status(403).send({ error: 'MarketMakerAddresses Error' });
+      }
+    });
+
 
     return router;
   }
