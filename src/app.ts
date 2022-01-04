@@ -1,7 +1,10 @@
-import { VOLUME_TRACKER_INIT_TIME, VOLUME_TRACKER_SUPPORTED_NETWORKS } from './lib/constants'
+import {
+  VOLUME_TRACKER_INIT_TIME,
+  VOLUME_TRACKER_SUPPORTED_NETWORKS,
+} from './lib/constants';
 import { shutdown as shutdownLog4js } from './lib/log4js';
 import Database from './database';
-import VolumeTracker from './lib/volume-tracker'
+import VolumeTracker from './lib/volume-tracker';
 import WebServer from './web-server';
 import { PoolInfo } from './lib/pool-info';
 
@@ -18,12 +21,19 @@ export async function startApp() {
     server = new WebServer();
     await server.start(checkDependenciesHealth, stopDependencies);
 
-    await Promise.all(VOLUME_TRACKER_SUPPORTED_NETWORKS.map(network => {
-      if (!VOLUME_TRACKER_INIT_TIME[network]) {
-        throw new Error('VolumeTracker INIT_TIME env var is missing for network ' + network);
-      }
-      return VolumeTracker.createInstance(VOLUME_TRACKER_INIT_TIME[network], network).startIndexing();
-    }))
+    await Promise.all(
+      VOLUME_TRACKER_SUPPORTED_NETWORKS.map(network => {
+        if (!VOLUME_TRACKER_INIT_TIME[network]) {
+          throw new Error(
+            'VolumeTracker INIT_TIME env var is missing for network ' + network,
+          );
+        }
+        return VolumeTracker.createInstance(
+          VOLUME_TRACKER_INIT_TIME[network],
+          network,
+        ).startIndexing();
+      }),
+    );
     await PoolInfo.initStartListening();
 
     logger.info(`Started app (pid=${process.pid})`);

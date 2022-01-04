@@ -5,7 +5,7 @@ import * as RewardDistributionAbi from './abi/reward-distribution.abi.json';
 import {
   CHAIN_ID_ROPSTEN,
   CHAIN_ID_MAINNET,
-  RewardDistributionAddress
+  RewardDistributionAddress,
 } from './constants';
 import { BlockInfo } from './block-info';
 import { Provider } from './provider';
@@ -42,13 +42,12 @@ type EpochDetailsInfo = {
   reward: string;
   poolRewards: {
     [poolAddress: string]: string; // poolAddress must be all in lowercase!!
-  }
+  };
 };
 
 type EpochDetailsI = {
-  [epoch: number]: EpochDetailsInfo
+  [epoch: number]: EpochDetailsInfo;
 };
-
 
 export class EpochInfo {
   epochDetails: EpochDetailsI = {};
@@ -68,39 +67,46 @@ export class EpochInfo {
     retry(() => this.getEpochDetails(), { retries: 5 })
       .then(this.startListeningForEpochDetails.bind(this))
       .catch(e => {
-        logger.error(`Exit on epoch info update error: ${e.message}`)
-        process.exit(1)
-      })
+        logger.error(`Exit on epoch info update error: ${e.message}`);
+        process.exit(1);
+      });
   }
 
-  static instances: {[network: number]: EpochInfo} = {};
+  static instances: { [network: number]: EpochInfo } = {};
 
   static getInstance(network: number): EpochInfo {
-    if(!this.instances[network])
+    if (!this.instances[network])
       this.instances[network] = new EpochInfo(network);
     return this.instances[network];
   }
 
-  startListeningForEpochDetails () {
+  startListeningForEpochDetails() {
     this.rewardDistribution.on(
-      this.rewardDistribution.filters.RewardDistribution(), 
+      this.rewardDistribution.filters.RewardDistribution(),
       async (...args) => {
         try {
           const log = args[args.length - 1];
-          const epoch = log.args.epoch.toNumber() 
-          const epochHistory = await this.rewardDistribution.functions.epochHistory(epoch)
-          this.epochDetails[epoch] = this.parseEpochDetailsLog(log, epochHistory);
+          const epoch = log.args.epoch.toNumber();
+          const epochHistory =
+            await this.rewardDistribution.functions.epochHistory(epoch);
+          this.epochDetails[epoch] = this.parseEpochDetailsLog(
+            log,
+            epochHistory,
+          );
         } catch (e) {
-          logger.error(`Update epoch info error: ${e.message}`)
+          logger.error(`Update epoch info error: ${e.message}`);
         }
-    })
+      },
+    );
   }
 
-  async getEpochDetails () {
+  async getEpochDetails() {
     try {
-      const [currentEpoch] = await this.rewardDistribution.functions.currentEpoch();
+      const [currentEpoch] =
+        await this.rewardDistribution.functions.currentEpoch();
       for (let i = 0; i < currentEpoch.toNumber(); i++) {
-        const epochHistory = await this.rewardDistribution.functions.epochHistory(i)
+        const epochHistory =
+          await this.rewardDistribution.functions.epochHistory(i);
         const eventBlockNumber = epochHistory.sendBlockNumber.toNumber();
         const events = await this.rewardDistribution.queryFilter(
           this.rewardDistribution.filters.RewardDistribution(),
@@ -108,16 +114,19 @@ export class EpochInfo {
           eventBlockNumber,
         );
 
-        if(events.length !== 1)
+        if (events.length !== 1)
           throw new Error('Expected exactly one event for the epoch');
 
-        this.epochDetails[i] = this.parseEpochDetailsLog(events[0], epochHistory);
+        this.epochDetails[i] = this.parseEpochDetailsLog(
+          events[0],
+          epochHistory,
+        );
       }
 
       this.currentEpoch = currentEpoch.toNumber();
     } catch (e) {
       logger.error(`Get Epoch Details Error: ${e.message}`);
-      throw e
+      throw e;
     }
   }
 
@@ -125,20 +134,22 @@ export class EpochInfo {
     return {
       endBlockNumber: log.blockNumber,
       calcTimeStamp: epochHistory.calcTimestamp.toNumber(),
-      reward: log.args.poolAmounts.reduce((acc: any, el: any) => acc.add(el)).toString(),
+      reward: log.args.poolAmounts
+        .reduce((acc: any, el: any) => acc.add(el))
+        .toString(),
       poolRewards: log.args.poolAddresses.reduce(
         (poolRewards: any, poolAddress: string, i: number) => {
-          poolRewards[poolAddress.toLowerCase()] = log.args.poolAmounts[i].toString();
+          poolRewards[poolAddress.toLowerCase()] =
+            log.args.poolAmounts[i].toString();
           return poolRewards;
         },
-        {}
-      )
-    }
+        {},
+      ),
+    };
   }
 
   getCurrentEpoch(): number {
-    if (!this.currentEpoch)
-      throw new Error('currentEpoch not set');
+    if (!this.currentEpoch) throw new Error('currentEpoch not set');
     return this.currentEpoch;
   }
 
@@ -182,12 +193,11 @@ export class EpochInfo {
   }
 
   getPSPPoolReward(epoch: number): string {
-    if (epoch == this.getCurrentEpoch())
-      return this.getCurrentPSPPoolReward();
+    if (epoch == this.getCurrentEpoch()) return this.getCurrentPSPPoolReward();
     return this.epochDetails[epoch].reward;
   }
 
-  getPoolRewards(epoch: number): {[poolAddress: string]: string;} {
+  getPoolRewards(epoch: number): { [poolAddress: string]: string } {
     if (epoch >= this.getCurrentEpoch())
       throw new Error('Epoch rewards not send yet');
     return this.epochDetails[epoch].poolRewards;

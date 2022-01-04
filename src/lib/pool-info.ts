@@ -12,16 +12,16 @@ import { Provider } from './provider';
 import * as MultiCallerABI from './abi/multicaller.abi.json';
 import * as ERC20ABI from './abi/erc20.abi.json';
 import * as SPSPABI from './abi/spsp.abi.json';
-import * as RewardDistributionABI from './abi/reward-distribution.abi.json'
+import * as RewardDistributionABI from './abi/reward-distribution.abi.json';
 import BigNumber from 'bignumber.js';
-import VolumeTracker from './volume-tracker'
+import VolumeTracker from './volume-tracker';
 import { BlockInfo } from './block-info';
 import { EpochInfo } from './epoch-info';
 
 export enum PoolType {
   AMMPool = 'AMMPool',
   MarketMakerPool = 'MarketMakerPool',
-};
+}
 
 export type UnderlyingTokenInfo = {
   tokens: {
@@ -53,7 +53,7 @@ export const PoolConfigsMap: { [network: number]: PoolConfig[] } = {
       marketMakerIdentifier: 'ParaswapPool',
       poolReleaseBlockNumber: 11253673,
       isActive: true,
-      beneficiary: '0x56178a0d5F301bAf6CF3e1Cd53d9863437345Bf9'
+      beneficiary: '0x56178a0d5F301bAf6CF3e1Cd53d9863437345Bf9',
     },
     {
       name: 'ParaSwapPool3',
@@ -65,7 +65,7 @@ export const PoolConfigsMap: { [network: number]: PoolConfig[] } = {
       isActive: true,
       // beneficiary: '0x3726771431089578E8541c03630EB954250E4cf4'
       // For testing purposes the beneficiary is set to test address
-      beneficiary: '0xeb262c0FEca7E98b58DFaCEF6b4EF17966A907d5'
+      beneficiary: '0xeb262c0FEca7E98b58DFaCEF6b4EF17966A907d5',
     },
     {
       name: 'ParaSwapPool4',
@@ -75,7 +75,7 @@ export const PoolConfigsMap: { [network: number]: PoolConfig[] } = {
       marketMakerIdentifier: 'ParaswapPool4',
       poolReleaseBlockNumber: 11253673,
       isActive: true,
-      beneficiary: '0x4f3a120E72C76c22ae802D129F599BFDbc31cb81'
+      beneficiary: '0x4f3a120E72C76c22ae802D129F599BFDbc31cb81',
     },
     {
       name: 'ParaSwapPool7',
@@ -85,7 +85,7 @@ export const PoolConfigsMap: { [network: number]: PoolConfig[] } = {
       marketMakerIdentifier: 'ParaswapPool7',
       poolReleaseBlockNumber: 11253673,
       isActive: true,
-      beneficiary: '0x9E21cAB04Fb4fd1790Bb7ceC2d0582cA1B839e13'
+      beneficiary: '0x9E21cAB04Fb4fd1790Bb7ceC2d0582cA1B839e13',
     },
     {
       name: 'ParaSwapPool9',
@@ -95,7 +95,7 @@ export const PoolConfigsMap: { [network: number]: PoolConfig[] } = {
       marketMakerIdentifier: 'ParaswapPool9',
       poolReleaseBlockNumber: 11253673,
       isActive: false,
-      beneficiary: '0x8Bc3b61825F7aF1F683a205b05139143Bcef4fB7'
+      beneficiary: '0x8Bc3b61825F7aF1F683a205b05139143Bcef4fB7',
     },
     // {
     //   name: 'ParaSwapPool6',
@@ -127,7 +127,7 @@ export const PoolConfigsMap: { [network: number]: PoolConfig[] } = {
       marketMakerIdentifier: 'ParaswapPool',
       poolReleaseBlockNumber: 13619800,
       isActive: true,
-      beneficiary: '0x56178a0d5F301bAf6CF3e1Cd53d9863437345Bf9'
+      beneficiary: '0x56178a0d5F301bAf6CF3e1Cd53d9863437345Bf9',
     },
     {
       name: 'ParaSwapPool3',
@@ -137,7 +137,7 @@ export const PoolConfigsMap: { [network: number]: PoolConfig[] } = {
       marketMakerIdentifier: 'ParaswapPool3',
       poolReleaseBlockNumber: 13619806,
       isActive: true,
-      beneficiary: '0x3726771431089578E8541c03630EB954250E4cf4'
+      beneficiary: '0x3726771431089578E8541c03630EB954250E4cf4',
     },
     {
       name: 'ParaSwapPool4',
@@ -147,7 +147,7 @@ export const PoolConfigsMap: { [network: number]: PoolConfig[] } = {
       marketMakerIdentifier: 'ParaswapPool4',
       poolReleaseBlockNumber: 13619811,
       isActive: true,
-      beneficiary: '0x4f3a120E72C76c22ae802D129F599BFDbc31cb81'
+      beneficiary: '0x4f3a120E72C76c22ae802D129F599BFDbc31cb81',
     },
     {
       name: 'ParaSwapPool7',
@@ -157,7 +157,7 @@ export const PoolConfigsMap: { [network: number]: PoolConfig[] } = {
       marketMakerIdentifier: 'ParaswapPool7',
       poolReleaseBlockNumber: 13619812,
       isActive: true,
-      beneficiary: '0x9E21cAB04Fb4fd1790Bb7ceC2d0582cA1B839e13'
+      beneficiary: '0x9E21cAB04Fb4fd1790Bb7ceC2d0582cA1B839e13',
     },
     {
       name: 'ParaSwapPool8',
@@ -167,7 +167,7 @@ export const PoolConfigsMap: { [network: number]: PoolConfig[] } = {
       marketMakerIdentifier: 'ParaswapPool8',
       poolReleaseBlockNumber: 13631757,
       isActive: true,
-      beneficiary: '0x0000000000000000000000000000000000000000'
+      beneficiary: '0x0000000000000000000000000000000000000000',
     },
     {
       name: 'ParaSwapPool9',
@@ -177,7 +177,7 @@ export const PoolConfigsMap: { [network: number]: PoolConfig[] } = {
       marketMakerIdentifier: 'ParaswapPool9',
       poolReleaseBlockNumber: 13631761,
       isActive: true,
-      beneficiary: '0x8Bc3b61825F7aF1F683a205b05139143Bcef4fB7'
+      beneficiary: '0x8Bc3b61825F7aF1F683a205b05139143Bcef4fB7',
     },
   ],
 };
@@ -278,30 +278,35 @@ type OnChainPoolState = {
   timeLockBlocks: number;
 };
 
-const BlockUpdateInterval: {[network: number]: number} = {
+const BlockUpdateInterval: { [network: number]: number } = {
   [CHAIN_ID_MAINNET]: 3000,
-  [CHAIN_ID_ROPSTEN]: 3000
+  [CHAIN_ID_ROPSTEN]: 3000,
 };
 
-const BlockDelay: {[network: number]: number} = {
+const BlockDelay: { [network: number]: number } = {
   [CHAIN_ID_MAINNET]: 7,
-  [CHAIN_ID_ROPSTEN]: 7
-}
+  [CHAIN_ID_ROPSTEN]: 7,
+};
 
-const VestingSchedule = [{percent: 50, duration: 15768000}, {percent: 50, duration: 31536000}];
+const VestingSchedule = [
+  { percent: 50, duration: 15768000 },
+  { percent: 50, duration: 31536000 },
+];
 
 const PSPDecimals = 18;
 const DayDuration = 60 * 60 * 24;
 
-const ProjectedVolumes = [1, 2, 3, 4, 5, 6, 7].map(e => new BigNumber(10).pow(e + PSPDecimals));
+const ProjectedVolumes = [1, 2, 3, 4, 5, 6, 7].map(e =>
+  new BigNumber(10).pow(e + PSPDecimals),
+);
 const ProjectedVolumesStr = ProjectedVolumes.map(p => p.toFixed());
-const RewardDistributionAddress: {[network: number]: string} = {
+const RewardDistributionAddress: { [network: number]: string } = {
   [CHAIN_ID_MAINNET]: '0x8145cDeeD63e2E3c103F885CbB2cD02a00F54873',
-  [CHAIN_ID_ROPSTEN]: '0x8F4390cdE2BA908c60cd27bDf6be352361Af4f5a'
+  [CHAIN_ID_ROPSTEN]: '0x8F4390cdE2BA908c60cd27bDf6be352361Af4f5a',
 };
-const RewardVestingAddress: {[network: number]: string} = {
+const RewardVestingAddress: { [network: number]: string } = {
   [CHAIN_ID_MAINNET]: '0x7cADB05Be17234c22FB7cf414BE37078D3C0239e',
-  [CHAIN_ID_ROPSTEN]: '0x4daa1bF3fB372B2A0B7e1Da85EAFff1D57629213'
+  [CHAIN_ID_ROPSTEN]: '0x4daa1bF3fB372B2A0B7e1Da85EAFff1D57629213',
 };
 
 export class PoolInfo {
@@ -313,8 +318,8 @@ export class PoolInfo {
   rewardDistributionInterface: Interface;
   provider: JsonRpcProvider;
   poolStates: { [blockNumber: number]: CompletePoolState };
-  poolSPSPSupply: { [blockNumber: number]: {[poolAddress: string]: bigint}};
-  volumeTracker: VolumeTracker
+  poolSPSPSupply: { [blockNumber: number]: { [poolAddress: string]: bigint } };
+  volumeTracker: VolumeTracker;
   private latestBlockNumber: number;
   private latestBlockTimestamp: number;
   private blockInfo: BlockInfo;
@@ -337,7 +342,7 @@ export class PoolInfo {
     this.poolSPSPSupply = {};
     this.blockInfo = BlockInfo.getInstance(this.network);
     this.epochInfo = EpochInfo.getInstance(this.network);
-    this.volumeTracker = VolumeTracker.getInstance(this.network)
+    this.volumeTracker = VolumeTracker.getInstance(this.network);
   }
 
   static getInstance(network: number = DEFAULT_CHAIN_ID) {
@@ -351,8 +356,7 @@ export class PoolInfo {
 
   private async setLatestBlockNumber() {
     const latestBlock = await this.provider.getBlock('latest');
-    this.latestBlockNumber =
-      latestBlock.number - BlockDelay[this.network];
+    this.latestBlockNumber = latestBlock.number - BlockDelay[this.network];
   }
 
   static initStartListening() {
@@ -375,12 +379,17 @@ export class PoolInfo {
   // also considered. epochEndBlock is used instead of epochEndBlock - 1 as with epochEndBlock
   // the earnedPSP is a lower bound while on the other case its an upper bound.
   // TODO: memorize this on db to avoid archive calls
-  async fetchEarnedPSPEpoch(userAddress: string, epoch: number): Promise<{[poolAddress: string]: bigint}> {
+  async fetchEarnedPSPEpoch(
+    userAddress: string,
+    epoch: number,
+  ): Promise<{ [poolAddress: string]: bigint }> {
     const epochEndBlockNumber = this.epochInfo.getEpochEndBlock(epoch);
 
-    const pools = this.poolConfigs.filter(p => p.poolReleaseBlockNumber <= epochEndBlockNumber);
+    const pools = this.poolConfigs.filter(
+      p => p.poolReleaseBlockNumber <= epochEndBlockNumber,
+    );
 
-    if(!this.poolSPSPSupply[epochEndBlockNumber]) {
+    if (!this.poolSPSPSupply[epochEndBlockNumber]) {
       const multiCallData = pools.map(p => {
         return {
           target: p.address,
@@ -391,12 +400,15 @@ export class PoolInfo {
         multiCallData,
         { blockTag: epochEndBlockNumber },
       );
-      const SPSPSupply: {[address: string]: bigint} = {};
-      pools.forEach((p, i) => SPSPSupply[p.address.toLowerCase()] = BigInt(
-        this.spspInterface
-          .decodeFunctionResult('totalSupply', rawResult.returnData[i])
-          .toString(),
-      ));
+      const SPSPSupply: { [address: string]: bigint } = {};
+      pools.forEach(
+        (p, i) =>
+          (SPSPSupply[p.address.toLowerCase()] = BigInt(
+            this.spspInterface
+              .decodeFunctionResult('totalSupply', rawResult.returnData[i])
+              .toString(),
+          )),
+      );
       this.poolSPSPSupply[epochEndBlockNumber] = SPSPSupply;
     }
     const SPSPSupply = this.poolSPSPSupply[epochEndBlockNumber];
@@ -411,39 +423,56 @@ export class PoolInfo {
     });
 
     const rawResult = await this.multicallContract.functions.aggregate(
-        multiCallData,
-        { blockTag: epochEndBlockNumber },
-      );
-    const SPSPBalances = pools.map((p, i) => BigInt(
-      this.erc20Interface
-        .decodeFunctionResult('balanceOf', rawResult.returnData[i])
-        .toString(),
-    ));
+      multiCallData,
+      { blockTag: epochEndBlockNumber },
+    );
+    const SPSPBalances = pools.map((p, i) =>
+      BigInt(
+        this.erc20Interface
+          .decodeFunctionResult('balanceOf', rawResult.returnData[i])
+          .toString(),
+      ),
+    );
 
     const poolRewards = this.epochInfo.getPoolRewards(epoch);
-    const PSPEarned = pools.reduce((acc: {[address: string]: bigint}, p, i) => {
-      const pAddr = p.address.toLowerCase();
-      if (pAddr in poolRewards)
-        acc[p.address.toLowerCase()] = (SPSPBalances[i] * BigInt(poolRewards[pAddr])) / SPSPSupply[p.address.toLowerCase()];
-      return acc;
-    }, {})
+    const PSPEarned = pools.reduce(
+      (acc: { [address: string]: bigint }, p, i) => {
+        const pAddr = p.address.toLowerCase();
+        if (pAddr in poolRewards)
+          acc[p.address.toLowerCase()] =
+            (SPSPBalances[i] * BigInt(poolRewards[pAddr])) /
+            SPSPSupply[p.address.toLowerCase()];
+        return acc;
+      },
+      {},
+    );
 
     return PSPEarned;
   }
 
-  public async fetchEarnedPSP(userAddress: string): Promise<{[poolAddress: string]: string}> {
+  public async fetchEarnedPSP(
+    userAddress: string,
+  ): Promise<{ [poolAddress: string]: string }> {
     const currentEpoch = this.epochInfo.getCurrentEpoch();
-    const epochEarnings = await Promise.all(Array.from(Array(currentEpoch).keys()).map(i => this.fetchEarnedPSPEpoch(userAddress, i)));
-    const totalEarnings = epochEarnings.reduce((acc: {[poolAddress: string]: bigint}, e) => {
-      Object.entries(e).forEach(([key, value]) => {
-        if(!(key in acc))
-          acc[key] = BigInt(0);
-        acc[key] += value;
-      });
-      return acc;
-    }, {});
-    const totalEarningsS: {[poolAddress: string]: string} = {};
-    Object.entries(totalEarnings).forEach(([key, value]) => totalEarningsS[key] = value.toString());
+    const epochEarnings = await Promise.all(
+      Array.from(Array(currentEpoch).keys()).map(i =>
+        this.fetchEarnedPSPEpoch(userAddress, i),
+      ),
+    );
+    const totalEarnings = epochEarnings.reduce(
+      (acc: { [poolAddress: string]: bigint }, e) => {
+        Object.entries(e).forEach(([key, value]) => {
+          if (!(key in acc)) acc[key] = BigInt(0);
+          acc[key] += value;
+        });
+        return acc;
+      },
+      {},
+    );
+    const totalEarningsS: { [poolAddress: string]: string } = {};
+    Object.entries(totalEarnings).forEach(
+      ([key, value]) => (totalEarningsS[key] = value.toString()),
+    );
     return totalEarningsS;
   }
 
@@ -531,7 +560,9 @@ export class PoolInfo {
 
     if (blockNumber in this.poolStates) return this.poolStates[blockNumber];
 
-    const epochStartCalcTime = await this.epochInfo.getEpochStartCalcTime(epoch);
+    const epochStartCalcTime = await this.epochInfo.getEpochStartCalcTime(
+      epoch,
+    );
 
     const epochEndCalcTime = isCurrentEpoch
       ? undefined
@@ -663,11 +694,20 @@ export class PoolInfo {
     const baseWeights = marketMakerVolumes.map((m, i) =>
       new BigNumber(m).times(poolStakedUnderlyingTokens[i]).squareRoot(),
     );
-    const baseSumWeight = baseWeights.reduce((sum, w) => sum.plus(w), new BigNumber(0));
-    const projectedRewards = poolStakedUnderlyingTokens.map((s, i) => ProjectedVolumes.map(v => {
-      const currentWeight = new BigNumber(marketMakerVolumes[i]).times(v.plus(s)).squareRoot();
-      return currentWeight.times(epochReward).div(baseSumWeight.minus(baseWeights[i]).plus(currentWeight));
-    }));
+    const baseSumWeight = baseWeights.reduce(
+      (sum, w) => sum.plus(w),
+      new BigNumber(0),
+    );
+    const projectedRewards = poolStakedUnderlyingTokens.map((s, i) =>
+      ProjectedVolumes.map(v => {
+        const currentWeight = new BigNumber(marketMakerVolumes[i])
+          .times(v.plus(s))
+          .squareRoot();
+        return currentWeight
+          .times(epochReward)
+          .div(baseSumWeight.minus(baseWeights[i]).plus(currentWeight));
+      }),
+    );
     return projectedRewards;
   }
 
@@ -675,7 +715,7 @@ export class PoolInfo {
     marketMakerVolumes: string[],
     onChainPoolStates: OnChainPoolState[],
     epochReward: string,
-  ): {poolAPYs: BigNumber[], projectedPoolAPYs: BigNumber[][]} {
+  ): { poolAPYs: BigNumber[]; projectedPoolAPYs: BigNumber[][] } {
     const poolStakedUnderlyingTokens = onChainPoolStates.map(s =>
       (s.underlyingTokenBalance - s.underlyingTokenLocked).toString(),
     );
@@ -701,13 +741,15 @@ export class PoolInfo {
 
     const BN0 = new BigNumber(0);
 
-    const projectedPoolAPYs = projectedRewards.map(
-      (poolRewards, i) => poolRewards.map(
-        (r, j) => poolStakedUnderlyingTokens[i] == '0' && ProjectedVolumes[j].eq(BN0)
-        ? new BigNumber(0)
-        : r.times(factor).div(ProjectedVolumes[j].plus(poolStakedUnderlyingTokens[i]))
-
-    ))
+    const projectedPoolAPYs = projectedRewards.map((poolRewards, i) =>
+      poolRewards.map((r, j) =>
+        poolStakedUnderlyingTokens[i] == '0' && ProjectedVolumes[j].eq(BN0)
+          ? new BigNumber(0)
+          : r
+              .times(factor)
+              .div(ProjectedVolumes[j].plus(poolStakedUnderlyingTokens[i])),
+      ),
+    );
     return { poolAPYs, projectedPoolAPYs };
   }
 
@@ -716,9 +758,7 @@ export class PoolInfo {
     return null;
   }
 
-  async getCurrentEpochRewardParams(
-    calcTimeStamp: number,
-  ): Promise<{
+  async getCurrentEpochRewardParams(calcTimeStamp: number): Promise<{
     poolAddresses: string[];
     poolAmounts: string[];
     vestingBeneficiaries: string[];
@@ -736,7 +776,9 @@ export class PoolInfo {
   }> {
     const epochReward = this.epochInfo.getCurrentPSPPoolReward();
     const currentEpoch = this.epochInfo.getCurrentEpoch();
-    const epochCalcStartTime = await this.epochInfo.getEpochStartCalcTime(currentEpoch);
+    const epochCalcStartTime = await this.epochInfo.getEpochStartCalcTime(
+      currentEpoch,
+    );
 
     const marketMakerVolumeMap = await this.volumeTracker.getVolumeUSD(
       epochCalcStartTime,
@@ -777,16 +819,28 @@ export class PoolInfo {
     let vestingBeneficiaries: string[] = [];
     let vestingAmounts: string[] = [];
     let vestingDurations: number[] = [];
-    this.poolConfigs.forEach((p, i) => VestingSchedule.forEach(v => {
-      vestingBeneficiaries.push(p.beneficiary);
-      vestingAmounts.push((BigInt(amounts[i]) * BigInt(v.percent) / BigInt(100)).toString());
-      vestingDurations.push(v.duration);
-    }))
+    this.poolConfigs.forEach((p, i) =>
+      VestingSchedule.forEach(v => {
+        vestingBeneficiaries.push(p.beneficiary);
+        vestingAmounts.push(
+          ((BigInt(amounts[i]) * BigInt(v.percent)) / BigInt(100)).toString(),
+        );
+        vestingDurations.push(v.duration);
+      }),
+    );
 
-    const calldata = this.rewardDistributionInterface.encodeFunctionData('multiSendReward', [
-      addresses, amounts, vestingBeneficiaries, vestingAmounts, vestingDurations,
-      RewardVestingAddress[this.network], calcTimeStamp
-    ])
+    const calldata = this.rewardDistributionInterface.encodeFunctionData(
+      'multiSendReward',
+      [
+        addresses,
+        amounts,
+        vestingBeneficiaries,
+        vestingAmounts,
+        vestingDurations,
+        RewardVestingAddress[this.network],
+        calcTimeStamp,
+      ],
+    );
 
     return {
       poolAddresses: addresses,
@@ -802,7 +856,7 @@ export class PoolInfo {
       vestingAmounts,
       vestingDurations,
       rewardDistributionAddress: RewardDistributionAddress[this.network],
-      calldata
+      calldata,
     };
   }
 
