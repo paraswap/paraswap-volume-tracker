@@ -5,8 +5,15 @@ export const CHAIN_ID_POLYGON = 137;
 export const CHAIN_ID_AVALANCHE = 43114;
 
 export const STAKING_CHAIN_IDS = [CHAIN_ID_MAINNET, CHAIN_ID_ROPSTEN];
-export const STAKING_CHAIN_IDS_SET = new Set([CHAIN_ID_MAINNET, CHAIN_ID_ROPSTEN]);
+export const STAKING_CHAIN_IDS_SET = new Set([
+  CHAIN_ID_MAINNET,
+  CHAIN_ID_ROPSTEN,
+]);
 
+export const VOLUME_TRACKER_SUPPORTED_NETWORKS = [CHAIN_ID_MAINNET];
+export const VOLUME_TRACKER_INIT_TIME: { [network: number]: number } = {
+  [CHAIN_ID_MAINNET]: parseInt(process.env.INIT_TIME || '0'), //TODO: use the block info to the init time from the init block
+};
 
 export const Web3Provider: { [network: number]: string } = {
   [CHAIN_ID_MAINNET]: process.env.HTTP_PROVIDER || '',
@@ -27,6 +34,10 @@ export const AugustusV4Address: { [network: number]: string } = {
   [CHAIN_ID_MAINNET]: '0x1bd435f3c054b6e901b7b108a0ab7617c808677b',
   [CHAIN_ID_BINANCE]: '0x55A0E3b6579972055fAA983482acEb4B251dcF15',
   [CHAIN_ID_POLYGON]: '0x90249ed4d69D70E709fFCd8beE2c5A566f65dADE',
+};
+
+export const RewardDistributionAddress: { [network: string]: string } = {
+  [CHAIN_ID_MAINNET]: '0x8145cDeeD63e2E3c103F885CbB2cD02a00F54873',
 };
 
 // TODO: in future we can fetch it from the api directly
