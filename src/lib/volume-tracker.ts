@@ -82,6 +82,9 @@ export const MarketMakerAddresses: {
   ParaswapPool9: {
     1: ['0x969378CDB054D9887392B21c84AFaB429029A91A'],
   },
+  ParaswapPool10: {
+    1: ['0xbc33a1f908612640f2849b56b67a4de4d179c151']
+  }
 };
 
 type TimeRanges = Array<{
