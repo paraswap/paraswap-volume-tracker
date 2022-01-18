@@ -49,6 +49,8 @@ type EpochDetailsI = {
   [epoch: number]: EpochDetailsInfo;
 };
 
+const EpochPollingTime = 1 * 60 * 1000; // 1min 
+
 export class EpochInfo {
   epochDetails: EpochDetailsI = {};
   currentEpoch: number | null = null;
@@ -64,12 +66,14 @@ export class EpochInfo {
       RewardDistributionAbi,
       provider,
     );
-    retry(() => this.getEpochDetails(), { retries: 5 })
-      .then(this.startListeningForEpochDetails.bind(this))
-      .catch(e => {
-        logger.error(`Exit on epoch info update error: ${e.message}`);
-        process.exit(1);
-      });
+    const getEpochInfo = () => retry(() => this.getEpochDetails(), { retries: 5 });
+    
+    getEpochInfo().catch(e => {
+      logger.error(`Exit on epoch info update error: ${e.message}`);
+      process.exit(1);
+    });
+
+    setInterval(getEpochInfo, EpochPollingTime);
   }
 
   static instances: { [network: number]: EpochInfo } = {};
@@ -80,31 +84,12 @@ export class EpochInfo {
     return this.instances[network];
   }
 
-  startListeningForEpochDetails() {
-    this.rewardDistribution.on(
-      this.rewardDistribution.filters.RewardDistribution(),
-      async (...args) => {
-        try {
-          const log = args[args.length - 1];
-          const epoch = log.args.epoch.toNumber();
-          const epochHistory =
-            await this.rewardDistribution.functions.epochHistory(epoch);
-          this.epochDetails[epoch] = this.parseEpochDetailsLog(
-            log,
-            epochHistory,
-          );
-          this.currentEpoch = epoch + 1;
-        } catch (e) {
-          logger.error(`Update epoch info error: ${e.message}`);
-        }
-      },
-    );
-  }
-
   async getEpochDetails() {
     try {
       const [currentEpoch] =
         await this.rewardDistribution.functions.currentEpoch();
+      if (this.currentEpoch && this.currentEpoch >= currentEpoch.toNumber())
+        return; 
       for (let i = 0; i < currentEpoch.toNumber(); i++) {
         const epochHistory =
           await this.rewardDistribution.functions.epochHistory(i);
