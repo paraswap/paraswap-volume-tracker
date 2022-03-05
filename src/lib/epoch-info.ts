@@ -23,13 +23,13 @@ export const StakingSettings: {
   [network: number]: StakingSetting;
 } = {
   [CHAIN_ID_MAINNET]: {
-    CurrentPSPEpochReward: '2500000000000000000000000',
+    CurrentPSPEpochReward: '750000000000000000000000',
     EpochDuration: 14 * 60 * 60 * 24,
     BlockDelay: 7,
     GenesisBlockNumber: 13620219, // This is start of the epoch 0
   },
   [CHAIN_ID_ROPSTEN]: {
-    CurrentPSPEpochReward: '2500000000000000000000000',
+    CurrentPSPEpochReward: '750000000000000000000000',
     EpochDuration: 14 * 60 * 60 * 24,
     BlockDelay: 10,
     GenesisBlockNumber: 11348236, // This is start of the epoch 0
