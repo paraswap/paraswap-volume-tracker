@@ -3,8 +3,10 @@ import { TxFeesByAddress } from './types';
 import * as SPSPABI from '../../lib/abi/spsp.abi.json';
 import { Provider } from '../../lib/provider';
 import { PoolConfigsMap } from '../../lib/pool-info';
-import snapshot from '@snapshot-labs/snapshot.js'; // convient for smooth multicall implementation
 import { BigNumberish, BigNumber } from '@ethersproject/bignumber';
+// @ts-ignore
+import { utils } from '@snapshot-labs/snapshot.js' 
+
 
 /**
  * fetch total PSP balances of all addresses for all pools
@@ -12,13 +14,12 @@ import { BigNumberish, BigNumber } from '@ethersproject/bignumber';
  */
 const SPSPs = PoolConfigsMap[CHAIN_ID_MAINNET].filter(p => p.isActive);
 
-const multicallContract = new snapshot.utils.Multicaller(
+const multicallContract = new utils.Multicaller(
   String(CHAIN_ID_MAINNET),
   Provider.getJsonRpcProvider(CHAIN_ID_MAINNET) as any,
   SPSPABI,
   { blockTag: 'latest' },
 );
-
 
 // @FIXME: nb of addresses can be relatively high. Consider partitioning the addresses into batches
 export async function fetchPSPStakes(accTxFeesByAddressByChain: {
