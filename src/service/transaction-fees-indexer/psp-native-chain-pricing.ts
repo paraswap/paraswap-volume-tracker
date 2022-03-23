@@ -102,6 +102,7 @@ async function fetchDailyPspUsdPrice({
 }
 
 // @FIXME: implementation is not resilient to inconsistent historical data (say coingecko return different granularity)
+// @FIXME: make sure prices timestamps starts from startTimestamp could be few minutes delay, prevent code to hop to next day price
 export async function fetchDailyPSPChainCurrencyRate({
   chainId,
   startTimestamp,
