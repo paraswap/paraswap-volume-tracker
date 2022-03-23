@@ -31,18 +31,18 @@ export type Swap = {
   beneficiary: string;
   srcToken: string;
   destToken: string;
-  srcAmount: BigInt;
-  srcAmountUSD: string;
-  destAmount: BigInt;
-  destAmountUSD: string;
-  expectedAmount: BigInt | null;
+  srcAmount: bigint;
+  srcAmountUSD: string | null;
+  destAmount: bigint;
+  destAmountUSD: string | null;
+  expectedAmount: bigint | null;
   expectedAmountUSD: string | null;
   referrer: string | null;
   txHash: string;
   txOrigin: string;
   txTarget: string;
-  txGasUsed: BigInt;
-  txGasPrice: BigInt;
+  txGasUsed: bigint;
+  txGasPrice: bigint;
   blockHash: string;
   blockNumber: number;
   timestamp: number;
@@ -123,6 +123,7 @@ export class SwapsTracker {
 
   private constructor(
     protected network: number = CHAIN_ID_MAINNET,
+    protected skipTokenPricing: boolean = false,
     protected blockDelay = defaultBlockDelay,
     protected indexRefreshDelay = defaultIndexRefreshDelay,
   ) {
@@ -133,9 +134,12 @@ export class SwapsTracker {
     this.blockInfo = BlockInfo.getInstance(this.network);
   }
 
-  static getInstance(network: number): SwapsTracker {
+  static getInstance(
+    network: number,
+    skipTokenPricing: boolean = false,
+  ): SwapsTracker {
     if (!this.instances[network])
-      this.instances[network] = new SwapsTracker(network);
+      this.instances[network] = new SwapsTracker(network, skipTokenPricing);
     return this.instances[network];
   }
 
@@ -164,23 +168,29 @@ export class SwapsTracker {
         data.swaps.map(async (swap: any) => {
           const blockNumber = parseInt(swap.blockNumber);
 
-          const srcAmountUSD = (
-            await this._getTokenPrice(
-              blockNumber,
-              swap.srcToken,
-              new BigNumber(swap.srcAmount),
-            )
-          ).toFixed();
+          const srcAmountUSD = this.skipTokenPricing
+            ? null
+            : (
+                await this._getTokenPrice(
+                  blockNumber,
+                  swap.srcToken,
+                  new BigNumber(swap.srcAmount),
+                )
+              ).toFixed();
 
-          const destAmountUSD = (
-            await this._getTokenPrice(
-              blockNumber,
-              swap.destToken,
-              new BigNumber(swap.destAmount),
-            )
-          ).toFixed();
+          const destAmountUSD = this.skipTokenPricing
+            ? null
+            : (
+                await this._getTokenPrice(
+                  blockNumber,
+                  swap.destToken,
+                  new BigNumber(swap.destAmount),
+                )
+              ).toFixed();
 
-          const expectedAmountUSD = swap.expectedAmount
+          const expectedAmountUSD = this.skipTokenPricing
+            ? null
+            : swap.expectedAmount
             ? (
                 await this._getTokenPrice(
                   blockNumber,
@@ -261,7 +271,9 @@ export class SwapsTracker {
           this.initTime,
         );
         if (!this.initBlock) {
-          logger.error(`_indexLatest: unable to fetch block number for ${this.initTime}`);
+          logger.error(
+            `_indexLatest: unable to fetch block number for ${this.initTime}`,
+          );
           return;
         }
         this.lastIndexedBlock = this.initBlock;
@@ -289,7 +301,7 @@ export class SwapsTracker {
   }
 
   async startIndexing() {
-    await this.priceApi.init();
+    if (!this.skipTokenPricing) await this.priceApi.init();
     await this.indexLatest();
     setInterval(() => this.indexLatest(), this.indexRefreshDelay);
   }

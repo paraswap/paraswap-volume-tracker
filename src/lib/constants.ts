@@ -1,3 +1,6 @@
+export const PSP_ADDRESS_ETHEREUM =
+  '0xcafe001067cdef266afb7eb5a286dcfd277f3de5';
+
 export const CHAIN_ID_MAINNET = 1;
 export const CHAIN_ID_ROPSTEN = 3;
 export const CHAIN_ID_BINANCE = 56;
