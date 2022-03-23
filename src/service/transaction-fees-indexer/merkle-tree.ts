@@ -11,10 +11,9 @@ export async function computeMerkleData(
   amounts: Claimable[],
   epoch: number,
 ): Promise<MerkleTreeData | null> {
-  const totalAmount = amounts.reduce(
-    (acc, curr) => (acc += BigInt(curr.amount)),
-    BigInt(0),
-  ).toString()
+  const totalAmount = amounts
+    .reduce((acc, curr) => (acc += BigInt(curr.amount)), BigInt(0))
+    .toString();
 
   const hashedClaimabled = amounts.reduce<Record<string, Claimable>>(
     (acc, curr) => {

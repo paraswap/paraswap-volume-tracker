@@ -43,7 +43,7 @@ export class GasRefundApi {
       this.epochInfo.getEpochEndCalcTime(lastEpochNum),
     ]);
 
-    if (!epochStartTime || !epochEndtime) throw new Error('no last epoch'); // FIXME: check case when epochEndTime would be in the future
+    if (!epochStartTime || !epochEndtime) throw new Error('no last epoch'); // @FIXME: check case when epochEndTime would be in the future
 
     const merkleRootPeriod = await this.getMerkleRootForPeriod(
       epochStartTime,
