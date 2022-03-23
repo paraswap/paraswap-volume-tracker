@@ -55,7 +55,14 @@ export async function computeAccumulatedTxFeesByAddress({
         p => swap.timestamp > p.timestamp,
       ); // @FIXME: likely not correct, suboptimal
 
-      if (!pspRateSameDay) throw new Error('Fail to find price for same day');
+      if (!pspRateSameDay)
+        throw new Error(
+          `Fail to find price for same day $${
+            swap.timestamp
+          } and rates=${JSON.stringify(
+            pspNativeCurrencyDailyRate.flatMap(p => p.timestamp),
+          )}`,
+        );
 
       const currGasFeePSP =
         swap.txGasUsed * swap.txGasPrice * BigInt(pspRateSameDay.rate);

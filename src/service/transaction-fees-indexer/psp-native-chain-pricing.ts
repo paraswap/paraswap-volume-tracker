@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { assert } from 'ts-essentials';
 import {
   CHAIN_ID_AVALANCHE,
   CHAIN_ID_BINANCE,
@@ -8,6 +9,8 @@ import {
   PSP_ADDRESS_ETHEREUM,
 } from '../../lib/constants';
 import { HistoricalPrice } from './types';
+
+const logger = global.LOGGER('GRP:PSP-CHAIN-CURRENCY-PRICING');
 
 type CoingeckoMapping = {
   [chainId: number]: {
@@ -121,10 +124,13 @@ export async function fetchDailyPSPChainCurrencyRate({
     fetchDailyPspUsdPrice({ startTimestamp, endTimestamp }),
   ]);
 
-  if (chainCurPrice.length !== pspPrice.length)
-    throw new Error(
-      `Invalid price length got: ${chainCurPrice.length} and ${pspPrice.length}`,
-    );
+  assert(chainCurPrice.length > 0, 'could not find any rate');
+  assert(
+    chainCurPrice.length === pspPrice.length,
+    `Invalid price length got: ${chainCurPrice.length} and ${pspPrice.length}`,
+  );
+
+  logger.info(`Successfully retrieved ${chainCurPrice.length} prices`);
 
   return chainCurPrice.map((chainCurPrice, i) => ({
     timestamp: chainCurPrice.timestamp,
