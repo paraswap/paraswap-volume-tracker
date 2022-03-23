@@ -18,8 +18,8 @@ import BigNumber from 'bignumber.js';
 const logger = global.LOGGER('GRP');
 
 const epochNum = 7; // @TODO: read from EpochInfo
-const epochStartTime = 1646668203; // @TODO: read from EpochInfo
-const epochEndTime = 1646674203; // @TODO: read from EpochInfo
+const epochStartTime = 1647877128; // @TODO: read from EpochInfo
+const epochEndTime = 1647884328; // @TODO: read from EpochInfo
 
 const GRP_SUPPORTED_CHAINS = [
   CHAIN_ID_MAINNET,
@@ -78,20 +78,22 @@ async function computeAccumulatedTxFeesByAddressAllChains({
   return dailyTxFeesByAddressByChain;
 }
 
-function reduceGasRefundByAddressAllChains(
+async function reduceGasRefundByAddressAllChains(
   accTxFeesByAddressByChain: {
     [chainId: number]: TxFeesByAddress;
   },
   pspStakesByAddress: { [address: string]: BigNumber },
 ) {
   const gasRefundByAddressByChain = Object.fromEntries(
-    GRP_SUPPORTED_CHAINS.map(chainId => [
-      chainId,
-      reduceGasRefundByAddress(
-        accTxFeesByAddressByChain[chainId],
-        pspStakesByAddress,
-      ),
-    ]),
+    await Promise.all(
+      GRP_SUPPORTED_CHAINS.map(chainId => [
+        chainId,
+        reduceGasRefundByAddress(
+          accTxFeesByAddressByChain[chainId],
+          pspStakesByAddress,
+        ),
+      ]),
+    ),
   );
 
   return gasRefundByAddressByChain;
@@ -106,9 +108,11 @@ async function computeMerkleTreeDataAllChains(
   const merkleTreeDataByChain = Object.fromEntries(
     await Promise.all(
       GRP_SUPPORTED_CHAINS.map(chainId =>
-        computeMerkleData(claimableAmountsByChain[chainId], epochNum).then(
-          p => [chainId, p] as const,
-        ),
+        computeMerkleData(
+          chainId,
+          claimableAmountsByChain[chainId],
+          epochNum,
+        ).then(p => [chainId, p] as const),
       ),
     ),
   );
@@ -143,14 +147,14 @@ export async function start() {
 
   // combine data to form mapping(chainId => address => {totalStakes@debug, gasRefundPercent@debug, accGasUsedPSP@debug, refundAmount})  // amount = accGasUsedPSP * gasRefundPercent
   logger.info(`reduce gas refund by address for all chains`);
-  const gasRefundByAddressByChain = reduceGasRefundByAddressAllChains(
+  const gasRefundByAddressByChain = await reduceGasRefundByAddressAllChains(
     accTxFeesByAddressByChain,
     pspStakesByAddress,
   );
 
   // compute mapping(networkId => MerkleTree)
   logger.info(`compute merkleTree by chain`);
-  const merkleTreeByChain = computeMerkleTreeDataAllChains(
+  const merkleTreeByChain = await computeMerkleTreeDataAllChains(
     gasRefundByAddressByChain,
     epochNum,
   );

@@ -1,5 +1,5 @@
 import { MerkleTreeData } from './types';
-import { utils } from 'ethers';
+import { logger, utils } from 'ethers';
 import { MerkleTree } from 'merkletreejs';
 
 type Claimable = {
@@ -8,6 +8,7 @@ type Claimable = {
 };
 
 export async function computeMerkleData(
+  chainId: number,
   amounts: Claimable[],
   epoch: number,
 ): Promise<MerkleTreeData | null> {
@@ -31,11 +32,13 @@ export async function computeMerkleData(
 
   const tree = new MerkleTree(allLeaves, utils.keccak256);
 
+  logger.info(`merkleTree for chainId=${chainId}: ${tree.toString()}`);
+
   const merkleRoot = tree.getRoot().toString('hex');
 
   const merkleLeaves = allLeaves.map(leaf => {
     const { address, amount } = hashedClaimabled[leaf];
-    const proofs = tree.getProof(leaf).map(proof => proof.toString('hex'));
+    const proofs = tree.getHexProof(leaf).map(proof => proof.toString());
     return { address, amount, epoch, merkleProofs: proofs };
   });
 
