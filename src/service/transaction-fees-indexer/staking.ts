@@ -14,7 +14,7 @@ const logger = global.LOGGER('GRP:STAKING');
  * fetch total PSP balances of all addresses for all pools
  * logic borrowed our own snaptshot strategy https://github.com/snapshot-labs/snapshot-strategies/blob/7a9cd1439187ccc95d4702249fd26de778ecd8a7/src/strategies/staked-psp-balance
  */
-const SPSPs = PoolConfigsMap[CHAIN_ID_MAINNET].filter(p => p.isActive);
+const SPSPs = PoolConfigsMap[CHAIN_ID_MAINNET].filter(p => p.isActive).map(p => p.address);
 
 // @FIXME: nb of addresses can be relatively high. Consider partitioning the addresses into batches
 export async function fetchPSPStakes(accTxFeesByAddressByChain: {
@@ -38,6 +38,7 @@ export async function fetchPSPStakes(accTxFeesByAddressByChain: {
   SPSPs.forEach(SPSP => {
     allAddresses.forEach(address => {
       const path = `${SPSP}_${address}`;
+//      logger.info(`muticall(${path}, ${SPSP}, 'PSPBalance', ${address})`);
       return multicallContract.call(path, SPSP, 'PSPBalance', [address]);
     });
   });
