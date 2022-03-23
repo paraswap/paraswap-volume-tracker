@@ -1,3 +1,5 @@
+import { assert } from 'ts-essentials';
+import { BlockInfo } from '../../lib/block-info';
 import { SwapsTracker } from '../../lib/swaps-tracker';
 import { HistoricalPrice, TxFeesByAddress } from './types';
 
@@ -5,8 +7,8 @@ const logger = global.LOGGER('GRP');
 
 export async function computeAccumulatedTxFeesByAddress({
   chainId,
-  startTimestamp, // @TODO
-  endTimestamp, // @TODO
+  startTimestamp,
+  endTimestamp,
   pspNativeCurrencyDailyRate,
 }: {
   chainId: number;
@@ -15,8 +17,20 @@ export async function computeAccumulatedTxFeesByAddress({
   pspNativeCurrencyDailyRate: HistoricalPrice;
 }) {
   const swapTracker = SwapsTracker.getInstance(chainId, true);
-  const startBlock = 14440939; // @TODO: read from BlockInfo
-  const endBlock = 14441538; // @TODO: read from BlockInfo
+  const blockInfo = BlockInfo.getInstance(chainId);
+  const [startBlock, endBlock] = await Promise.all([
+    blockInfo.getBlockAfterTimeStamp(startTimestamp),
+    blockInfo.getBlockAfterTimeStamp(endTimestamp),
+  ]);
+
+  assert(
+    startBlock,
+    `no start block found for chain ${chainId} for timestamp ${startTimestamp}`,
+  );
+  assert(
+    endBlock,
+    `no start block found for chain ${chainId} for timestamp ${endTimestamp}`,
+  );
 
   /** @TODO: partitioning (startBlock,endBlock) in k (what's best value for k ? 100 ? 1000 ?)
    * compute accumulated tx fees for address accross each partion
