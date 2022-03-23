@@ -3,6 +3,7 @@ export const CHAIN_ID_ROPSTEN = 3;
 export const CHAIN_ID_BINANCE = 56;
 export const CHAIN_ID_POLYGON = 137;
 export const CHAIN_ID_AVALANCHE = 43114;
+export const CHAIN_ID_FANTOM = 250;
 
 export const STAKING_CHAIN_IDS = [CHAIN_ID_MAINNET, CHAIN_ID_ROPSTEN];
 export const STAKING_CHAIN_IDS_SET = new Set([

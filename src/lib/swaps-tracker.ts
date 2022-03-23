@@ -10,6 +10,7 @@ import {
   CHAIN_ID_BINANCE,
   CHAIN_ID_POLYGON,
   CHAIN_ID_AVALANCHE,
+  CHAIN_ID_FANTOM,
 } from './constants';
 import { PriceApi } from './price-api';
 import { BlockInfo } from './block-info';
@@ -62,6 +63,8 @@ const SubgraphURLs: { [network: number]: string } = {
     'https://api.thegraph.com/subgraphs/name/paraswap/paraswap-subgraph-bsc',
   [CHAIN_ID_POLYGON]:
     'https://api.thegraph.com/subgraphs/name/paraswap/paraswap-subgraph-polygon',
+  [CHAIN_ID_FANTOM]:
+    'https://api.thegraph.com/subgraphs/name/paraswap/paraswap-subgraph-fantom',
 };
 
 const InitTime: { [network: number]: number } = {
