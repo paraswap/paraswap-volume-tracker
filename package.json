@@ -41,6 +41,7 @@
     "@ethersproject/contracts": "5.5.0",
     "@ethersproject/providers": "5.5.0",
     "@godaddy/terminus": "4.9.0",
+    "@snapshot-labs/snapshot.js": "^0.3.56",
     "@types/pg": "^8.6.1",
     "axios": "0.24.0",
     "bignumber.js": "9.0.1",
