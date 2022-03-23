@@ -13,6 +13,7 @@ import { fetchDailyPSPChainCurrencyRate } from './psp-chaincurrency-pricing';
 import { computeAccumulatedTxFeesByAddress } from './transaction-fees';
 import { fetchPSPStakes } from './staking';
 import { Claimable, HistoricalPrice, TxFeesByAddress } from './types';
+import BigNumber from 'bignumber.js';
 
 const logger = global.LOGGER('GRP');
 
@@ -81,7 +82,7 @@ function reduceGasRefundByAddressAllChains(
   accTxFeesByAddressByChain: {
     [chainId: number]: TxFeesByAddress;
   },
-  pspStakesByAddress: { [address: string]: bigint },
+  pspStakesByAddress: { [address: string]: BigNumber },
 ) {
   const gasRefundByAddressByChain = Object.fromEntries(
     GRP_SUPPORTED_CHAINS.map(chainId => [

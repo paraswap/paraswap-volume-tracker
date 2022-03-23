@@ -6,12 +6,12 @@ type GasRefundLevel = 'level_1' | 'level_2' | 'level_3' | 'level_4';
 
 type GasRefundLevelsDef = {
   level: GasRefundLevel;
-  minStakedAmount: bigint;
+  minStakedAmount: BigNumber;
   refundPercent: number;
 };
 
-//                                          psp decimals
-const scale = (num: number) => BigInt(num) * BigInt(1e18);
+//                                                  psp decimals
+const scale = (num: number) => new BigNumber(num).multipliedBy(1e18);
 
 const minStake = scale(500); // @FIXME: resolve min stake automatically
 
@@ -38,21 +38,22 @@ const gasRefundLevels: GasRefundLevelsDef[] = [
   },
 ].reverse(); // reverse for descending lookup
 
-const getRefundPercent = (stakedAmount: bigint): number | undefined =>
-  gasRefundLevels.find(({ minStakedAmount }) => stakedAmount >= minStakedAmount)
-    ?.refundPercent;
+const getRefundPercent = (stakedAmount: BigNumber): number | undefined =>
+  gasRefundLevels.find(({ minStakedAmount }) =>
+    stakedAmount.gte(minStakedAmount),
+  )?.refundPercent;
 
 // @FIXME: read accumulated tx fees by address and gas refund level -> reduce claimable amounts
 export function reduceGasRefundByAddress(
   accTxFeesByAddress: TxFeesByAddress,
-  pspStakesByAddress: { [address: string]: bigint },
+  pspStakesByAddress: { [address: string]: BigNumber },
 ): Claimable[] {
   const claimableAmounts = Object.entries(accTxFeesByAddress).reduce<
     Claimable[]
   >((acc, [address, accTxFees]) => {
     const stakedAmount = pspStakesByAddress[address];
 
-    if (stakedAmount < minStake) return acc;
+    if (stakedAmount.lt(minStake)) return acc;
 
     const refundPercent = getRefundPercent(stakedAmount);
 

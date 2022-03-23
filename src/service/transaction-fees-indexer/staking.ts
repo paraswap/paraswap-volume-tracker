@@ -3,9 +3,12 @@ import { TxFeesByAddress } from './types';
 import * as SPSPABI from '../../lib/abi/spsp.abi.json';
 import { Provider } from '../../lib/provider';
 import { PoolConfigsMap } from '../../lib/pool-info';
-import { BigNumberish, BigNumber } from '@ethersproject/bignumber';
+import { BigNumberish, BigNumber as EthersBN } from '@ethersproject/bignumber';
+import { BigNumber } from 'bignumber.js';
 // @ts-ignore
 import { utils } from '@snapshot-labs/snapshot.js';
+
+const logger = global.LOGGER('GRP:STAKING');
 
 /**
  * fetch total PSP balances of all addresses for all pools
@@ -13,22 +16,24 @@ import { utils } from '@snapshot-labs/snapshot.js';
  */
 const SPSPs = PoolConfigsMap[CHAIN_ID_MAINNET].filter(p => p.isActive);
 
-const multicallContract = new utils.Multicaller(
-  String(CHAIN_ID_MAINNET),
-  Provider.getJsonRpcProvider(CHAIN_ID_MAINNET) as any,
-  SPSPABI,
-  { blockTag: 'latest' },
-);
-
 // @FIXME: nb of addresses can be relatively high. Consider partitioning the addresses into batches
 export async function fetchPSPStakes(accTxFeesByAddressByChain: {
   [chainId: number]: TxFeesByAddress;
-}): Promise<{ [address: string]: bigint }> {
+}): Promise<{ [address: string]: BigNumber }> {
   const allAddresses = [
     ...new Set(
       Object.values(accTxFeesByAddressByChain).flatMap(v => Object.keys(v)),
     ),
   ];
+
+  logger.info(`fetching stakes for ${allAddresses.length} addresses`);
+
+  const multicallContract = new utils.Multicaller(
+    String(CHAIN_ID_MAINNET),
+    Provider.getJsonRpcProvider(CHAIN_ID_MAINNET) as any,
+    SPSPABI,
+    { blockTag: 'latest' },
+  );
 
   SPSPs.forEach(SPSP => {
     allAddresses.forEach(address => {
@@ -39,7 +44,7 @@ export async function fetchPSPStakes(accTxFeesByAddressByChain: {
   const result: Record<string, BigNumberish> =
     await multicallContract.execute();
 
-  const pspByAddress = Object.entries(result).reduce<Record<string, BigNumber>>(
+  const pspByAddress = Object.entries(result).reduce<Record<string, EthersBN>>(
     (accum, [path, balance]) => {
       const [, address] = path.split('_');
 
@@ -52,10 +57,16 @@ export async function fetchPSPStakes(accTxFeesByAddressByChain: {
     {},
   );
 
+  logger.info(
+    `successfully fetched stakes for ${
+      Object.keys(pspByAddress).length
+    } addresses`,
+  );
+
   return Object.fromEntries(
     Object.entries(pspByAddress).map(([address, balance]) => [
       address,
-      balance.toBigInt(),
+      new BigNumber(balance.toString()),
     ]),
   );
 }
