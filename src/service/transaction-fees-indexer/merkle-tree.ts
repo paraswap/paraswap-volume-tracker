@@ -18,7 +18,9 @@ export async function computeMerkleData(
   const hashedClaimabled = amounts.reduce<Record<string, Claimable>>(
     (acc, curr) => {
       const { address, amount } = curr;
-      const hash = utils.keccak256(address + amount);
+      const hash = utils.keccak256(
+        utils.solidityPack(['address', 'uint256'], [address, amount]),
+      );
       acc[hash] = { address, amount };
       return acc;
     },
