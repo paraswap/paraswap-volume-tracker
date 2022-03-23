@@ -2,6 +2,8 @@ import BigNumber from 'bignumber.js';
 import { assert } from 'ts-essentials';
 import { Claimable, TxFeesByAddress } from './types';
 
+const logger = global.LOGGER('GRP:GAS_REFUND_COMPUTATION');
+
 type GasRefundLevel = 'level_1' | 'level_2' | 'level_3' | 'level_4';
 
 type GasRefundLevelsDef = {
@@ -53,7 +55,15 @@ export function reduceGasRefundByAddress(
   >((acc, [address, accTxFees]) => {
     const stakedAmount = pspStakesByAddress[address];
 
-    if (stakedAmount.lt(minStake)) return acc;
+    if (!stakedAmount) {
+      logger.info(`skipping ${address} as not staked`);
+      return acc;
+    }
+
+    if (stakedAmount.lt(minStake)) {
+      logger.info(`skipping ${address} as not staked enough (${stakedAmount})`);
+      return acc;
+    }
 
     const refundPercent = getRefundPercent(stakedAmount);
 
@@ -70,6 +80,8 @@ export function reduceGasRefundByAddress(
 
     return acc;
   }, []);
+
+  logger.info(`found ${claimableAmounts.length} eligble for gas refund`);
 
   return claimableAmounts;
 }
