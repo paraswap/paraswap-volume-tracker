@@ -10,7 +10,8 @@
     "dev": "NODE_ENV=development nodemon",
     "build": "NODE_ENV=production tsc",
     "start": "NODE_ENV=production && node ./dist",
-    "store-airdrop-data": "NODE_ENV=development ts-node scripts/store-airdrop-data.ts"
+    "store-airdrop-data": "NODE_ENV=development ts-node scripts/store-airdrop-data.ts",
+    "compute-gas-refund-data": "NODE_ENV=development ts-node src/service/transaction-fees-indexer/index.ts"
   },
   "husky": {
     "hooks": {

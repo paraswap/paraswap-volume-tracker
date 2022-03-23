@@ -5,8 +5,7 @@ import { Provider } from '../../lib/provider';
 import { PoolConfigsMap } from '../../lib/pool-info';
 import { BigNumberish, BigNumber } from '@ethersproject/bignumber';
 // @ts-ignore
-import { utils } from '@snapshot-labs/snapshot.js' 
-
+import { utils } from '@snapshot-labs/snapshot.js';
 
 /**
  * fetch total PSP balances of all addresses for all pools

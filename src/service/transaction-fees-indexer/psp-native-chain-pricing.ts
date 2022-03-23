@@ -46,9 +46,9 @@ type CoingeckoPriceHistory = {
 async function fetchHistoricalPriceCoingecko({
   chainId,
   address,
-}: //startTimestamp,
-// endTimestamp,
-{
+  startTimestamp,
+  endTimestamp,
+}: {
   chainId: number;
   address: string;
   startTimestamp: number;
@@ -61,7 +61,12 @@ async function fetchHistoricalPriceCoingecko({
     `https://api.coingecko.com/api/v3/coins/${platformId}/contract/${address}/market_chart/?vs_currency=usd&days=30`, // Warning max is 30 days
   );
 
-  return prices.map(([timestamp, usdPrice]) => ({ timestamp, rate: usdPrice })); // TODO: add filter step
+  return prices
+    .map(([timestamp, usdPrice]) => ({ timestamp, rate: usdPrice }))
+    .filter(
+      ({ timestamp }) =>
+        timestamp >= startTimestamp && timestamp < endTimestamp,
+    );
 }
 
 async function fetchDailyChainCurrencyUsdPrice({
@@ -116,7 +121,9 @@ export async function fetchDailyPSPChainCurrencyRate({
   ]);
 
   if (chainCurPrice.length !== pspPrice.length)
-    throw new Error('Invalid price length');
+    throw new Error(
+      `Invalid price length got: ${chainCurPrice.length} and ${pspPrice.length}`,
+    );
 
   return chainCurPrice.map((chainCurPrice, i) => ({
     timestamp: chainCurPrice.timestamp,

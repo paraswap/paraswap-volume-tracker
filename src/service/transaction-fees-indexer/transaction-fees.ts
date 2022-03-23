@@ -1,6 +1,8 @@
 import { SwapsTracker } from '../../lib/swaps-tracker';
 import { HistoricalPrice, TxFeesByAddress } from './types';
 
+const logger = global.LOGGER('GRP');
+
 export async function computeAccumulatedTxFeesByAddress({
   chainId,
   startTimestamp, // @TODO
@@ -12,7 +14,7 @@ export async function computeAccumulatedTxFeesByAddress({
   endTimestamp: number;
   pspNativeCurrencyDailyRate: HistoricalPrice;
 }) {
-  const swapTracker = SwapsTracker.getInstance(chainId);
+  const swapTracker = SwapsTracker.getInstance(chainId, true);
   const startBlock = 14440939; // @TODO: read from BlockInfo
   const endBlock = 14441538; // @TODO: read from BlockInfo
 
@@ -20,9 +22,14 @@ export async function computeAccumulatedTxFeesByAddress({
    * compute accumulated tx fees for address accross each partion
    * clean indexedSwaps at end of partition processing
    */
+  logger.info(
+    `swapTracker start indexing between ${startBlock} and ${endBlock}`,
+  );
   await swapTracker.indexSwaps(startBlock, endBlock);
 
   const swapsByBlock = swapTracker.indexedSwaps;
+
+  logger.info(`swapTracker indexed ${Object.keys(swapsByBlock).length} blocks`);
 
   const accumulatedTxFeesByAddress = Object.entries(
     swapsByBlock,
@@ -49,6 +56,12 @@ export async function computeAccumulatedTxFeesByAddress({
 
     return acc;
   }, {});
+
+  logger.info(
+    `computed accumulated tx fees for ${
+      Object.keys(accumulatedTxFeesByAddress).length
+    } addresses`,
+  );
 
   return accumulatedTxFeesByAddress;
 }

@@ -200,6 +200,9 @@ export class SwapsTracker {
               ).toFixed()
             : null;
 
+          if (!this.indexedSwaps[blockNumber])
+            this.indexedSwaps[blockNumber] = [];
+
           return this.indexedSwaps[blockNumber].push({
             id: swap.id,
             uuid: swap.uuid,
