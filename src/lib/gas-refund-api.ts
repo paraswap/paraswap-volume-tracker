@@ -34,7 +34,6 @@ export class GasRefundApi {
     );
   }
 
-
   // retrieve merkle root + compute tx params
   async getMerkleRootForLastEpoch(): Promise<MerkleRoot | null> {
     const currentEpochNum = await this.epochInfo.getCurrentEpoch();
@@ -58,7 +57,7 @@ export class GasRefundApi {
         'logic error: can only be exactly one merkle root per epoch',
       );
 
-      // TODO: compute MerkleRedeem.seedAllocations() tx params
+    // TODO: compute MerkleRedeem.seedAllocations() tx params
 
     return merkleRootPeriod[0];
   }
