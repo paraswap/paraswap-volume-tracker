@@ -5,6 +5,7 @@ import { MarketMakerAddresses } from './lib/volume-tracker';
 import { PoolInfo } from './lib/pool-info';
 import { Claim } from './models/Claim';
 import { DEFAULT_CHAIN_ID, STAKING_CHAIN_IDS_SET } from './lib/constants';
+import { GasRefundApi } from './lib/gas-refund-api';
 
 const logger = global.LOGGER();
 
@@ -139,6 +140,44 @@ export default class Router {
       }
     });
 
+    router.get(
+      '/gas-refund/last-epoch-merkle-root/:network',
+      async (req, res) => {
+        try {
+          const network = Number(req.params.network);
+          const gasRefundApi = GasRefundApi.getInstance(network);
+          const lastMerkleRoot = await gasRefundApi.getMerkleRootForLastEpoch();
+
+          return res.json(lastMerkleRoot);
+        } catch (e) {
+          logger.error(req.path, e);
+          res.status(403).send({
+            error: `GasRefundError: could not retrieve merkle root for last epoch`,
+          });
+        }
+      },
+    );
+
+    router.get(
+      '/gas/refund/all-merkle-data/:network/:address',
+      async (req, res) => {
+        const address = req.params.address;
+
+        try {
+          const network = Number(req.params.network);
+          const gasRefundApi = GasRefundApi.getInstance(network);
+          const merkleDataForAddress =
+            await gasRefundApi.getMerkleDataForAddress(address);
+
+          return res.json(merkleDataForAddress);
+        } catch (e) {
+          logger.error(req.path, e);
+          res.status(403).send({
+            error: `GasRefundError: could not retrieve merkle data for ${address}`,
+          });
+        }
+      },
+    );
 
     return router;
   }
