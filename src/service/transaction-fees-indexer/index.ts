@@ -18,7 +18,7 @@ const logger = global.LOGGER('GRP');
 
 const epochNum = 7; // @TODO: read from EpochInfo
 const epochStartTime = 1646668203; // @TODO: read from EpochInfo
-const epochEndTime = 1646669203; // @TODO: read from EpochInfo
+const epochEndTime = 1646674203; // @TODO: read from EpochInfo
 
 const GRP_SUPPORTED_CHAINS = [
   CHAIN_ID_MAINNET,

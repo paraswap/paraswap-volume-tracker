@@ -1,8 +1,10 @@
+import BigNumber from 'bignumber.js';
+
 export type HistoricalPrice = { timestamp: number; rate: number }[];
 
 export type TxFeesByAddress = {
   [address: string]: {
-    accGasFeePSP: bigint;
+    accGasFeePSP: BigNumber;
     // TODO: add debug data like accumulate gas used, avg gas price, first/last recorded block
   };
 };

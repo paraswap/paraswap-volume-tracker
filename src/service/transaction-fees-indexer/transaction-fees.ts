@@ -2,6 +2,7 @@ import { assert } from 'ts-essentials';
 import { BlockInfo } from '../../lib/block-info';
 import { SwapsTracker } from '../../lib/swaps-tracker';
 import { HistoricalPrice, TxFeesByAddress } from './types';
+import { BigNumber } from 'bignumber.js';
 
 const logger = global.LOGGER('GRP');
 
@@ -55,20 +56,25 @@ export async function computeAccumulatedTxFeesByAddress({
         p => swap.timestamp > p.timestamp,
       ); // @FIXME: likely not correct, suboptimal
 
-      if (!pspRateSameDay)
-        throw new Error(
-          `Fail to find price for same day $${
+      if (!pspRateSameDay) {
+        logger.warn(
+          `Fail to find price for same day ${
             swap.timestamp
           } and rates=${JSON.stringify(
             pspNativeCurrencyDailyRate.flatMap(p => p.timestamp),
           )}`,
         );
 
-      const currGasFeePSP =
-        swap.txGasUsed * swap.txGasPrice * BigInt(pspRateSameDay.rate);
+        return;
+      }
 
-      const accGasFeePSP =
-        (swapperAcc?.accGasFeePSP || BigInt(0)) + currGasFeePSP;
+      const currGasFeePSP = new BigNumber(swap.txGasUsed.toString())
+        .multipliedBy(swap.txGasPrice.toString())
+        .multipliedBy(pspRateSameDay.rate);
+
+      const accGasFeePSP = (swapperAcc?.accGasFeePSP || new BigNumber(0)).plus(
+        currGasFeePSP,
+      );
 
       acc[swap.txOrigin] = {
         accGasFeePSP,

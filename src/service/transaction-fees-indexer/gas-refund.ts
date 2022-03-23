@@ -58,7 +58,7 @@ export function reduceGasRefundByAddress(
 
     assert(refundPercent, 'LogicError: refundPercent should be undefined');
 
-    const refundedAmount = new BigNumber(accTxFees.accGasFeePSP.toString())
+    const refundedAmount = accTxFees.accGasFeePSP
       .multipliedBy(refundPercent)
       .toFixed(0);
 

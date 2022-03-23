@@ -65,7 +65,10 @@ async function fetchHistoricalPriceCoingecko({
   );
 
   return prices
-    .map(([timestamp, usdPrice]) => ({ timestamp, rate: usdPrice }))
+    .map(([timestamp, usdPrice]) => ({
+      timestamp: Math.floor(timestamp / 1000),
+      rate: usdPrice,
+    }))
     .filter(
       ({ timestamp }) =>
         timestamp >= startTimestamp && timestamp < endTimestamp,
