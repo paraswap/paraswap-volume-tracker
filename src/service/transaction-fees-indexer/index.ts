@@ -111,6 +111,7 @@ async function computeMerkleTreeDataAllChains(
 }
 
 // @FIXME: we should invert the logic to first fetch stakers and then scan through their transactions as: len(stakers) << len(swappers)
+// @FIXME: should cap amount distributed to stakers to 30k
 export async function start() {
   // retrieve daily psp/native currency rate for (epochStartTime, epochEndTime)
   const pspNativeCurrencyDailyRateByChain =
