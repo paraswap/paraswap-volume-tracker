@@ -1,4 +1,5 @@
 import BigNumber from 'bignumber.js';
+import { assert } from 'ts-essentials';
 import { Claimable, TxFeesByAddress } from './types';
 
 type GasRefundLevel = 'level_1' | 'level_2' | 'level_3' | 'level_4';
@@ -55,7 +56,7 @@ export function reduceGasRefundByAddress(
 
     const refundPercent = getRefundPercent(stakedAmount);
 
-    if (!refundPercent) return acc;
+    assert(refundPercent, 'LogicError: refundPercent should be undefined');
 
     const refundedAmount = new BigNumber(accTxFees.accGasFeePSP.toString())
       .multipliedBy(refundPercent)
