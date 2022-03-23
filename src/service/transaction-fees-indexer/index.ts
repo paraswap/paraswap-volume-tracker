@@ -9,7 +9,7 @@ import {
 } from '../../lib/constants';
 import { reduceGasRefundByAddress } from './gas-refund';
 import { computeMerkleData } from './merkle-tree';
-import { fetchDailyPSPChainCurrencyRate } from './psp-native-chain-pricing';
+import { fetchDailyPSPChainCurrencyRate } from './psp-chaincurrency-pricing';
 import { computeAccumulatedTxFeesByAddress } from './transaction-fees';
 import { fetchPSPStakes } from './staking';
 import { Claimable, HistoricalPrice, TxFeesByAddress } from './types';
