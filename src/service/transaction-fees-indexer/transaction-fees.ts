@@ -1,7 +1,7 @@
 import { assert } from 'ts-essentials';
 import { BlockInfo } from '../../lib/block-info';
 import { SwapsTracker } from '../../lib/swaps-tracker';
-import { HistoricalPrice, TxFeesByAddress } from './types';
+import { HistoricalPrice, TxFeesByAddress, InitialEpochData } from './types';
 import { BigNumber } from 'bignumber.js';
 
 const logger = global.LOGGER('GRP');
@@ -11,11 +11,13 @@ export async function computeAccumulatedTxFeesByAddress({
   startTimestamp,
   endTimestamp,
   pspNativeCurrencyDailyRate,
+  epoch
 }: {
   chainId: number;
   startTimestamp: number;
   endTimestamp: number;
   pspNativeCurrencyDailyRate: HistoricalPrice;
+  epoch: number
 }) {
   const swapTracker = SwapsTracker.getInstance(chainId, true);
   const blockInfo = BlockInfo.getInstance(chainId);
@@ -46,6 +48,10 @@ export async function computeAccumulatedTxFeesByAddress({
 
   logger.info(`swapTracker indexed ${Object.keys(swapsByBlock).length} blocks`);
 
+
+  // todo: this will be filled in per splice/batch of data from mo's PR
+  let initialIncompleteEpochData: InitialEpochData[] = []
+
   const accumulatedTxFeesByAddress = Object.entries(
     swapsByBlock,
   ).reduce<TxFeesByAddress>((acc, [, swapsInBlock]) => {
@@ -70,7 +76,7 @@ export async function computeAccumulatedTxFeesByAddress({
 
       const currGasFeePSP = new BigNumber(swap.txGasUsed.toString())
         .multipliedBy(swap.txGasPrice.toString()) // in gwei
-        .multipliedBy(1e-9) //  convert to wei
+        .multipliedBy(1e9) //  convert to wei
         .multipliedBy(pspRateSameDay.rate);
 
       const accGasFeePSP = (swapperAcc?.accGasFeePSP || new BigNumber(0)).plus(
@@ -78,13 +84,26 @@ export async function computeAccumulatedTxFeesByAddress({
         //@TODO: debug data (acc gas used, avg gas price)
       );
 
+      const initialEpochData: InitialEpochData = {
+        epoch,
+        address: swap.txOrigin,
+        chainId: chainId.toString(),
+        accumulatedGasUsedPSP: accGasFeePSP.toString(), // todo: make safe
+        lastBlockNum: swap.blockNumber,
+      }
+
+      initialIncompleteEpochData.push(initialEpochData);
+
       acc[swap.txOrigin] = {
         accGasFeePSP,
+        lastBlockNum: endBlock
       };
     });
 
     return acc;
   }, {});
+
+  // todo: bulk insert/upsert initial epoch data at end of slice of above data once merged with mo's pr
 
   logger.info(
     `computed accumulated tx fees for ${

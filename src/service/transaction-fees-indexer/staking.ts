@@ -1,5 +1,5 @@
 import { CHAIN_ID_MAINNET } from '../../lib/constants';
-import { TxFeesByAddress } from './types';
+import { TxFeesByAddress, PSPStakesByAddress } from './types';
 import * as SPSPABI from '../../lib/abi/spsp.abi.json';
 import { Provider } from '../../lib/provider';
 import { PoolConfigsMap } from '../../lib/pool-info';
@@ -21,7 +21,7 @@ const SPSPs = PoolConfigsMap[CHAIN_ID_MAINNET].filter(p => p.isActive).map(
 // @FIXME: nb of addresses can be relatively high. Consider partitioning the addresses into batches
 export async function fetchPSPStakes(accTxFeesByAddressByChain: {
   [chainId: number]: TxFeesByAddress;
-}): Promise<{ [address: string]: BigNumber }> {
+}): Promise<PSPStakesByAddress> {
   const allAddresses = [
     ...new Set(
       Object.values(accTxFeesByAddressByChain).flatMap(v => Object.keys(v)),

@@ -12,7 +12,9 @@ import { computeMerkleData } from './merkle-tree';
 import { fetchDailyPSPChainCurrencyRate } from './psp-chaincurrency-pricing';
 import { computeAccumulatedTxFeesByAddress } from './transaction-fees';
 import { fetchPSPStakes } from './staking';
-import { Claimable, HistoricalPrice, TxFeesByAddress } from './types';
+import { Claimable, HistoricalPrice, TxFeesByAddress, InitialEpochData, MerkleTreeData, PSPStakesByAddress, UpdateCompletedEpochData, MerkleData, MerkleTreeDataByChain } from './types';
+// todo: database
+import Database from '../../database';
 import BigNumber from 'bignumber.js';
 
 const logger = global.LOGGER('GRP');
@@ -54,12 +56,14 @@ async function computeAccumulatedTxFeesByAddressAllChains({
   pspNativeCurrencyDailyRateByChain,
   startTimestamp,
   endTimestamp,
+  epochNum
 }: {
   endTimestamp: number;
   startTimestamp: number;
   pspNativeCurrencyDailyRateByChain: {
     [chainId: number]: HistoricalPrice;
   };
+  epochNum: number
 }) {
   const dailyTxFeesByAddressByChain = Object.fromEntries(
     await Promise.all(
@@ -70,6 +74,7 @@ async function computeAccumulatedTxFeesByAddressAllChains({
           endTimestamp,
           pspNativeCurrencyDailyRate:
             pspNativeCurrencyDailyRateByChain[chainId],
+          epoch: epochNum
         }).then(p => [chainId, p] as const),
       ),
     ),
@@ -99,12 +104,54 @@ async function reduceGasRefundByAddressAllChains(
   return gasRefundByAddressByChain;
 }
 
+const writeCompletedEpochData = async (merkleTreeDataByChain: MerkleTreeDataByChain, pspStakesByAddress: PSPStakesByAddress) => {
+
+  /*
+  epoch: number                   merkleTreeDataByChain.[chainId].root.epoch
+  address: string                 merkleTreeDataByChain.[chainId].leaves[].address
+  chainId: string                 merkleTreeDataByChain.[chainId].leaves[].amount
+
+  totalStakeAmountPSP: string     pspStakesByAddress[address]
+  refundedAmountPSP: string       merkleTreeDataByChain.[chainId].root.totalAmount
+  merkleProofs: string[]          merkleTreeDataByChain.[chainId].leaves[].merkleProofs
+  merkleRoot: string              merkleTreeDataByChain.[chainId].root.merkleRoot
+  */
+
+  const epochDataToUpdate: UpdateCompletedEpochData[] = Object
+  .keys(merkleTreeDataByChain)
+  .map((chainId) => {
+    const merkleTreeDataForChain = merkleTreeDataByChain[+chainId]
+    // because `computeMerkleData` can return null
+    if (!merkleTreeDataForChain) {
+      return []
+    }
+    const { root: { epoch, totalAmount, merkleRoot }, leaves } = merkleTreeDataForChain
+
+    const addresses = leaves.map((leaf: MerkleData) => ({
+      epoch,
+      address: leaf.address,
+      chainId,
+
+      totalStakeAmountPSP: pspStakesByAddress[leaf.address].toString(), // todo: make safe
+      refundedAmountPSP: totalAmount,
+      merkleProofs: leaf.merkleProofs,
+      merkleRoot,
+    }))
+    return addresses
+  })
+  // lastly flatten the array (of chain specific arrays)
+  .reduce((buildingArray, array) => buildingArray.concat(array), [])
+
+
+  // todo: bulk upsert epoch data once models are defined
+}
+
 async function computeMerkleTreeDataAllChains(
   claimableAmountsByChain: {
     [chainId: number]: Claimable[];
   },
   epochNum: number,
-) {
+): Promise<MerkleTreeDataByChain> {
   const merkleTreeDataByChain = Object.fromEntries(
     await Promise.all(
       GRP_SUPPORTED_CHAINS.map(chainId =>
@@ -122,7 +169,9 @@ async function computeMerkleTreeDataAllChains(
 
 // @FIXME: we should invert the logic to first fetch stakers and then scan through their transactions as: len(stakers) << len(swappers)
 // @FIXME: should cap amount distributed to stakers to 30k
-export async function start() {
+export async function start(epochNum: number) {
+  // todo: seed db models/relations
+  // await Database.connectAndSync()
   // retrieve daily psp/native currency rate for (epochStartTime, epochEndTime
   logger.info('start fetching daily psp/native currency rate');
   const pspNativeCurrencyDailyRateByChain =
@@ -139,6 +188,7 @@ export async function start() {
       pspNativeCurrencyDailyRateByChain,
       startTimestamp: epochStartTime,
       endTimestamp: epochEndTime,
+      epochNum
     });
 
   // retrieve mapping(address => totalStakes) where address is in dailyTxFeesByAddressByChain
@@ -161,6 +211,9 @@ export async function start() {
 
   // @TODO: store merkleTreeByChain in db (or file to start with) with epochNum
   console.log({ merkleTreeByChain: JSON.stringify(merkleTreeByChain) });
+  // todo: determine if epoch is over (epoch endtime < [now])
+  await writeCompletedEpochData(merkleTreeByChain, pspStakesByAddress)
+
 }
 
-start();
+start(epochNum);

@@ -6,12 +6,15 @@ export type TxFeesByAddress = {
   [address: string]: {
     accGasFeePSP: BigNumber;
     // TODO: add debug data like accumulate gas used, avg gas price, first/last recorded block
+    lastBlockNum: number
   };
 };
 
 export type Claimable = {
   address: string;
   amount: string;
+  lastBlockNum: number
+  totalStakeAmountPSP: number
 };
 
 export type MerkleRoot = {
@@ -31,3 +34,30 @@ export type MerkleTreeData = {
   root: MerkleRoot;
   leaves: MerkleData[];
 };
+
+export type PSPStakesByAddress = { [address: string]: BigNumber }
+
+export type MerkleTreeDataByChain = {
+  [chainId: number]: MerkleTreeData | null;
+}
+
+interface CompositeKey {
+  epoch: number
+  address: string
+  chainId: string
+}
+interface IncompleteEpochData {
+  accumulatedGasUsedPSP: string
+  // todo: more accumulated gas props; accGasUsed, accGasUsedChainCurrency
+  lastBlockNum: number
+}
+
+interface CompletedEpochData {
+  totalStakeAmountPSP: string
+  refundedAmountPSP: string
+  merkleProofs: string[]
+  merkleRoot: string
+}
+
+export type InitialEpochData = CompositeKey & IncompleteEpochData
+export type UpdateCompletedEpochData = CompositeKey & CompletedEpochData

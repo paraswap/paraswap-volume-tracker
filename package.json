@@ -11,7 +11,8 @@
     "build": "NODE_ENV=production tsc",
     "start": "NODE_ENV=production && node ./dist",
     "store-airdrop-data": "NODE_ENV=development ts-node scripts/store-airdrop-data.ts",
-    "compute-gas-refund-data": "NODE_ENV=development ts-node src/service/transaction-fees-indexer/index.ts"
+    "compute-gas-refund-data": "NODE_ENV=development ts-node src/service/transaction-fees-indexer/index.ts",
+    "grp": "NODE_ENV=development node --inspect=9229 -r ts-node/register src/service/transaction-fees-indexer/index.ts"
   },
   "husky": {
     "hooks": {
