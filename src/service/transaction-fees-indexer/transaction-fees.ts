@@ -55,12 +55,10 @@ export async function computeAccumulatedTxFeesByAddress({
     const _endBlock = Math.min(_startBlock + PARTITION_SIZE, endBlock);
 
     logger.info(
-      `swapTracker start indexing partition between ${_startBlock} and ${
-        _startBlock + PARTITION_SIZE
-      }`,
+      `swapTracker start indexing partition between ${_startBlock} and ${_endBlock}`,
     );
 
-    await swapTracker.indexSwaps(_startBlock, Math.min(_endBlock, endBlock));
+    await swapTracker.indexSwaps(_startBlock, _endBlock);
 
     const swapsByBlock = swapTracker.indexedSwaps;
 
