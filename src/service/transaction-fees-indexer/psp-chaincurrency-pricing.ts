@@ -6,7 +6,7 @@ import {
   CHAIN_ID_FANTOM,
   CHAIN_ID_MAINNET,
   CHAIN_ID_POLYGON,
-  PSP_ADDRESS_ETHEREUM,
+  PSP_ADDRESS,
 } from '../../lib/constants';
 import { HistoricalPrice } from './types';
 
@@ -93,15 +93,17 @@ async function fetchDailyChainCurrencyUsdPrice({
 }
 
 async function fetchDailyPspUsdPrice({
+  chainId,
   startTimestamp,
   endTimestamp,
 }: {
+  chainId: number;
   startTimestamp: number;
   endTimestamp: number;
 }) {
   return fetchHistoricalPriceCoingecko({
-    chainId: CHAIN_ID_MAINNET,
-    address: PSP_ADDRESS_ETHEREUM,
+    chainId,
+    address: PSP_ADDRESS[chainId],
     startTimestamp,
     endTimestamp,
   });
@@ -124,7 +126,7 @@ export async function fetchDailyPSPChainCurrencyRate({
       endTimestamp,
       chainId,
     }),
-    fetchDailyPspUsdPrice({ startTimestamp, endTimestamp }),
+    fetchDailyPspUsdPrice({ chainId, startTimestamp, endTimestamp }),
   ]);
 
   assert(chainCurPrice.length > 0, 'could not find any rate');

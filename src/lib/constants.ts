@@ -1,12 +1,16 @@
-export const PSP_ADDRESS_ETHEREUM =
-  '0xcafe001067cdef266afb7eb5a286dcfd277f3de5';
-
 export const CHAIN_ID_MAINNET = 1;
 export const CHAIN_ID_ROPSTEN = 3;
 export const CHAIN_ID_BINANCE = 56;
 export const CHAIN_ID_POLYGON = 137;
 export const CHAIN_ID_AVALANCHE = 43114;
 export const CHAIN_ID_FANTOM = 250;
+
+export const PSP_ADDRESS: { [chainId: number]: string } = {
+  [CHAIN_ID_MAINNET]: '0xcafe001067cdef266afb7eb5a286dcfd277f3de5',
+  [CHAIN_ID_BINANCE]: '0xcafe001067cdef266afb7eb5a286dcfd277f3de5',
+  [CHAIN_ID_FANTOM]: '0xcafe001067cdef266afb7eb5a286dcfd277f3de5',
+  [CHAIN_ID_POLYGON]: '0x42d61d766b85431666b39b89c43011f24451bff6',
+};
 
 export const STAKING_CHAIN_IDS = [CHAIN_ID_MAINNET, CHAIN_ID_ROPSTEN];
 export const STAKING_CHAIN_IDS_SET = new Set([
