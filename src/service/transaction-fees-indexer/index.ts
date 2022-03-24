@@ -12,8 +12,14 @@ import { computeMerkleData } from './merkle-tree';
 import { fetchDailyPSPChainCurrencyRate } from './psp-chaincurrency-pricing';
 import { computeAccumulatedTxFeesByAddress } from './transaction-fees';
 import { fetchPSPStakes } from './staking';
-import { Claimable, HistoricalPrice, TxFeesByAddress } from './types';
+import {
+  Claimable,
+  HistoricalPrice,
+  MerkleTreeData,
+  TxFeesByAddress,
+} from './types';
 import BigNumber from 'bignumber.js';
+import { saveMerkleTree } from './persistance';
 
 const logger = global.LOGGER('GRP');
 
@@ -120,6 +126,23 @@ async function computeMerkleTreeDataAllChains(
   return merkleTreeDataByChain;
 }
 
+async function saveMerkleTreesAllChains(
+  merkleTreeByChain: {
+    [chainId: number]: MerkleTreeData | null;
+  },
+  epochNum: number,
+) {
+  await Promise.all(
+    GRP_SUPPORTED_CHAINS.map(chainId =>
+      saveMerkleTree({
+        chainId,
+        epochNum,
+        merkleTree: merkleTreeByChain[chainId],
+      }),
+    ),
+  );
+}
+
 // @FIXME: we should invert the logic to first fetch stakers and then scan through their transactions as: len(stakers) << len(swappers)
 // @FIXME: should cap amount distributed to stakers to 30k
 export async function start() {
@@ -160,7 +183,7 @@ export async function start() {
   );
 
   // @TODO: store merkleTreeByChain in db (or file to start with) with epochNum
-  console.log({ merkleTreeByChain: JSON.stringify(merkleTreeByChain) });
+  await saveMerkleTreesAllChains(merkleTreeByChain, epochNum);
 }
 
 start();
