@@ -5,7 +5,9 @@ import { HistoricalPrice, TxFeesByAddress } from './types';
 import { BigNumber } from 'bignumber.js';
 import { constructSameDayPrice } from './psp-chaincurrency-pricing';
 
-const logger = global.LOGGER('GRP');
+const logger = global.LOGGER('GRP:TRANSACTION_FEES_INDEXING');
+
+const PARTITION_SIZE = 100; // depends on thegraph capacity and memory
 
 export async function computeAccumulatedTxFeesByAddress({
   chainId,
@@ -42,49 +44,72 @@ export async function computeAccumulatedTxFeesByAddress({
   logger.info(
     `swapTracker start indexing between ${startBlock} and ${endBlock}`,
   );
-  await swapTracker.indexSwaps(startBlock, endBlock);
 
-  const swapsByBlock = swapTracker.indexedSwaps;
+  let accumulatedTxFeesByAddress = {};
 
-  logger.info(`swapTracker indexed ${Object.keys(swapsByBlock).length} blocks`);
+  for (
+    let _startBlock = startBlock;
+    _startBlock < endBlock;
+    _startBlock += PARTITION_SIZE
+  ) {
+    const _endBlock = Math.min(_startBlock + PARTITION_SIZE, endBlock);
 
-  const accumulatedTxFeesByAddress = Object.entries(
-    swapsByBlock,
-  ).reduce<TxFeesByAddress>((acc, [, swapsInBlock]) => {
-    swapsInBlock.forEach(swap => {
-      const swapperAcc = acc[swap.txOrigin];
+    logger.info(
+      `swapTracker start indexing partition between ${_startBlock} and ${
+        _startBlock + PARTITION_SIZE
+      }`,
+    );
 
-      const pspRateSameDay = findSameDayPrice(swap.timestamp);
+    await swapTracker.indexSwaps(_startBlock, Math.min(_endBlock, endBlock));
 
-      if (!pspRateSameDay) {
-        logger.warn(
-          `Fail to find price for same day ${
-            swap.timestamp
-          } and rates=${JSON.stringify(
-            pspNativeCurrencyDailyRate.flatMap(p => p.timestamp),
-          )}`,
+    const swapsByBlock = swapTracker.indexedSwaps;
+
+    logger.info(
+      `swapTracker indexed ${Object.keys(swapsByBlock).length} blocks`,
+    );
+
+    accumulatedTxFeesByAddress = Object.entries(
+      swapsByBlock,
+    ).reduce<TxFeesByAddress>((acc, [, swapsInBlock]) => {
+      swapsInBlock.forEach(swap => {
+        const swapperAcc = acc[swap.txOrigin];
+
+        const pspRateSameDay = findSameDayPrice(swap.timestamp);
+
+        if (!pspRateSameDay) {
+          logger.warn(
+            `Fail to find price for same day ${
+              swap.timestamp
+            } and rates=${JSON.stringify(
+              pspNativeCurrencyDailyRate.flatMap(p => p.timestamp),
+            )}`,
+          );
+
+          return;
+        }
+
+        const currGasFeePSP = new BigNumber(swap.txGasUsed.toString())
+          .multipliedBy(swap.txGasPrice.toString()) // in gwei
+          .multipliedBy(1e9) //  convert to wei
+          .multipliedBy(pspRateSameDay);
+
+        const accGasFeePSP = (
+          swapperAcc?.accGasFeePSP || new BigNumber(0)
+        ).plus(
+          currGasFeePSP,
+          //@TODO: debug data (acc gas used, avg gas price)
         );
 
-        return;
-      }
+        acc[swap.txOrigin] = {
+          accGasFeePSP,
+        };
+      });
 
-      const currGasFeePSP = new BigNumber(swap.txGasUsed.toString())
-        .multipliedBy(swap.txGasPrice.toString()) // in gwei
-        .multipliedBy(1e9) //  convert to wei
-        .multipliedBy(pspRateSameDay);
+      return acc;
+    }, accumulatedTxFeesByAddress);
 
-      const accGasFeePSP = (swapperAcc?.accGasFeePSP || new BigNumber(0)).plus(
-        currGasFeePSP,
-        //@TODO: debug data (acc gas used, avg gas price)
-      );
-
-      acc[swap.txOrigin] = {
-        accGasFeePSP,
-      };
-    });
-
-    return acc;
-  }, {});
+    swapTracker.indexedSwaps = {}; // cleaning step
+  }
 
   logger.info(
     `computed accumulated tx fees for ${

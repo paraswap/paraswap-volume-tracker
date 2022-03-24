@@ -18,8 +18,8 @@ import BigNumber from 'bignumber.js';
 const logger = global.LOGGER('GRP');
 
 const epochNum = 7; // @TODO: read from EpochInfo
-const epochStartTime = 1647877128; // @TODO: read from EpochInfo
-const epochEndTime = 1647884328; // @TODO: read from EpochInfo
+const epochStartTime = 1646654400; // @TODO: read from EpochInfo
+const epochEndTime = 1647864000; // @TODO: read from EpochInfo
 
 const GRP_SUPPORTED_CHAINS = [
   CHAIN_ID_MAINNET,
