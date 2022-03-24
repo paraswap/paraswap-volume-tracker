@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { assert } from 'ts-essentials';
+import { startOfDay } from 'date-fns';
 import {
   CHAIN_ID_AVALANCHE,
   CHAIN_ID_BINANCE,
@@ -46,6 +47,9 @@ type CoingeckoPriceHistory = {
   prices: [timestamp: number, usdPrice: number][];
 };
 
+const projectToStartOfDay = (timestamp: number) =>
+  startOfDay(timestamp).getTime();
+
 // @FIXME
 async function fetchHistoricalPriceCoingecko({
   chainId,
@@ -59,21 +63,34 @@ async function fetchHistoricalPriceCoingecko({
   endTimestamp: number;
 }): Promise<HistoricalPrice> {
   const platformId = COINGECKO_METADATA[chainId].platformId;
+  const url = `https://api.coingecko.com/api/v3/coins/${platformId}/contract/${address}/market_chart/range?vs_currency=usd&from=${startTimestamp}&to=${endTimestamp}`;
   const {
     data: { prices },
-  } = await axios.get<CoingeckoPriceHistory>(
-    `https://api.coingecko.com/api/v3/coins/${platformId}/contract/${address}/market_chart/?vs_currency=usd&days=30`, // Warning max is 30 days
+  } = await axios.get<CoingeckoPriceHistory>(url);
+
+  const accDailyPrices = prices.reduce<
+    Record<string, { accRate: number; count: number }>
+  >((acc, [timestamp, rate]) => {
+    const startOfDaySec = projectToStartOfDay(timestamp);
+
+    const { accRate, count } = acc[startOfDaySec] || { accRate: 0, count: 0 };
+
+    acc[startOfDaySec] = {
+      accRate: accRate + rate,
+      count: count + 1,
+    };
+
+    return acc;
+  }, {});
+
+  const dailyAvgPrice = Object.entries(accDailyPrices).map(
+    ([timestamp, { accRate, count }]) => ({
+      timestamp: +timestamp,
+      rate: accRate / count,
+    }),
   );
 
-  return prices
-    .map(([timestamp, usdPrice]) => ({
-      timestamp: Math.floor(timestamp / 1000),
-      rate: usdPrice,
-    }))
-    .filter(
-      ({ timestamp }) =>
-        timestamp >= startTimestamp && timestamp < endTimestamp,
-    );
+  return dailyAvgPrice;
 }
 
 async function fetchDailyChainCurrencyUsdPrice({
@@ -143,3 +160,15 @@ export async function fetchDailyPSPChainCurrencyRate({
     rate: pspPrice[i].rate / chainCurPrice.rate,
   }));
 }
+
+export const constructSameDayPrice = (prices: HistoricalPrice) => {
+  const pricesByDate = prices.reduce<Record<string, number>>((acc, curr) => {
+    acc[curr.timestamp] = curr.rate;
+    return acc;
+  }, {});
+
+  return function findSameDayPrice(unixtime: number) {
+    const startOfDayTimestamp = projectToStartOfDay(unixtime * 1000);
+    return pricesByDate[startOfDayTimestamp];
+  };
+};

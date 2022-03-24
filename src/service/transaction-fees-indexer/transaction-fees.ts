@@ -3,6 +3,7 @@ import { BlockInfo } from '../../lib/block-info';
 import { SwapsTracker } from '../../lib/swaps-tracker';
 import { HistoricalPrice, TxFeesByAddress } from './types';
 import { BigNumber } from 'bignumber.js';
+import { constructSameDayPrice } from './psp-chaincurrency-pricing';
 
 const logger = global.LOGGER('GRP');
 
@@ -23,6 +24,7 @@ export async function computeAccumulatedTxFeesByAddress({
     blockInfo.getBlockAfterTimeStamp(startTimestamp),
     blockInfo.getBlockAfterTimeStamp(endTimestamp),
   ]);
+  const findSameDayPrice = constructSameDayPrice(pspNativeCurrencyDailyRate);
 
   assert(
     startBlock,
@@ -52,9 +54,7 @@ export async function computeAccumulatedTxFeesByAddress({
     swapsInBlock.forEach(swap => {
       const swapperAcc = acc[swap.txOrigin];
 
-      const pspRateSameDay = pspNativeCurrencyDailyRate.find(
-        p => swap.timestamp > p.timestamp,
-      ); // @FIXME: likely not correct, suboptimal
+      const pspRateSameDay = findSameDayPrice(swap.timestamp);
 
       if (!pspRateSameDay) {
         logger.warn(
@@ -71,7 +71,7 @@ export async function computeAccumulatedTxFeesByAddress({
       const currGasFeePSP = new BigNumber(swap.txGasUsed.toString())
         .multipliedBy(swap.txGasPrice.toString()) // in gwei
         .multipliedBy(1e-9) //  convert to wei
-        .multipliedBy(pspRateSameDay.rate);
+        .multipliedBy(pspRateSameDay);
 
       const accGasFeePSP = (swapperAcc?.accGasFeePSP || new BigNumber(0)).plus(
         currGasFeePSP,
