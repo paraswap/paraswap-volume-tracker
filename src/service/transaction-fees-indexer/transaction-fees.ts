@@ -74,6 +74,7 @@ export async function computeAccumulatedTxFeesByAddress({
 
       const accGasFeePSP = (swapperAcc?.accGasFeePSP || new BigNumber(0)).plus(
         currGasFeePSP,
+        //@TODO: debug data (acc gas used, avg gas price)
       );
 
       acc[swap.txOrigin] = {

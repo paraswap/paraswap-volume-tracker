@@ -46,6 +46,7 @@ type CoingeckoPriceHistory = {
   prices: [timestamp: number, usdPrice: number][];
 };
 
+// @FIXME
 async function fetchHistoricalPriceCoingecko({
   chainId,
   address,
