@@ -70,7 +70,7 @@ export async function computeAccumulatedTxFeesByAddress({
 
       const currGasFeePSP = new BigNumber(swap.txGasUsed.toString())
         .multipliedBy(swap.txGasPrice.toString()) // in gwei
-        .multipliedBy(1e-9) //  convert to wei
+        .multipliedBy(1e9) //  convert to wei
         .multipliedBy(pspRateSameDay);
 
       const accGasFeePSP = (swapperAcc?.accGasFeePSP || new BigNumber(0)).plus(
