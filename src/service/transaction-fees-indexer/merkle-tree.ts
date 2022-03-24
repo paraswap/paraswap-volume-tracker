@@ -2,7 +2,7 @@ import { MerkleTreeData } from './types';
 import { logger, utils } from 'ethers';
 import { MerkleTree } from 'merkletreejs';
 
-type Claimable = {
+export type Claimable = {
   address: string;
   amount: string;
 };
@@ -38,7 +38,7 @@ export async function computeMerkleData(
 
   const merkleLeaves = allLeaves.map(leaf => {
     const { address, amount } = hashedClaimabled[leaf];
-    const proofs = tree.getHexProof(leaf).map(proof => proof.toString());
+    const proofs = tree.getHexProof(leaf);
     return { address, amount, epoch, merkleProofs: proofs };
   });
 
