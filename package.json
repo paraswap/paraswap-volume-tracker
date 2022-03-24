@@ -12,6 +12,7 @@
     "start": "NODE_ENV=production && node ./dist",
     "store-airdrop-data": "NODE_ENV=development ts-node scripts/store-airdrop-data.ts",
     "compute-gas-refund-data": "NODE_ENV=development ts-node src/service/transaction-fees-indexer/index.ts",
+    "test": "jest",
     "grp": "NODE_ENV=development node --inspect=9229 -r ts-node/register src/service/transaction-fees-indexer/index.ts"
   },
   "husky": {
@@ -22,18 +23,23 @@
   "devDependencies": {
     "@types/axios": "0.14.0",
     "@types/bignumber.js": "5.0.0",
+    "@types/chance": "^1.1.3",
     "@types/compression": "1.7.0",
     "@types/cookie-parser": "1.4.2",
     "@types/express": "4.17.11",
+    "@types/jest": "^27.4.1",
     "@types/lodash": "4.14.168",
     "@types/node": "14.14.41",
     "@types/stoppable": "1.1.1",
     "@types/validator": "13.6.6",
     "ethers": "^5.6.1",
     "husky": "7.0.4",
+    "jest": "^27.5.1",
+    "jest-chance": "^0.1.11",
     "nodemon": "2.0.14",
     "prettier": "2.4.1",
     "pretty-quick": "3.1.1",
+    "ts-jest": "^27.1.3",
     "typescript": "4.4.4"
   },
   "dependencies": {
