@@ -1,6 +1,6 @@
 import { MerkleTreeData } from './types';
 import { writeFile, readFile, mkdir } from 'fs/promises';
-import path from 'path';
+import * as path from 'path';
 
 const dir = path.join(__dirname, './merkle-trees');
 
@@ -10,7 +10,7 @@ const constructFilePath = ({
 }: {
   chainId: number;
   epochNum: number;
-}) => path.join(dir, `${chainId}-${epochNum}.json`);
+}) => path.join(dir, `merkletree-chain-${chainId}-epoch-${epochNum}.json`);
 
 export async function saveMerkleTree({
   chainId,
