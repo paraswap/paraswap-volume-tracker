@@ -19,15 +19,9 @@ const SPSPs = PoolConfigsMap[CHAIN_ID_MAINNET].filter(p => p.isActive).map(
 );
 
 // @FIXME: nb of addresses can be relatively high. Consider partitioning the addresses into batches
-export async function fetchPSPStakes(accTxFeesByAddressByChain: {
-  [chainId: number]: TxFeesByAddress;
-}): Promise<{ [address: string]: BigNumber }> {
-  const allAddresses = [
-    ...new Set(
-      Object.values(accTxFeesByAddressByChain).flatMap(v => Object.keys(v)),
-    ),
-  ];
-
+export async function fetchPSPStakes(
+  allAddresses: string[],
+): Promise<{ [address: string]: BigNumber }> {
   logger.info(`fetching stakes for ${allAddresses.length} addresses`);
 
   const multicallContract = new utils.Multicaller(
