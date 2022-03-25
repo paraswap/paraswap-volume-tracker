@@ -28,7 +28,7 @@ export class GasRefundApi {
   static instances: { [network: number]: GasRefundApi } = {};
 
   constructor(protected network: number) {
-    this.epochInfo = new EpochInfo(CHAIN_ID_MAINNET);
+    this.epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET);
     // this.gasRefundModel = new GasRefundModel(network);
   }
 
