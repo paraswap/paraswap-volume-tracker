@@ -12,13 +12,6 @@ import { computeMerkleData } from './merkle-tree';
 import { fetchDailyPSPChainCurrencyRate } from './psp-chaincurrency-pricing';
 import { computeAccumulatedTxFeesByAddress } from './transaction-fees';
 import { fetchPSPStakes } from './staking';
-import {
-  Claimable,
-  HistoricalPrice,
-  MerkleTreeData,
-  TxFeesByAddress,
-} from './types';
-import BigNumber from 'bignumber.js';
 import { saveMerkleTree } from './persistance';
 
 const logger = global.LOGGER('GRP');
