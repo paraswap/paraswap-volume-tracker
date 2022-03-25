@@ -75,8 +75,11 @@ export class GasRefundApi {
   // @FIXME: filter already claimed
   async getMerkleDataForAddress(address: string): Promise<MerkleData[] | null> {
     const lastEpochNum = (await this.epochInfo.getCurrentEpoch()) - 1;
+    
     const epochs =
-      lastEpochNum === GasRefundGenesisEpoch
+      lastEpochNum < GasRefundGenesisEpoch
+        ? []
+        : lastEpochNum === GasRefundGenesisEpoch
         ? [GasRefundGenesisEpoch]
         : _.range(GasRefundGenesisEpoch, lastEpochNum);
 
