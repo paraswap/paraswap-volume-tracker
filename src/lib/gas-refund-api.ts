@@ -1,4 +1,11 @@
-import { GasRefundModel } from '../models/GasRefund';
+// import GasRefundModel from '../models/GasRefund';
+import { Interface } from '@ethersproject/abi';
+import {
+  TransactionRequest,
+  TransactionResponse,
+} from '@ethersproject/providers';
+import _ from 'lodash';
+import { getMerkleTree } from '../service/transaction-fees-indexer/persistance';
 import {
   MerkleData,
   MerkleRoot,
@@ -6,15 +13,23 @@ import {
 import { CHAIN_ID_MAINNET } from './constants';
 import { EpochInfo } from './epoch-info';
 
+const MerkleRedeemAbi = [
+  'function seedAllocations(uint _week, bytes32 _merkleRoot, uint _totalAllocation)',
+];
+
+const IfaceMerkleRedeem = new Interface(MerkleRedeemAbi);
+
+const GasRefundGenesisEpoch = 7; // @FIXME
+
 export class GasRefundApi {
   epochInfo: EpochInfo;
-  gasRefundModel: GasRefundModel;
+  // gasRefundModel: GasRefundModel;
 
   static instances: { [network: number]: GasRefundApi } = {};
 
   constructor(protected network: number) {
     this.epochInfo = new EpochInfo(CHAIN_ID_MAINNET);
-    this.gasRefundModel = new GasRefundModel(network);
+    // this.gasRefundModel = new GasRefundModel(network);
   }
 
   static getInstance(network: number): GasRefundApi {
@@ -23,48 +38,65 @@ export class GasRefundApi {
     return this.instances[network];
   }
 
-  // retrieve all merkle roots matching period
-  async getMerkleRootForPeriod(
-    startTimestamp: number,
-    endTimestamp: number,
-  ): Promise<MerkleRoot[] | null> {
-    return this.gasRefundModel.getMerkleRootForPeriod(
-      startTimestamp,
-      endTimestamp,
-    );
-  }
-
-  // retrieve merkle root + compute tx params
-  async getMerkleRootForLastEpoch(): Promise<MerkleRoot | null> {
+  // retrieve merkle root + compute tx params for last epoch
+  async getMerkleRootForLastEpoch(): Promise<{
+    root: MerkleRoot;
+    txParams: TransactionRequest;
+  } | null> {
     const currentEpochNum = await this.epochInfo.getCurrentEpoch();
     const lastEpochNum = currentEpochNum - 1;
-    const [epochStartTime, epochEndtime] = await Promise.all([
-      this.epochInfo.getEpochStartCalcTime(lastEpochNum),
-      this.epochInfo.getEpochEndCalcTime(lastEpochNum),
+
+    const merkleTree = await getMerkleTree({
+      chainId: this.network,
+      epochNum: lastEpochNum,
+    });
+
+    if (!merkleTree) return null;
+
+    const { root } = merkleTree;
+
+    const txData = IfaceMerkleRedeem.encodeFunctionData('seedAllocations', [
+      lastEpochNum,
+      root.merkleRoot,
+      root.totalAmount,
     ]);
 
-    if (!epochStartTime || !epochEndtime) throw new Error('no last epoch'); // @FIXME: check case when epochEndTime would be in the future
-
-    const merkleRootPeriod = await this.getMerkleRootForPeriod(
-      epochStartTime,
-      epochEndtime,
-    );
-
-    if (!merkleRootPeriod) return null;
-
-    if (merkleRootPeriod.length !== 1)
-      throw new Error(
-        'logic error: can only be exactly one merkle root per epoch',
-      );
-
-    // TODO: compute MerkleRedeem.seedAllocations() tx params
-
-    return merkleRootPeriod[0];
+    return {
+      root,
+      txParams: {
+        to: '0x',
+        data: txData,
+        chainId: this.network,
+      },
+    };
   }
 
-  // get all merkle data for address between 2 arbitrary dates
-  // Note: this returns all merkle data generated ever, it's up to frontend to filter already claimed epochs
+  // get all ever constructed merkle data for addrress
+  // @FIXME: filter already claimed
   async getMerkleDataForAddress(address: string): Promise<MerkleData[] | null> {
-    return this.gasRefundModel.getMerkleDataForAddress(address);
+    const lastEpochNum = (await this.epochInfo.getCurrentEpoch()) - 1;
+    const epochs =
+      lastEpochNum === GasRefundGenesisEpoch
+        ? [GasRefundGenesisEpoch]
+        : _.range(GasRefundGenesisEpoch, lastEpochNum);
+
+    const merkleData = await Promise.all(
+      epochs.map(async epochNum => {
+        const merkleData = await getMerkleTree({
+          chainId: this.network,
+          epochNum,
+        });
+        
+        if (!merkleData) return null;
+
+        const merkleDataEpoch = merkleData.leaves.find(
+          l => l.address.toLowerCase() === address.toLowerCase(),
+        );
+
+        return merkleDataEpoch
+      }),
+    )
+
+    return merkleData.filter(v => !!v) as MerkleData[]; // @fixme types do not work
   }
 }
