@@ -16,7 +16,7 @@ import { saveMerkleTree } from './persistance';
 
 const logger = global.LOGGER('GRP');
 
-const epochNum = 7; // @TODO: read from EpochInfo
+const epochNum = 8; // @TODO: read from EpochInfo
 const epochStartTime = 1646654400; // @TODO: read from EpochInfo
 const epochEndTime = 1647864000; // @TODO: read from EpochInfo
 
