@@ -86,16 +86,16 @@ export class GasRefundApi {
           chainId: this.network,
           epochNum,
         });
-        
+
         if (!merkleData) return null;
 
         const merkleDataEpoch = merkleData.leaves.find(
           l => l.address.toLowerCase() === address.toLowerCase(),
         );
 
-        return merkleDataEpoch
+        return merkleDataEpoch;
       }),
-    )
+    );
 
     return merkleData.filter(v => !!v) as MerkleData[]; // @fixme types do not work
   }
