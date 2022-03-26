@@ -6,7 +6,7 @@ const logger = global.LOGGER();
 const IS_DEV = process.env.NODE_ENV === 'development'
 
 const DATABASE_URL = process.env.DATABASE_URL ||
-  'postgres://paraswap:paraswap@127.0.0.1:32780/volume_tracker';
+'postgres://paraswap:paraswap@127.0.0.1:32780/volume_tracker';
 
 const DATABASE_NAME = process.env.DATABASE_NAME || 'volume_tracker';
 
@@ -39,6 +39,10 @@ export class Database {
     this.sequelize = new Sequelize(connectionString, {
       logging: IS_DEV ? msg => logger.debug(msg) : undefined,
       models: [__dirname + '/models'],
+      // needed locally to connect to docker db
+      ...(IS_DEV && {dialectOptions: {
+        ssl: false
+      }})
     });
 
     try {
