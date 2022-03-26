@@ -12,9 +12,10 @@ import { computeMerkleData } from './merkle-tree';
 import { fetchDailyPSPChainCurrencyRate } from './psp-chaincurrency-pricing';
 import { computeAccumulatedTxFeesByAddress } from './transaction-fees';
 import { fetchPSPStakes } from './staking';
-import { Claimable, HistoricalPrice, TxFeesByAddress, InitialEpochData, MerkleTreeData, PSPStakesByAddress, UpdateCompletedEpochData, MerkleData, MerkleTreeDataByChain } from './types';
-// todo: database
+import { Claimable, HistoricalPrice, TxFeesByAddress, PSPStakesByAddress, UpdateCompletedEpochData, MerkleData, MerkleTreeDataByChain } from './types';
+import { EpochGasRefund } from '../../models/EpochGasRefund';
 import Database from '../../database';
+
 import BigNumber from 'bignumber.js';
 
 const logger = global.LOGGER('GRP');
@@ -144,6 +145,26 @@ const writeCompletedEpochData = async (merkleTreeDataByChain: MerkleTreeDataByCh
 
 
   // todo: bulk upsert epoch data once models are defined
+  for (let i = 0; i < epochDataToUpdate.length; i++) {
+    const endEpochData = epochDataToUpdate[i];
+
+    // key
+    const { epoch, address, chainId } = endEpochData
+    // update
+    const { totalStakeAmountPSP, refundedAmountPSP, merkleProofs, merkleRoot } = endEpochData
+
+    const row = await EpochGasRefund.findOne({ where: { epoch, address, chainId }})
+
+    await EpochGasRefund.update(
+      {
+        totalStakeAmountPSP, refundedAmountPSP, merkleProofs, merkleRoot
+      },
+      {
+        where: { epoch, address, chainId}
+      }
+    )
+  }
+
 }
 
 async function computeMerkleTreeDataAllChains(
@@ -171,7 +192,7 @@ async function computeMerkleTreeDataAllChains(
 // @FIXME: should cap amount distributed to stakers to 30k
 export async function start(epochNum: number) {
   // todo: seed db models/relations
-  // await Database.connectAndSync()
+  await Database.connectAndSync()
   // retrieve daily psp/native currency rate for (epochStartTime, epochEndTime
   logger.info('start fetching daily psp/native currency rate');
   const pspNativeCurrencyDailyRateByChain =
@@ -216,4 +237,10 @@ export async function start(epochNum: number) {
 
 }
 
+// todo: delete later - just created while developing
+const seedDB = async () => {
+  await Database.connectAndSync()
+}
+
 start(epochNum);
+// seedDB();

@@ -41,18 +41,18 @@ export type MerkleTreeDataByChain = {
   [chainId: number]: MerkleTreeData | null;
 }
 
-interface CompositeKey {
+export interface CompositeKey {
   epoch: number
   address: string
   chainId: string
 }
-interface IncompleteEpochData {
+export interface IncompleteEpochData {
   accumulatedGasUsedPSP: string
   // todo: more accumulated gas props; accGasUsed, accGasUsedChainCurrency
   lastBlockNum: number
 }
 
-interface CompletedEpochData {
+export interface CompletedEpochData {
   totalStakeAmountPSP: string
   refundedAmountPSP: string
   merkleProofs: string[]
@@ -61,3 +61,4 @@ interface CompletedEpochData {
 
 export type InitialEpochData = CompositeKey & IncompleteEpochData
 export type UpdateCompletedEpochData = CompositeKey & CompletedEpochData
+export type EpochGasRefundData = CompositeKey & IncompleteEpochData & Partial<CompletedEpochData>

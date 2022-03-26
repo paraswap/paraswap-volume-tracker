@@ -4,6 +4,8 @@ import { SwapsTracker } from '../../lib/swaps-tracker';
 import { HistoricalPrice, TxFeesByAddress, InitialEpochData } from './types';
 import { BigNumber } from 'bignumber.js';
 
+import { EpochGasRefund } from '../../models/EpochGasRefund';
+
 const logger = global.LOGGER('GRP');
 
 export async function computeAccumulatedTxFeesByAddress({
@@ -104,6 +106,33 @@ export async function computeAccumulatedTxFeesByAddress({
   }, {});
 
   // todo: bulk insert/upsert initial epoch data at end of slice of above data once merged with mo's pr
+
+  // todo: bulkCreate must work in postgres?
+  /**
+   * ideally I'd just do a bulkCreate with update options for unique
+   * identifier clashes. but that seems problematic with postgres.
+   * will look into more later, for now I do each row one at a time...
+   *
+   * await EpochGasRefund.bulkCreate(initialIncompleteEpochData, {
+      updateOnDuplicate: ['accumulatedGasUsedPSP', 'lastBlockNum'],
+    })
+    */
+  for (let i = 0; i < initialIncompleteEpochData.length; i++) {
+    const initialEpochData = initialIncompleteEpochData[i];
+
+    const { epoch, address, chainId } = initialEpochData
+    const { accumulatedGasUsedPSP, lastBlockNum } = initialEpochData
+
+    const row = await EpochGasRefund.findOne({ where: { epoch, address, chainId }})
+    if (row) {
+      await row.update({accumulatedGasUsedPSP, lastBlockNum})
+    } else {
+      await EpochGasRefund.create(initialEpochData)
+    }
+  }
+
+
+
 
   logger.info(
     `computed accumulated tx fees for ${
