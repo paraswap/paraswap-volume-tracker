@@ -1,4 +1,4 @@
-import { GasRefundModel } from '../models/GasRefund';
+import { GasRefundModel } from '../service/transaction-fees-indexer/GasRefund';
 import {
   MerkleData,
   MerkleRoot,

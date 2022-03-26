@@ -1,7 +1,8 @@
+import { Table } from 'sequelize-typescript';
 import {
   MerkleData,
   MerkleRoot,
-} from '../service/transaction-fees-indexer/types';
+} from './types';
 
 export class GasRefundModel {
   static instances: { [network: number]: GasRefundModel } = {};
