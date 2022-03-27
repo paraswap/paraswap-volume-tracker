@@ -1,5 +1,8 @@
 import BigNumber from 'bignumber.js';
-import { CHAIN_ID_MAINNET, MULTICALL_ADDRESS } from '../../../src/lib/constants';
+import {
+  CHAIN_ID_MAINNET,
+  MULTICALL_ADDRESS,
+} from '../../../src/lib/constants';
 import { PoolConfigsMap } from '../../../src/lib/pool-info';
 import { Provider } from '../../../src/lib/provider';
 import { getTokenHolders } from './covalent';

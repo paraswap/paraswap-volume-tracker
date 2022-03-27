@@ -12,23 +12,25 @@ import { writeCompletedEpochData } from './persistance/db-persistance';
 import { GRP_SUPPORTED_CHAINS } from '../../src/lib/gas-refund-api';
 import { getPSPStakes } from './staking';
 import { StakedPSPByAddress } from './types';
+import { EpochInfo } from '../../src/lib/epoch-info';
+import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
+import { assert } from 'ts-essentials';
 
 const logger = global.LOGGER('GRP');
 
-const epochNum = 8; // @TODO: read from EpochInfo
-const epochStartTime = 1646654400; // @TODO: read from EpochInfo
-const epochEndTime = 1647864000; // @TODO: read from EpochInfo
-
-// @FIXME: we should invert the logic to first fetch stakers and then scan through their transactions as: len(stakers) << len(swappers)
 // @FIXME: should cap amount distributed to stakers to 30k
 export async function calculateGasRefundForChain({
   chainId,
   epoch,
   stakes,
+  epochStartTime,
+  epochEndTime,
 }: {
   chainId: number;
   epoch: number;
   stakes: StakedPSPByAddress;
+  epochStartTime: number;
+  epochEndTime: number;
 }) {
   // retrieve daily psp/native currency rate for (epochStartTime, epochEndTime
   logger.info(
@@ -52,6 +54,8 @@ export async function calculateGasRefundForChain({
     stakes,
   });
 
+  if (Date.now() < epochEndTime * 1000) return; // skip other operations as epoch is not finished
+
   // combine data to form mapping(chainId => address => {totalStakes@debug, gasRefundPercent@debug, accGasUsedPSP@debug, refundAmount})  // amount = accGasUsedPSP * gasRefundPercent
   logger.info(`reduce gas refund by address for chainId=${chainId}`);
   const gasRefundByAddress = await computeGasRefundByAddress(
@@ -64,30 +68,46 @@ export async function calculateGasRefundForChain({
   const merkleTree = await computeMerkleData(
     chainId,
     gasRefundByAddress,
-    epochNum,
+    epoch,
   );
 
-  // @TODO: store merkleTreeByChain in db (or file to start with) with epochNum
-  console.log({ merkleTreeByChain: JSON.stringify(merkleTree) });
-  // todo: determine if epoch is over (epoch endtime < [now])
   await writeCompletedEpochData(chainId, merkleTree, stakes);
+}
 
-  // await saveMerkleTree({ merkleTree, chainId, epochNum });
+async function resolveEpochStartEndTime(
+  epoch: number,
+): Promise<{ epochStartTime: number; epochEndTime: number }> {
+  const epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET, true);
+  await epochInfo.getEpochDetails();
+  const [epochStartTime, epochEndTime] = await Promise.all([
+    epochInfo.getEpochStartCalcTime(epoch),
+    epochInfo.getEpochEndCalcTime(epoch),
+  ]);
+  return { epochStartTime, epochEndTime };
 }
 
 async function start() {
+  const epochNum = 8; // @TODO: automatise
   await Database.connectAndSync();
 
-  const stakes = await getPSPStakes();
+  const [stakes, { epochStartTime, epochEndTime }] = await Promise.all([
+    getPSPStakes(),
+    resolveEpochStartEndTime(epochNum),
+  ]);
 
-  if (!stakes) {
-    logger.warn('no staked psp found at all');
-    return;
-  }
+  assert(stakes, 'no stakers found at all');
+  assert(epochStartTime, `could not resolve ${epochNum}th epoch start time`);
+  assert(epochEndTime, `could not resolve ${epochNum}th epoch end time`);
 
   await Promise.all(
     GRP_SUPPORTED_CHAINS.map(chainId =>
-      calculateGasRefundForChain({ chainId, epoch: epochNum, stakes }),
+      calculateGasRefundForChain({
+        chainId,
+        epoch: epochNum,
+        stakes,
+        epochStartTime,
+        epochEndTime,
+      }),
     ),
   );
 }
