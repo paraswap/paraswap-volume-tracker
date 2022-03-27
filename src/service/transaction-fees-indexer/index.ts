@@ -6,7 +6,10 @@ import { computeMerkleData } from './merkle-tree';
 import { fetchDailyPSPChainCurrencyRate } from './psp-chaincurrency-pricing';
 import { computeAccumulatedTxFeesByAddress } from './transaction-fees';
 import { fetchPSPStakes } from './staking';
-import { saveMerkleTree } from './persistance';
+import Database from '../../database';
+
+import { writeCompletedEpochData } from './db-persistance';
+
 import { GRP_SUPPORTED_CHAINS } from '../../lib/gas-refund-api';
 
 const logger = global.LOGGER('GRP');
@@ -17,7 +20,13 @@ const epochEndTime = 1647864000; // @TODO: read from EpochInfo
 
 // @FIXME: we should invert the logic to first fetch stakers and then scan through their transactions as: len(stakers) << len(swappers)
 // @FIXME: should cap amount distributed to stakers to 30k
-export async function processTxFeesForChain(chainId: number) {
+export async function processTxFeesForChain({
+  chainId,
+  epoch,
+}: {
+  chainId: number;
+  epoch: number;
+}) {
   // retrieve daily psp/native currency rate for (epochStartTime, epochEndTime
   logger.info('start fetching daily psp/native currency rate');
   const pspNativeCurrencyDailyRate = await fetchDailyPSPChainCurrencyRate({
@@ -31,6 +40,7 @@ export async function processTxFeesForChain(chainId: number) {
 
   const accTxFeesByAddress = await computeAccumulatedTxFeesByAddress({
     chainId,
+    epoch,
     pspNativeCurrencyDailyRate,
     startTimestamp: epochStartTime,
     endTimestamp: epochEndTime,
@@ -58,12 +68,20 @@ export async function processTxFeesForChain(chainId: number) {
   );
 
   // @TODO: store merkleTreeByChain in db (or file to start with) with epochNum
-  await saveMerkleTree({ merkleTree, chainId, epochNum });
+  console.log({ merkleTreeByChain: JSON.stringify(merkleTree) });
+  // todo: determine if epoch is over (epoch endtime < [now])
+  await writeCompletedEpochData(chainId, merkleTree, pspStakesByAddress);
+
+  // await saveMerkleTree({ merkleTree, chainId, epochNum });
 }
 
 async function start() {
+  await Database.connectAndSync();
+
   await Promise.all(
-    GRP_SUPPORTED_CHAINS.map(chainId => processTxFeesForChain(chainId)),
+    GRP_SUPPORTED_CHAINS.map(chainId =>
+      processTxFeesForChain({ chainId, epoch: epochNum }),
+    ),
   );
 }
 
