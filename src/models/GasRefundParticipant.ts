@@ -23,7 +23,7 @@ const compositeIndex = createIndexDecorator({
 });
 
 @Table
-export class EpochGasRefund extends Model<EpochGasRefundData> {
+export class GasRefundParticipant extends Model<EpochGasRefundData> {
   @PrimaryKey
   @AutoIncrement
   @Column(DataType.INTEGER)
@@ -67,8 +67,4 @@ export class EpochGasRefund extends Model<EpochGasRefundData> {
     type: DataType.ARRAY(DataType_KECCAK256_HASHED_VALUE),
   })
   merkleProofs: string[];
-
-  @AllowNull(true)
-  @Column(DataType_KECCAK256_HASHED_VALUE)
-  merkleRoot: string;
 }

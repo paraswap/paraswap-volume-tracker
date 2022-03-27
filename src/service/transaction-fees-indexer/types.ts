@@ -19,13 +19,19 @@ export interface CompletedEpochGasRefundData
   totalStakeAmountPSP: string;
   refundedAmountPSP: string;
   merkleProofs: string[];
-  merkleRoot: string;
   isCompleted: true;
 }
 
 export type EpochGasRefundData =
   | PendingEpochGasRefundData
   | CompletedEpochGasRefundData;
+
+export type GasRefundProgramdata = {
+  epoch: number;
+  chainId: number;
+  totalPSPAmountToRefund: string;
+  merkleRoot: string;
+};
 
 export type TxFeesByAddress = {
   [address: string]: PendingEpochGasRefundData;

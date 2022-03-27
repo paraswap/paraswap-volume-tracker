@@ -1,4 +1,5 @@
-import { EpochGasRefund } from '../../models/EpochGasRefund';
+import { GasRefundParticipant } from '../../models/GasRefundParticipant';
+import { GasRefundProgram } from '../../models/GasRefundProgram';
 import {
   MerkleData,
   MerkleTreeData,
@@ -15,7 +16,7 @@ const fetchPendingEpochData = async ({
   chainId: number;
   epoch: number;
 }): Promise<TxFeesByAddress> => {
-  const pendingEpochData = (await EpochGasRefund.findAll({
+  const pendingEpochData = (await GasRefundParticipant.findAll({
     where: { chainId, epoch },
   })) as PendingEpochGasRefundData[];
 
@@ -37,7 +38,7 @@ async function fetchVeryLastBlockNumProcessed({
   chainId: number;
   epoch: number;
 }): Promise<number> {
-  const lastBlockNum = await EpochGasRefund.max('lastBlockNum', {
+  const lastBlockNum = await GasRefundParticipant.max('lastBlockNum', {
     where: { chainId, epoch },
   });
 
@@ -60,7 +61,7 @@ export const readPendingEpochData = async ({
 export const writePendingEpochData = async (
   pendingEpochGasRefundData: PendingEpochGasRefundData[],
 ) => {
-  await EpochGasRefund.bulkCreate(pendingEpochGasRefundData, {
+  await GasRefundParticipant.bulkCreate(pendingEpochGasRefundData, {
     updateOnDuplicate: [
       'accumulatedGasUsedPSP',
       'accumulatedGasUsed',
@@ -91,9 +92,8 @@ export const writeCompletedEpochData = async (
       chainId: chainId,
 
       totalStakeAmountPSP: pspStakesByAddress[leaf.address].toFixed(0),
-      refundedAmountPSP: totalAmount,
+      refundedAmountPSP: leaf.amount,
       merkleProofs: leaf.merkleProofs,
-      merkleRoot,
       isCompleted: true,
     }),
   );
@@ -105,8 +105,15 @@ export const writeCompletedEpochData = async (
     // key
     const { epoch, address, chainId } = endEpochData;
 
-    await EpochGasRefund.update(endEpochData, {
+    await GasRefundParticipant.update(endEpochData, {
       where: { epoch, address, chainId },
     });
   }
+
+  await GasRefundProgram.create({
+    epoch,
+    chainId,
+    totalPSPAmountToRefund: totalAmount,
+    merkleRoot,
+  });
 };
