@@ -30,8 +30,6 @@ export async function calculateGasRefundForChain({
   epoch: number;
   stakes: StakedPSPByAddress;
 }) {
-  const stakersAddress = [...new Set(Object.keys(stakes))];
-
   // retrieve daily psp/native currency rate for (epochStartTime, epochEndTime
   logger.info(
     `start fetching daily psp/native currency rate for chainId=${chainId}`,
@@ -51,7 +49,7 @@ export async function calculateGasRefundForChain({
     pspNativeCurrencyDailyRate,
     startTimestamp: epochStartTime,
     endTimestamp: epochEndTime,
-    stakersAddress,
+    stakes,
   });
 
   // combine data to form mapping(chainId => address => {totalStakes@debug, gasRefundPercent@debug, accGasUsedPSP@debug, refundAmount})  // amount = accGasUsedPSP * gasRefundPercent

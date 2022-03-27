@@ -12,11 +12,11 @@ export interface PendingEpochGasRefundData extends BaseGasRefundData {
   accumulatedGasUsed: string;
   lastBlockNum: number;
   isCompleted: false;
+  totalStakeAmountPSP: string;
 }
 
 export interface CompletedEpochGasRefundData
   extends Partial<Omit<PendingEpochGasRefundData, 'isCompleted'>> {
-  totalStakeAmountPSP: string;
   refundedAmountPSP: string;
   merkleProofs: string[];
   isCompleted: true;

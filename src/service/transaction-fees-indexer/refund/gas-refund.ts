@@ -60,7 +60,7 @@ export function computeGasRefundByAddress(
     }
 
     assert(
-      new BigNumber(stakedAmount).lt(minStake),
+      new BigNumber(stakedAmount).gte(minStake),
       'Logic Errror: stakedAmount is lower than min stake',
     ); // should be guaranteed by previous logic
 

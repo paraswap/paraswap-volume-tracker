@@ -1,10 +1,10 @@
 import { assert } from 'ts-essentials';
 import { BlockInfo } from '../../../lib/block-info';
-import { SwapsTracker } from '../../../lib/swaps-tracker';
 import {
   HistoricalPrice,
   TxFeesByAddress,
   PendingEpochGasRefundData,
+  StakedPSPByAddress,
 } from '../types';
 import { BigNumber } from 'bignumber.js';
 import { constructSameDayPrice } from '../psp-chaincurrency-pricing';
@@ -12,6 +12,7 @@ import {
   readPendingEpochData,
   writePendingEpochData,
 } from '../persistance/db-persistance';
+import { getSwapsForAccounts } from './swaps-subgraph';
 
 const logger = global.LOGGER('GRP:TRANSACTION_FEES_INDEXING');
 
@@ -23,22 +24,22 @@ export async function computeAccumulatedTxFeesByAddressForSuccessfulSwapTxs({
   endTimestamp,
   pspNativeCurrencyDailyRate,
   epoch,
-  stakersAddress // @TODO: pass the thegraph gql query
+  stakes,
 }: {
   chainId: number;
   startTimestamp: number;
   endTimestamp: number;
   pspNativeCurrencyDailyRate: HistoricalPrice;
   epoch: number;
-  stakersAddress: string[]
+  stakes: StakedPSPByAddress;
 }): Promise<TxFeesByAddress> {
-  const swapTracker = SwapsTracker.getInstance(chainId, true);
   const blockInfo = BlockInfo.getInstance(chainId);
   const [epochStartBlock, epochEndBlock] = await Promise.all([
     blockInfo.getBlockAfterTimeStamp(startTimestamp),
     blockInfo.getBlockAfterTimeStamp(endTimestamp),
   ]);
   const findSameDayPrice = constructSameDayPrice(pspNativeCurrencyDailyRate);
+  const stakersAddress = Object.keys(stakes);
 
   assert(
     epochStartBlock,
@@ -71,73 +72,72 @@ export async function computeAccumulatedTxFeesByAddressForSuccessfulSwapTxs({
     const _endBlock = Math.min(_startBlock + PARTITION_SIZE, epochEndBlock);
 
     logger.info(
-      `swapTracker start indexing partition between ${_startBlock} and ${_endBlock}`,
+      `start indexing partition between ${_startBlock} and ${_endBlock}`,
     );
 
-    await swapTracker.indexSwaps(_startBlock, _endBlock);
-
-    const swapsByBlock = swapTracker.indexedSwaps;
+    const swaps = await getSwapsForAccounts({
+      startBlock: _startBlock,
+      endBlock: _endBlock,
+      accounts: stakersAddress,
+      chainId,
+    });
 
     logger.info(
-      `swapTracker indexed ${Object.keys(swapsByBlock).length} blocks`,
+      `fetched ${swaps.length} swaps withing startBlock ${_startBlock} and endBlock ${_endBlock}`,
     );
 
-    accumulatedTxFeesByAddress = Object.entries(
-      swapsByBlock,
-    ).reduce<TxFeesByAddress>((acc, [, swapsInBlock]) => {
-      swapsInBlock.forEach(swap => {
-        const swapperAcc = acc[swap.txOrigin];
+    accumulatedTxFeesByAddress = swaps.reduce<TxFeesByAddress>((acc, swap) => {
+      const address = swap.txOrigin;
 
-        const pspRateSameDay = findSameDayPrice(swap.timestamp);
+      const swapperAcc = acc[address];
 
-        if (!pspRateSameDay) {
-          logger.warn(
-            `Fail to find price for same day ${
-              swap.timestamp
-            } and rates=${JSON.stringify(
-              pspNativeCurrencyDailyRate.flatMap(p => p.timestamp),
-            )}`,
-          );
+      const pspRateSameDay = findSameDayPrice(swap.timestamp);
 
-          return;
-        }
-
-        // @TODO: shoot bignumber overhead
-        const currGasUsed = new BigNumber(swap.txGasUsed.toString());
-        const accGasUsed = currGasUsed.plus(
-          swapperAcc?.accumulatedGasUsed || 0,
+      if (!pspRateSameDay) {
+        logger.warn(
+          `Fail to find price for same day ${
+            swap.timestamp
+          } and rates=${JSON.stringify(
+            pspNativeCurrencyDailyRate.flatMap(p => p.timestamp),
+          )}`,
         );
 
-        const currGasFeePSP = currGasUsed
-          .multipliedBy(swap.txGasPrice.toString()) // in gwei
-          .multipliedBy(1e9) //  convert to wei
-          .multipliedBy(pspRateSameDay);
+        return acc;
+      }
 
-        const accGasFeePSP = currGasFeePSP.plus(
-          swapperAcc?.accumulatedGasUsedPSP || 0,
-          //@TODO: debug data (acc gas used, avg gas price)
-        );
+      // @TODO: shoot bignumber overhead
+      const currGasUsed = new BigNumber(swap.txGasUsed.toString());
+      const accGasUsed = currGasUsed.plus(swapperAcc?.accumulatedGasUsed || 0);
 
-        const pendingGasRefundDatum: PendingEpochGasRefundData = {
-          // @fixme remove initailEpochData to use acc
-          epoch,
-          address: swap.txOrigin,
-          chainId: chainId,
-          accumulatedGasUsedPSP: accGasFeePSP.toFixed(0),
-          accumulatedGasUsed: accGasUsed.toFixed(0),
-          lastBlockNum: swap.blockNumber,
-          isCompleted: false,
-        };
+      const currGasFeePSP = currGasUsed
+        .multipliedBy(swap.txGasPrice.toString()) // in gwei
+        .multipliedBy(1e9) //  convert to wei
+        .multipliedBy(pspRateSameDay);
 
-        acc[swap.txOrigin] = pendingGasRefundDatum;
-      });
+      const accGasFeePSP = currGasFeePSP.plus(
+        swapperAcc?.accumulatedGasUsedPSP || 0,
+      );
+
+      const pendingGasRefundDatum: PendingEpochGasRefundData = {
+        epoch,
+        address,
+        chainId: chainId,
+        accumulatedGasUsedPSP: accGasFeePSP.toFixed(0),
+        accumulatedGasUsed: accGasUsed.toFixed(0),
+        lastBlockNum: swap.blockNumber,
+        isCompleted: false,
+        totalStakeAmountPSP: stakes[address],
+      };
+
+      acc[address] = pendingGasRefundDatum;
 
       return acc;
     }, accumulatedTxFeesByAddress);
 
-    await writePendingEpochData(Object.values(accumulatedTxFeesByAddress));
-
-    swapTracker.indexedSwaps = {}; // cleaning step
+    const values = Object.values(accumulatedTxFeesByAddress);
+    if (values.length > 0) {
+      await writePendingEpochData(values);
+    }
   }
 
   logger.info(
