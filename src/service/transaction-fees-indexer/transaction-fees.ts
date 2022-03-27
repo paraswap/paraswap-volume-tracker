@@ -48,6 +48,8 @@ export async function computeAccumulatedTxFeesByAddress({
     `swapTracker start indexing between ${startBlock} and ${endBlock}`,
   );
 
+  // @FIXME: read acc Tx fees from DB
+  // @FIXME: start from last processed block
   let accumulatedTxFeesByAddress: TxFeesByAddress = {};
 
   for (
