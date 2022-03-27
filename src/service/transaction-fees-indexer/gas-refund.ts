@@ -56,7 +56,7 @@ export function reduceGasRefundByAddress(
     const stakedAmount = pspStakesByAddress[address];
 
     if (!stakedAmount) {
-      logger.info(`skipping ${address} as not staked`);
+      //  logger.info(`skipping ${address} as not staked`);
       return acc;
     }
 

@@ -1,11 +1,11 @@
 {
-	"version": "0.2.0",
-	"configurations": [
-	  {
+  "version": "0.2.0",
+  "configurations": [
+    {
       "type": "node",
       "request": "attach",
       "name": "Attach to Node",
-      "port": 9230,
-	  },
-	]
+      "port": 9230
+    }
+  ]
 }
