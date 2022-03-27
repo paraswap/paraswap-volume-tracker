@@ -30,7 +30,7 @@ export async function computeMerkleData(
 
   const allLeaves = Object.keys(hashedClaimabled);
 
-  const tree = new MerkleTree(allLeaves, utils.keccak256);
+  const tree = new MerkleTree(allLeaves, utils.keccak256, { sort: true });
 
   logger.info(`merkleTree for chainId=${chainId}: ${tree.toString()}`);
 
