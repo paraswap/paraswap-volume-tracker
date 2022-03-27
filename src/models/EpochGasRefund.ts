@@ -2,18 +2,14 @@ import {
   Table,
   Model,
   Column,
-  Index,
   AllowNull,
   PrimaryKey,
-  Default,
   DataType,
-  Scopes,
   AutoIncrement,
-  Unique,
   createIndexDecorator,
 } from 'sequelize-typescript';
 
-import { DataType_ADDRESS } from '../lib/sql-data-types';
+import { DataType_ADDRESS, DataType_KECCAK256_HASHED_VALUE } from '../lib/sql-data-types';
 import { EpochGasRefundData } from '../service/transaction-fees-indexer/types';
 
 const compositeIndex = createIndexDecorator({
@@ -26,44 +22,48 @@ const compositeIndex = createIndexDecorator({
 export class EpochGasRefund extends Model<EpochGasRefundData> {
   @PrimaryKey
   @AutoIncrement
-  @Column(DataType.INTEGER.UNSIGNED)
-  id: string;
+  @Column(DataType.INTEGER)
+  id: number;
 
   @compositeIndex
-  @Column(DataType.SMALLINT.UNSIGNED)
+  @Column(DataType.SMALLINT)
   epoch: number;
 
   @compositeIndex
   @Column(DataType_ADDRESS)
   address: string;
 
+  @Column(DataType.BOOLEAN)
+  isCompleted: boolean;
+
   @compositeIndex
-  @Column(DataType.STRING(5))
-  chainId: string;
+  @Column(DataType.SMALLINT)
+  chainId: number;
 
-  @Column // todo: refactor, better data type
-  accumulatedGasUsedPSP: string;
-  // todo: more accumulated gas props; accGasUsed, accGasUsedChainCurrency
-
-  @Column
+  @Column(DataType.INTEGER)
   lastBlockNum: number;
 
+  @Column(DataType.STRING)
+  accumulatedGasUsed: string;
+
+  @Column(DataType.STRING)
+  accumulatedGasUsedPSP: string;
+
   @AllowNull(true)
-  @Column // todo: refactor, better data type
+  @Column(DataType.STRING)
   totalStakeAmountPSP: string;
 
   @AllowNull(true)
-  @Column // todo: refactor, better data type
+  @Column(DataType.STRING)
   refundedAmountPSP: string;
 
   @AllowNull(true)
   @Column({
-    type: DataType.ARRAY(DataType.STRING()),
-  }) // todo: refactor, better data type
+    type: DataType.ARRAY(DataType_KECCAK256_HASHED_VALUE),
+  })
   merkleProofs: string[];
 
   @AllowNull(true)
-  // todo: make a string? DataType_ADDRESS ?
-  @Column(DataType.JSONB) // todo: refactor, better data type
+  @Column(DataType_KECCAK256_HASHED_VALUE)
   merkleRoot: string;
 }

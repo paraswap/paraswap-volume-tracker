@@ -8,10 +8,8 @@ import { computeAccumulatedTxFeesByAddress } from './transaction-fees';
 import { fetchPSPStakes } from './staking';
 import Database from '../../database';
 
-import BigNumber from 'bignumber.js';
 import { writeCompletedEpochData } from './db-persistance';
 
-import { saveMerkleTree } from './persistance';
 import { GRP_SUPPORTED_CHAINS } from '../../lib/gas-refund-api';
 
 const logger = global.LOGGER('GRP');

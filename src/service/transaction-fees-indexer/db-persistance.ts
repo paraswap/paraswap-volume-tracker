@@ -3,7 +3,7 @@ import {
   MerkleData,
   MerkleTreeData,
   PSPStakesByAddress,
-  UpdateCompletedEpochData,
+  CompletedEpochGasRefundData,
 } from './types';
 
 export const writeCompletedEpochData = async (
@@ -30,16 +30,17 @@ export const writeCompletedEpochData = async (
     leaves,
   } = merkleTree;
 
-  const epochDataToUpdate: UpdateCompletedEpochData[] = leaves.map(
+  const epochDataToUpdate: CompletedEpochGasRefundData[] = leaves.map(
     (leaf: MerkleData) => ({
       epoch,
       address: leaf.address,
-      chainId: String(chainId),
+      chainId: chainId,
 
-      totalStakeAmountPSP: pspStakesByAddress[leaf.address].toString(), // todo: make safe
+      totalStakeAmountPSP: pspStakesByAddress[leaf.address].toFixed(0),
       refundedAmountPSP: totalAmount,
       merkleProofs: leaf.merkleProofs,
       merkleRoot,
+      isCompleted: true,
     }),
   );
 
@@ -49,21 +50,9 @@ export const writeCompletedEpochData = async (
 
     // key
     const { epoch, address, chainId } = endEpochData;
-    // update
-    const { totalStakeAmountPSP, refundedAmountPSP, merkleProofs, merkleRoot } =
-      endEpochData;
-
-    const row = await EpochGasRefund.findOne({
-      where: { epoch, address, chainId },
-    });
 
     await EpochGasRefund.update(
-      {
-        totalStakeAmountPSP,
-        refundedAmountPSP,
-        merkleProofs,
-        merkleRoot,
-      },
+      endEpochData,
       {
         where: { epoch, address, chainId },
       },

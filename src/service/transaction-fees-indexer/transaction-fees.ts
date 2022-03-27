@@ -1,7 +1,11 @@
 import { assert } from 'ts-essentials';
 import { BlockInfo } from '../../lib/block-info';
 import { SwapsTracker } from '../../lib/swaps-tracker';
-import { HistoricalPrice, TxFeesByAddress, InitialEpochData } from './types';
+import {
+  HistoricalPrice,
+  TxFeesByAddress,
+  PendingEpochGasRefundData,
+} from './types';
 import { BigNumber } from 'bignumber.js';
 import { constructSameDayPrice } from './psp-chaincurrency-pricing';
 import { EpochGasRefund } from '../../models/EpochGasRefund';
@@ -48,15 +52,13 @@ export async function computeAccumulatedTxFeesByAddress({
     `swapTracker start indexing between ${startBlock} and ${endBlock}`,
   );
 
-  let accumulatedTxFeesByAddress = {};
+  let accumulatedTxFeesByAddress: TxFeesByAddress = {};
 
   for (
     let _startBlock = startBlock;
     _startBlock < endBlock;
     _startBlock += PARTITION_SIZE
   ) {
-    let initialIncompleteEpochData: InitialEpochData[] = [];
-
     const _endBlock = Math.min(_startBlock + PARTITION_SIZE, endBlock);
 
     logger.info(
@@ -91,32 +93,34 @@ export async function computeAccumulatedTxFeesByAddress({
           return;
         }
 
-        const currGasFeePSP = new BigNumber(swap.txGasUsed.toString())
+        // @TODO: shoot bignumber overhead
+        const currGasUsed = new BigNumber(swap.txGasUsed.toString());
+        const accGasUsed = currGasUsed.plus(
+          swapperAcc?.accumulatedGasUsed || 0,
+        );
+
+        const currGasFeePSP = currGasUsed
           .multipliedBy(swap.txGasPrice.toString()) // in gwei
           .multipliedBy(1e9) //  convert to wei
           .multipliedBy(pspRateSameDay);
 
-        const accGasFeePSP = (
-          swapperAcc?.accGasFeePSP || new BigNumber(0)
-        ).plus(
-          currGasFeePSP,
+        const accGasFeePSP = currGasFeePSP.plus(
+          swapperAcc?.accumulatedGasUsedPSP || 0,
           //@TODO: debug data (acc gas used, avg gas price)
         );
 
-        const initialEpochData: InitialEpochData = { // @fixme remove initailEpochData to use acc
+        const pendingGasRefundDatum: PendingEpochGasRefundData = {
+          // @fixme remove initailEpochData to use acc
           epoch,
           address: swap.txOrigin,
-          chainId: chainId.toString(),
-          accumulatedGasUsedPSP: accGasFeePSP.toFixed(0), // todo: make safe
+          chainId: chainId,
+          accumulatedGasUsedPSP: accGasFeePSP.toFixed(0),
+          accumulatedGasUsed: accGasUsed.toFixed(0),
           lastBlockNum: swap.blockNumber,
+          isCompleted: false,
         };
 
-        initialIncompleteEpochData.push(initialEpochData);
-
-        acc[swap.txOrigin] = {
-          accGasFeePSP,
-          lastBlockNum: swap.blockNumber,
-        };
+        acc[swap.txOrigin] = pendingGasRefundDatum;
       });
 
       return acc;
@@ -134,9 +138,8 @@ export async function computeAccumulatedTxFeesByAddress({
       updateOnDuplicate: ['accumulatedGasUsedPSP', 'lastBlockNum'],
     })
     */
-    for (let i = 0; i < initialIncompleteEpochData.length; i++) {
-      const initialEpochData = initialIncompleteEpochData[i];
 
+    for (const initialEpochData of Object.values(accumulatedTxFeesByAddress)) {
       const { epoch, address, chainId } = initialEpochData;
       const { accumulatedGasUsedPSP, lastBlockNum } = initialEpochData;
 
