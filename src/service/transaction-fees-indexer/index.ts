@@ -1,10 +1,10 @@
 import '../../lib/log4js';
 import * as dotenv from 'dotenv';
 dotenv.config();
-import { reduceGasRefundByAddress } from './refund/gas-refund';
+import { computeGasRefundByAddress } from './refund/gas-refund';
 import { computeMerkleData } from './refund/merkle-tree';
 import { fetchDailyPSPChainCurrencyRate } from './psp-chaincurrency-pricing';
-import { computeAccumulatedTxFeesByAddress } from './transaction-indexing/successful-swap-tx-indexing';
+import { computeAccumulatedTxFeesByAddress } from './transactions-indexing';
 import { fetchPSPStakes } from './staking/staking';
 import Database from '../../database';
 
@@ -20,7 +20,7 @@ const epochEndTime = 1647864000; // @TODO: read from EpochInfo
 
 // @FIXME: we should invert the logic to first fetch stakers and then scan through their transactions as: len(stakers) << len(swappers)
 // @FIXME: should cap amount distributed to stakers to 30k
-export async function processTxFeesForChain({
+export async function calculateGasRefundForChain({
   chainId,
   epoch,
 }: {
@@ -28,7 +28,9 @@ export async function processTxFeesForChain({
   epoch: number;
 }) {
   // retrieve daily psp/native currency rate for (epochStartTime, epochEndTime
-  logger.info('start fetching daily psp/native currency rate');
+  logger.info(
+    `start fetching daily psp/native currency rate for chainId=${chainId}`,
+  );
   const pspNativeCurrencyDailyRate = await fetchDailyPSPChainCurrencyRate({
     chainId,
     startTimestamp: epochStartTime,
@@ -36,7 +38,7 @@ export async function processTxFeesForChain({
   });
 
   // retrieve all tx beetween (start_epoch_timestamp, end_epoch_timestamp) +  compute progressively mapping(chainId => address => mapping(timestamp => accGasUsedPSP)) // address: txOrigin, timestamp: start of the day
-  logger.info('start computing accumulated tx fees');
+  logger.info(`start computing accumulated tx fees for chainId=${chainId}`);
 
   const accTxFeesByAddress = await computeAccumulatedTxFeesByAddress({
     chainId,
@@ -53,14 +55,14 @@ export async function processTxFeesForChain({
   const pspStakesByAddress = await fetchPSPStakes(swapperAddresses);
 
   // combine data to form mapping(chainId => address => {totalStakes@debug, gasRefundPercent@debug, accGasUsedPSP@debug, refundAmount})  // amount = accGasUsedPSP * gasRefundPercent
-  logger.info(`reduce gas refund by address for all chains`);
-  const gasRefundByAddress = await reduceGasRefundByAddress(
+  logger.info(`reduce gas refund by address for chainId=${chainId}`);
+  const gasRefundByAddress = await computeGasRefundByAddress(
     accTxFeesByAddress,
     pspStakesByAddress,
   );
 
   // compute mapping(networkId => MerkleTree)
-  logger.info(`compute merkleTree by chain`);
+  logger.info(`compute merkleTree for chainId=${chainId}`);
   const merkleTree = await computeMerkleData(
     chainId,
     gasRefundByAddress,
@@ -80,7 +82,7 @@ async function start() {
 
   await Promise.all(
     GRP_SUPPORTED_CHAINS.map(chainId =>
-      processTxFeesForChain({ chainId, epoch: epochNum }),
+      calculateGasRefundForChain({ chainId, epoch: epochNum }),
     ),
   );
 }

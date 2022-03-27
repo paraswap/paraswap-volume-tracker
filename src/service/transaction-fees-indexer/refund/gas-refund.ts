@@ -45,8 +45,7 @@ const getRefundPercent = (stakedAmount: BigNumber): number | undefined =>
     stakedAmount.gte(minStakedAmount),
   )?.refundPercent;
 
-// @FIXME: read accumulated tx fees by address and gas refund level -> reduce claimable amounts
-export function reduceGasRefundByAddress(
+export function computeGasRefundByAddress(
   accTxFeesByAddress: TxFeesByAddress,
   pspStakesByAddress: { [address: string]: BigNumber },
 ): Claimable[] {

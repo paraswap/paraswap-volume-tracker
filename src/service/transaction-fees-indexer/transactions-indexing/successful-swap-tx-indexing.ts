@@ -8,13 +8,16 @@ import {
 } from '../types';
 import { BigNumber } from 'bignumber.js';
 import { constructSameDayPrice } from '../psp-chaincurrency-pricing';
-import { readPendingEpochData, writePendingEpochData } from '../persistance/db-persistance';
+import {
+  readPendingEpochData,
+  writePendingEpochData,
+} from '../persistance/db-persistance';
 
 const logger = global.LOGGER('GRP:TRANSACTION_FEES_INDEXING');
 
 const PARTITION_SIZE = 100; // depends on thegraph capacity and memory
 
-export async function computeAccumulatedTxFeesByAddress({
+export async function computeAccumulatedTxFeesByAddressForSuccessfulSwapTxs({
   chainId,
   startTimestamp,
   endTimestamp,
@@ -26,7 +29,7 @@ export async function computeAccumulatedTxFeesByAddress({
   endTimestamp: number;
   pspNativeCurrencyDailyRate: HistoricalPrice;
   epoch: number;
-}) {
+}): Promise<TxFeesByAddress> {
   const swapTracker = SwapsTracker.getInstance(chainId, true);
   const blockInfo = BlockInfo.getInstance(chainId);
   const [epochStartBlock, epochEndBlock] = await Promise.all([
