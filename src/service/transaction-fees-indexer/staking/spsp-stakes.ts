@@ -82,10 +82,9 @@ export async function getSPSPToPSPRatesByPool({
   const rawResult = await multicallContract.functions.aggregate(multicallData);
 
   const pspRatesByPool = pools.reduce<PSPRateByPool>((acc, pool, i) => {
-    const pspForOneSPS = sPSPInterface.decodeFunctionResult(
-      'PSPForSPSP',
-      rawResult.returnData[i],
-    ).toString()
+    const pspForOneSPS = sPSPInterface
+      .decodeFunctionResult('PSPForSPSP', rawResult.returnData[i])
+      .toString();
 
     acc[pool] = new BigNumber(ONE_UNIT).dividedBy(pspForOneSPS).toNumber();
 
@@ -113,8 +112,10 @@ export async function getSPSPStakes(): Promise<StakedPSPByAddress | null> {
     const rate = spspToPSPRateByPool[pool.pool];
 
     pool.stakers.forEach(staker => {
-      acc[staker.staker] = new BigNumber(staker.sPSPbalance)
-        .multipliedBy(rate)
+      const accStakes = new BigNumber(acc[staker.staker] || 0);
+
+      acc[staker.staker] = accStakes
+        .plus(new BigNumber(staker.sPSPbalance).multipliedBy(rate))
         .toFixed(0);
     });
 
