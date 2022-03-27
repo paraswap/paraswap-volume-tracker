@@ -78,7 +78,7 @@ export function reduceGasRefundByAddress(
       amount: refundedAmount,
       // todo: maybe doesn't make sense to return here (as this func deals with refund calculation)
       lastBlockNum: accTxFees.lastBlockNum,
-      totalStakeAmountPSP: stakedAmount.toNumber(), // todo: make safe
+      totalStakeAmountPSP: stakedAmount.toFixed(0),
     });
 
     return acc;

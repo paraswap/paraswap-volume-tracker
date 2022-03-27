@@ -41,7 +41,7 @@ export type Claimable = {
   address: string;
   amount: string;
   lastBlockNum: number;
-  totalStakeAmountPSP: number;
+  totalStakeAmountPSP: string;
 };
 
 export type MerkleRoot = {
