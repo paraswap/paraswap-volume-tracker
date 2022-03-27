@@ -8,7 +8,7 @@ import {
   CHAIN_ID_MAINNET,
   CHAIN_ID_POLYGON,
   PSP_ADDRESS,
-} from '../../lib/constants';
+} from '../../src/lib/constants';
 import { HistoricalPrice } from './types';
 
 const logger = global.LOGGER('GRP:PSP-CHAIN-CURRENCY-PRICING');

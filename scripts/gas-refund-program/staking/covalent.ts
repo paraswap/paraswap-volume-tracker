@@ -1,5 +1,5 @@
 import { URLSearchParams } from 'url';
-import { Utils } from '../../../lib/utils';
+import { Utils } from '../../../src/lib/utils';
 
 const COVALENT_API_KEY = process.env.COVALENT_API_KEY || 'ckey_docs'; // public, is rate-limited
 

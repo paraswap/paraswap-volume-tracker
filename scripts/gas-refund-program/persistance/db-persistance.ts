@@ -1,5 +1,5 @@
-import { GasRefundParticipant } from '../../../models/GasRefundParticipant';
-import { GasRefundProgram } from '../../../models/GasRefundProgram';
+import { GasRefundParticipant } from '../../../src/models/GasRefundParticipant';
+import { GasRefundProgram } from '../../../src/models/GasRefundProgram';
 import {
   MerkleData,
   MerkleTreeData,

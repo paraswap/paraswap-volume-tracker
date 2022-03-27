@@ -1,5 +1,5 @@
 import { assert } from 'ts-essentials';
-import { BlockInfo } from '../../../lib/block-info';
+import { BlockInfo } from '../../../src/lib/block-info';
 import {
   HistoricalPrice,
   TxFeesByAddress,

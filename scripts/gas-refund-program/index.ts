@@ -1,15 +1,15 @@
-import '../../lib/log4js';
+import '../../src/lib/log4js';
 import * as dotenv from 'dotenv';
 dotenv.config();
 import { computeGasRefundByAddress } from './refund/gas-refund';
 import { computeMerkleData } from './refund/merkle-tree';
 import { fetchDailyPSPChainCurrencyRate } from './psp-chaincurrency-pricing';
 import { computeAccumulatedTxFeesByAddress } from './transactions-indexing';
-import Database from '../../database';
+import Database from '../../src/database';
 
 import { writeCompletedEpochData } from './persistance/db-persistance';
 
-import { GRP_SUPPORTED_CHAINS } from '../../lib/gas-refund-api';
+import { GRP_SUPPORTED_CHAINS } from '../../src/lib/gas-refund-api';
 import { getPSPStakes } from './staking';
 import { StakedPSPByAddress } from './types';
 

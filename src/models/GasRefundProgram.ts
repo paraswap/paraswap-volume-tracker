@@ -8,7 +8,7 @@ import {
 } from 'sequelize-typescript';
 
 import { DataType_KECCAK256_HASHED_VALUE } from '../lib/sql-data-types';
-import { GasRefundProgramdata } from '../service/transaction-fees-indexer/types';
+import { GasRefundProgramdata } from '../../scripts/gas-refund-program/types';
 
 const compositeIndex = createIndexDecorator({
   name: 'grp_epoch_chain',

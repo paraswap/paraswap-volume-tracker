@@ -4,8 +4,8 @@ import {
   CHAIN_ID_FANTOM,
   CHAIN_ID_MAINNET,
   CHAIN_ID_POLYGON,
-} from '../../../lib/constants';
-import { Utils } from '../../../lib/utils';
+} from '../../../src/lib/constants';
+import { Utils } from '../../../src/lib/utils';
 import { sliceCalls } from '../utils';
 
 const SwapsQuery = `

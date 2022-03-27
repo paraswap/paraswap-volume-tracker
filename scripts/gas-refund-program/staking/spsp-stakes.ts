@@ -1,10 +1,10 @@
 import BigNumber from 'bignumber.js';
-import { CHAIN_ID_MAINNET, MULTICALL_ADDRESS } from '../../../lib/constants';
-import { PoolConfigsMap } from '../../../lib/pool-info';
-import { Provider } from '../../../lib/provider';
+import { CHAIN_ID_MAINNET, MULTICALL_ADDRESS } from '../../../src/lib/constants';
+import { PoolConfigsMap } from '../../../src/lib/pool-info';
+import { Provider } from '../../../src/lib/provider';
 import { getTokenHolders } from './covalent';
-import * as MultiCallerABI from '../../../lib/abi/multicaller.abi.json';
-import * as SPSPABI from '../../../lib/abi/spsp.abi.json';
+import * as MultiCallerABI from '../../../src/lib/abi/multicaller.abi.json';
+import * as SPSPABI from '../../../src/lib/abi/spsp.abi.json';
 
 import { Contract } from 'ethers';
 import { Interface } from '@ethersproject/abi';
