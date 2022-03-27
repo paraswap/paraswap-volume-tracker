@@ -1,14 +1,9 @@
-//import { GasRefundModel } from '../service/transaction-fees-indexer/GasRefund';
 import { TransactionRequest } from '@ethersproject/providers';
 import { Contract } from 'ethers';
 import _ from 'lodash';
 import { assert } from 'ts-essentials';
-import { getMerkleTree } from '../service/transaction-fees-indexer/persistance';
-import {
-  MerkleData,
-  MerkleRoot,
-  MerkleTreeData,
-} from '../service/transaction-fees-indexer/types';
+import { GasRefundParticipant } from '../models/GasRefundParticipant';
+import { GasRefundProgram } from '../models/GasRefundProgram';
 import {
   CHAIN_ID_BINANCE,
   CHAIN_ID_FANTOM,
@@ -35,7 +30,7 @@ interface MerkleRedeem extends Contract {
 
 const MerkleRedeemAddress: { [chainId: number]: string } = {
   // @TODO
-  [CHAIN_ID_MAINNET]: '0x',
+  [CHAIN_ID_MAINNET]: '0x6d19b2bF3A36A61530909Ae65445a906D98A2Fa8', // @FIXME
   [CHAIN_ID_POLYGON]: '0xe4aa70d4b77533000dc51bc4b98f26f4ee1aaea4', // @FIXME
   [CHAIN_ID_FANTOM]: '0x',
   [CHAIN_ID_BINANCE]: '0x',
@@ -75,28 +70,27 @@ export class GasRefundApi {
 
   // retrieve merkle root + compute tx params for last epoch
   async getRefundDataLastEpoch(): Promise<{
-    root: MerkleRoot;
+    data: GasRefundProgram;
     txParams: TransactionRequest;
   } | null> {
     const currentEpochNum = await this.epochInfo.getCurrentEpoch();
     const lastEpochNum = currentEpochNum - 1;
 
-    const merkleTree = await getMerkleTree({
-      chainId: this.network,
-      epochNum: lastEpochNum,
+    const data = await GasRefundProgram.findOne({
+      where: { chainId: this.network, epoch: lastEpochNum },
     });
 
-    if (!merkleTree) return null;
+    if (!data) return null;
 
-    const { root } = merkleTree;
+    const { merkleRoot, totalPSPAmountToRefund } = data;
 
     const txData = this.merkleRedem.interface.encodeFunctionData(
       'seedAllocations',
-      [lastEpochNum, root.merkleRoot, root.totalAmount],
+      [lastEpochNum, merkleRoot, totalPSPAmountToRefund],
     );
 
     return {
-      root,
+      data,
       txParams: {
         to: '0x',
         data: txData,
@@ -105,34 +99,24 @@ export class GasRefundApi {
     };
   }
 
-  async _fetchMerkleData(
-    address: string,
-    startEpoch: number,
-    endEpoch: number,
-  ): Promise<MerkleData[]> {
-    const epochs =
-      startEpoch === endEpoch
-        ? [GasRefundGenesisEpoch]
-        : _.range(startEpoch, endEpoch + 1);
+  async _fetchMerkleData(address: string): Promise<GasRefundParticipant[]> {
+    const grpData = await GasRefundParticipant.findAll({
+      attributes: [
+        'epoch',
+        'address',
+        'chainId',
+        'lastBlockNum',
+        'accumulatedGasUsed',
+        'accumulatedGasUsedPSP',
+        'totalStakeAmountPSP',
+        'refundedAmountPSP',
+        'merkleProofs',
+      ],
+      where: { address, chainId: this.network },
+      raw: true,
+    });
 
-    const merkleData = await Promise.all(
-      epochs.map(async epochNum => {
-        const merkleData = await getMerkleTree({
-          chainId: this.network,
-          epochNum,
-        });
-
-        if (!merkleData) return null;
-
-        const merkleDataEpoch = merkleData.leaves.find(
-          l => l.address.toLowerCase() === address.toLowerCase(),
-        );
-
-        return merkleDataEpoch;
-      }),
-    );
-
-    return merkleData.filter(v => !!v) as MerkleData[]; // @fixme types do not work
+    return grpData;
   }
 
   async _getClaimStatus(
@@ -165,49 +149,17 @@ export class GasRefundApi {
   // get all ever constructed merkle data for addrress
   async getAllGasRefundDataForAddress(
     address: string,
-  ): Promise<MerkleData[] | null> {
+  ): Promise<GasRefundParticipant[] | null> {
     const lastEpoch = (await this.epochInfo.getCurrentEpoch()) - 1;
 
     const startEpoch = GasRefundGenesisEpoch;
     const endEpoch = Math.max(lastEpoch, GasRefundGenesisEpoch);
 
     const [merkleData, epochToClaimed] = await Promise.all([
-      this._fetchMerkleData(address, startEpoch, endEpoch),
+      this._fetchMerkleData(address),
       this._getClaimStatus(address, startEpoch, endEpoch),
     ]);
 
     return merkleData.filter(m => !epochToClaimed[m.epoch]);
-  }
-
-  async getGasRefundDataForEpoch(
-    epoch: number,
-  ): Promise<MerkleTreeData | null> {
-    const merkleData = await getMerkleTree({
-      chainId: this.network,
-      epochNum: epoch,
-    });
-
-    return merkleData ?? null;
-  }
-
-  static async getGasRefundDataForEpochAllChains(
-    epoch?: number,
-  ): Promise<{ [chainId: number]: MerkleTreeData | null }> {
-    const _epoch =
-      epoch ??
-      (await EpochInfo.getInstance(CHAIN_ID_MAINNET).getCurrentEpoch());
-    const gasRefundDataAllChains = Object.fromEntries(
-      await Promise.all(
-        GRP_SUPPORTED_CHAINS.map(async network => {
-          const grpData = await GasRefundApi.getInstance(
-            network,
-          ).getGasRefundDataForEpoch(_epoch);
-
-          return [network, grpData];
-        }),
-      ),
-    );
-
-    return gasRefundDataAllChains;
   }
 }

@@ -18,6 +18,7 @@ const fetchPendingEpochData = async ({
 }): Promise<TxFeesByAddress> => {
   const pendingEpochData = (await GasRefundParticipant.findAll({
     where: { chainId, epoch },
+    raw: true,
   })) as PendingEpochGasRefundData[];
 
   const pendingEpochDataByAddress = pendingEpochData.reduce<TxFeesByAddress>(
