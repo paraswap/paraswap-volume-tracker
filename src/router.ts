@@ -182,7 +182,9 @@ export default class Router {
     router.get('/gas-refund/describe/:epoch?', async (req, res) => {
       try {
         const epoch = req.params.epoch ? Number(req.params.epoch) : undefined;
-        const data = await GasRefundApi.getGasRefundDataForEpochAllChains(epoch);
+        const data = await GasRefundApi.getGasRefundDataForEpochAllChains(
+          epoch,
+        );
         return res.json(data);
       } catch (e) {
         logger.error(req.path, e);
