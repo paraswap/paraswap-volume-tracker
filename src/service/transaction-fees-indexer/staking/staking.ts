@@ -1,8 +1,8 @@
-import { CHAIN_ID_MAINNET } from '../../lib/constants';
-import { TxFeesByAddress, PSPStakesByAddress } from './types';
-import * as SPSPABI from '../../lib/abi/spsp.abi.json';
-import { Provider } from '../../lib/provider';
-import { PoolConfigsMap } from '../../lib/pool-info';
+import { CHAIN_ID_MAINNET } from '../../../lib/constants';
+import { TxFeesByAddress, PSPStakesByAddress } from '../types';
+import * as SPSPABI from '../../../lib/abi/spsp.abi.json';
+import { Provider } from '../../../lib/provider';
+import { PoolConfigsMap } from '../../../lib/pool-info';
 import { BigNumberish, BigNumber as EthersBN } from '@ethersproject/bignumber';
 import { BigNumber } from 'bignumber.js';
 // @ts-ignore

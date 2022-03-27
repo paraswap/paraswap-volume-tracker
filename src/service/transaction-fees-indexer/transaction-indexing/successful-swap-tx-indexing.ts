@@ -1,14 +1,14 @@
 import { assert } from 'ts-essentials';
-import { BlockInfo } from '../../lib/block-info';
-import { SwapsTracker } from '../../lib/swaps-tracker';
+import { BlockInfo } from '../../../lib/block-info';
+import { SwapsTracker } from '../../../lib/swaps-tracker';
 import {
   HistoricalPrice,
   TxFeesByAddress,
   PendingEpochGasRefundData,
-} from './types';
+} from '../types';
 import { BigNumber } from 'bignumber.js';
-import { constructSameDayPrice } from './psp-chaincurrency-pricing';
-import { readPendingEpochData, writePendingEpochData } from './db-persistance';
+import { constructSameDayPrice } from '../psp-chaincurrency-pricing';
+import { readPendingEpochData, writePendingEpochData } from '../persistance/db-persistance';
 
 const logger = global.LOGGER('GRP:TRANSACTION_FEES_INDEXING');
 

@@ -1,4 +1,4 @@
-import { MerkleTreeData } from './types';
+import { MerkleTreeData } from '../types';
 import { writeFile, readFile, mkdir } from 'fs/promises';
 import * as path from 'path';
 

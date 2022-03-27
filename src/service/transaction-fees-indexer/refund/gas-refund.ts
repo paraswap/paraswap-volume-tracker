@@ -1,6 +1,6 @@
 import BigNumber from 'bignumber.js';
 import { assert } from 'ts-essentials';
-import { Claimable, TxFeesByAddress } from './types';
+import { Claimable, TxFeesByAddress } from '../types';
 
 const logger = global.LOGGER('GRP:GAS_REFUND_COMPUTATION');
 

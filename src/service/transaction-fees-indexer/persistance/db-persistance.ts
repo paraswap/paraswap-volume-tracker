@@ -1,5 +1,5 @@
-import { GasRefundParticipant } from '../../models/GasRefundParticipant';
-import { GasRefundProgram } from '../../models/GasRefundProgram';
+import { GasRefundParticipant } from '../../../models/GasRefundParticipant';
+import { GasRefundProgram } from '../../../models/GasRefundProgram';
 import {
   MerkleData,
   MerkleTreeData,
@@ -7,7 +7,7 @@ import {
   CompletedEpochGasRefundData,
   PendingEpochGasRefundData,
   TxFeesByAddress,
-} from './types';
+} from '../types';
 
 const fetchPendingEpochData = async ({
   chainId,
