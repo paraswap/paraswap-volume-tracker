@@ -5,7 +5,57 @@ import {
   PSPStakesByAddress,
   CompletedEpochGasRefundData,
   PendingEpochGasRefundData,
+  TxFeesByAddress,
 } from './types';
+
+const fetchPendingEpochData = async ({
+  chainId,
+  epoch,
+}: {
+  chainId: number;
+  epoch: number;
+}): Promise<TxFeesByAddress> => {
+  const pendingEpochData = (await EpochGasRefund.findAll({
+    where: { chainId, epoch },
+  })) as PendingEpochGasRefundData[];
+
+  const pendingEpochDataByAddress = pendingEpochData.reduce<TxFeesByAddress>(
+    (acc, curr) => {
+      acc[curr.address] = curr;
+      return acc;
+    },
+    {},
+  );
+
+  return pendingEpochDataByAddress;
+};
+
+async function fetchVeryLastBlockNumProcessed({
+  chainId,
+  epoch,
+}: {
+  chainId: number;
+  epoch: number;
+}): Promise<number> {
+  const lastBlockNum = await EpochGasRefund.max('lastBlockNum', {
+    where: { chainId, epoch },
+  });
+
+  return lastBlockNum as number;
+}
+
+export const readPendingEpochData = async ({
+  chainId,
+  epoch,
+}: {
+  chainId: number;
+  epoch: number;
+}): Promise<[TxFeesByAddress, number]> => {
+  return Promise.all([
+    fetchPendingEpochData({ chainId, epoch }),
+    fetchVeryLastBlockNumProcessed({ chainId, epoch }),
+  ]);
+};
 
 export const writePendingEpochData = async (
   pendingEpochGasRefundData: PendingEpochGasRefundData[],

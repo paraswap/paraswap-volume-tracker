@@ -8,7 +8,7 @@ import {
 } from './types';
 import { BigNumber } from 'bignumber.js';
 import { constructSameDayPrice } from './psp-chaincurrency-pricing';
-import { writePendingEpochData } from './db-persistance';
+import { readPendingEpochData, writePendingEpochData } from './db-persistance';
 
 const logger = global.LOGGER('GRP:TRANSACTION_FEES_INDEXING');
 
@@ -29,35 +29,41 @@ export async function computeAccumulatedTxFeesByAddress({
 }) {
   const swapTracker = SwapsTracker.getInstance(chainId, true);
   const blockInfo = BlockInfo.getInstance(chainId);
-  const [startBlock, endBlock] = await Promise.all([
+  const [epochStartBlock, epochEndBlock] = await Promise.all([
     blockInfo.getBlockAfterTimeStamp(startTimestamp),
     blockInfo.getBlockAfterTimeStamp(endTimestamp),
   ]);
   const findSameDayPrice = constructSameDayPrice(pspNativeCurrencyDailyRate);
 
   assert(
-    startBlock,
+    epochStartBlock,
     `no start block found for chain ${chainId} for timestamp ${startTimestamp}`,
   );
   assert(
-    endBlock,
+    epochEndBlock,
     `no start block found for chain ${chainId} for timestamp ${endTimestamp}`,
   );
 
   logger.info(
-    `swapTracker start indexing between ${startBlock} and ${endBlock}`,
+    `swapTracker start indexing between ${epochStartBlock} and ${epochEndBlock}`,
   );
 
-  // @FIXME: read acc Tx fees from DB
-  // @FIXME: start from last processed block
-  let accumulatedTxFeesByAddress: TxFeesByAddress = {};
+  let [accumulatedTxFeesByAddress, veryLastBlockNumProcessed] =
+    await readPendingEpochData({
+      chainId,
+      epoch,
+    });
+
+  const startBlock = Math.max(epochStartBlock, veryLastBlockNumProcessed + 1);
+
+  logger.info(`start processing at block ${startBlock}`);
 
   for (
     let _startBlock = startBlock;
-    _startBlock < endBlock;
+    _startBlock < epochEndBlock;
     _startBlock += PARTITION_SIZE
   ) {
-    const _endBlock = Math.min(_startBlock + PARTITION_SIZE, endBlock);
+    const _endBlock = Math.min(_startBlock + PARTITION_SIZE, epochEndBlock);
 
     logger.info(
       `swapTracker start indexing partition between ${_startBlock} and ${_endBlock}`,

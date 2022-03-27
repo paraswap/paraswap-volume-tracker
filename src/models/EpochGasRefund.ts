@@ -7,6 +7,7 @@ import {
   DataType,
   AutoIncrement,
   createIndexDecorator,
+  Index,
 } from 'sequelize-typescript';
 
 import {
@@ -43,6 +44,7 @@ export class EpochGasRefund extends Model<EpochGasRefundData> {
   @Column(DataType.BOOLEAN)
   isCompleted: boolean;
 
+  @Index
   @Column(DataType.INTEGER)
   lastBlockNum: number;
 
