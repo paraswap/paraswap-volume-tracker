@@ -90,7 +90,7 @@ export async function computeAccumulatedTxFeesByAddress({
         epoch,
         address: swap.txOrigin,
         chainId: chainId.toString(),
-        accumulatedGasUsedPSP: accGasFeePSP.toString(), // todo: make safe
+        accumulatedGasUsedPSP: accGasFeePSP.toFixed(0), // todo: make safe
         lastBlockNum: swap.blockNumber,
       }
 
