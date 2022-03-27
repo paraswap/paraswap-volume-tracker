@@ -1,6 +1,6 @@
 import BigNumber from 'bignumber.js';
 import { assert } from 'ts-essentials';
-import { Claimable, TxFeesByAddress } from '../types';
+import { Claimable, StakedPSPByAddress, TxFeesByAddress } from '../types';
 
 const logger = global.LOGGER('GRP:GAS_REFUND_COMPUTATION');
 
@@ -15,7 +15,7 @@ type GasRefundLevelsDef = {
 //                                                  psp decimals
 const scale = (num: number) => new BigNumber(num).multipliedBy(1e18);
 
-const minStake = scale(500); // @FIXME: resolve min stake automatically
+export const minStake = scale(500); // @FIXME: resolve min stake automatically
 
 const gasRefundLevels: GasRefundLevelsDef[] = [
   {
@@ -40,14 +40,14 @@ const gasRefundLevels: GasRefundLevelsDef[] = [
   },
 ].reverse(); // reverse for descending lookup
 
-const getRefundPercent = (stakedAmount: BigNumber): number | undefined =>
+const getRefundPercent = (stakedAmount: string): number | undefined =>
   gasRefundLevels.find(({ minStakedAmount }) =>
-    stakedAmount.gte(minStakedAmount),
+    new BigNumber(stakedAmount).gte(minStakedAmount),
   )?.refundPercent;
 
 export function computeGasRefundByAddress(
   accTxFeesByAddress: TxFeesByAddress,
-  pspStakesByAddress: { [address: string]: BigNumber },
+  pspStakesByAddress: StakedPSPByAddress,
 ): Claimable[] {
   const claimableAmounts = Object.entries(accTxFeesByAddress).reduce<
     Claimable[]
@@ -59,10 +59,10 @@ export function computeGasRefundByAddress(
       return acc;
     }
 
-    if (stakedAmount.lt(minStake)) {
-      logger.info(`skipping ${address} as not staked enough (${stakedAmount})`);
-      return acc;
-    }
+    assert(
+      new BigNumber(stakedAmount).lt(minStake),
+      'Logic Errror: stakedAmount is lower than min stake',
+    ); // should be guaranteed by previous logic
 
     const refundPercent = getRefundPercent(stakedAmount);
 
@@ -77,7 +77,7 @@ export function computeGasRefundByAddress(
       amount: refundedAmount,
       // todo: maybe doesn't make sense to return here (as this func deals with refund calculation)
       lastBlockNum: accTxFees.lastBlockNum,
-      totalStakeAmountPSP: stakedAmount.toFixed(0),
+      totalStakeAmountPSP: stakedAmount,
     });
 
     return acc;

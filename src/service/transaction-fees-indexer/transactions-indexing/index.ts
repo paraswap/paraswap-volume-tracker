@@ -8,12 +8,14 @@ export async function computeAccumulatedTxFeesByAddress({
   endTimestamp,
   pspNativeCurrencyDailyRate,
   epoch,
+  stakersAddress
 }: {
   chainId: number;
   startTimestamp: number;
   endTimestamp: number;
   pspNativeCurrencyDailyRate: HistoricalPrice;
   epoch: number;
+  stakersAddress: string[]
 }): Promise<TxFeesByAddress> {
   return computeAccumulatedTxFeesByAddressForSuccessfulSwapTxs({
     chainId,
@@ -21,5 +23,6 @@ export async function computeAccumulatedTxFeesByAddress({
     endTimestamp,
     pspNativeCurrencyDailyRate,
     epoch,
+    stakersAddress
   });
 }

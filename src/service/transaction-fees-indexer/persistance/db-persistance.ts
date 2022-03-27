@@ -3,10 +3,10 @@ import { GasRefundProgram } from '../../../models/GasRefundProgram';
 import {
   MerkleData,
   MerkleTreeData,
-  PSPStakesByAddress,
   CompletedEpochGasRefundData,
   PendingEpochGasRefundData,
   TxFeesByAddress,
+  StakedPSPByAddress,
 } from '../types';
 
 const fetchPendingEpochData = async ({
@@ -76,7 +76,7 @@ export const writePendingEpochData = async (
 export const writeCompletedEpochData = async (
   chainId: number,
   merkleTree: MerkleTreeData | null,
-  pspStakesByAddress: PSPStakesByAddress,
+  pspStakesByAddress: StakedPSPByAddress,
 ) => {
   if (!merkleTree) {
     return [];
@@ -92,7 +92,7 @@ export const writeCompletedEpochData = async (
       address: leaf.address,
       chainId: chainId,
 
-      totalStakeAmountPSP: pspStakesByAddress[leaf.address].toFixed(0),
+      totalStakeAmountPSP: pspStakesByAddress[leaf.address],
       refundedAmountPSP: leaf.amount,
       merkleProofs: leaf.merkleProofs,
       isCompleted: true,

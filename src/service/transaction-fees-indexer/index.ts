@@ -5,12 +5,13 @@ import { computeGasRefundByAddress } from './refund/gas-refund';
 import { computeMerkleData } from './refund/merkle-tree';
 import { fetchDailyPSPChainCurrencyRate } from './psp-chaincurrency-pricing';
 import { computeAccumulatedTxFeesByAddress } from './transactions-indexing';
-import { fetchPSPStakes } from './staking/staking';
 import Database from '../../database';
 
 import { writeCompletedEpochData } from './persistance/db-persistance';
 
 import { GRP_SUPPORTED_CHAINS } from '../../lib/gas-refund-api';
+import { getPSPStakes } from './staking';
+import { StakedPSPByAddress } from './types';
 
 const logger = global.LOGGER('GRP');
 
@@ -23,10 +24,14 @@ const epochEndTime = 1647864000; // @TODO: read from EpochInfo
 export async function calculateGasRefundForChain({
   chainId,
   epoch,
+  stakes,
 }: {
   chainId: number;
   epoch: number;
+  stakes: StakedPSPByAddress;
 }) {
+  const stakersAddress = [...new Set(Object.keys(stakes))];
+
   // retrieve daily psp/native currency rate for (epochStartTime, epochEndTime
   logger.info(
     `start fetching daily psp/native currency rate for chainId=${chainId}`,
@@ -46,19 +51,14 @@ export async function calculateGasRefundForChain({
     pspNativeCurrencyDailyRate,
     startTimestamp: epochStartTime,
     endTimestamp: epochEndTime,
+    stakersAddress,
   });
-
-  // retrieve mapping(address => totalStakes) where address is in dailyTxFeesByAddressByChain
-  logger.info(`start fetching psp stakes`);
-  const swapperAddresses = [...new Set(Object.keys(accTxFeesByAddress))];
-
-  const pspStakesByAddress = await fetchPSPStakes(swapperAddresses);
 
   // combine data to form mapping(chainId => address => {totalStakes@debug, gasRefundPercent@debug, accGasUsedPSP@debug, refundAmount})  // amount = accGasUsedPSP * gasRefundPercent
   logger.info(`reduce gas refund by address for chainId=${chainId}`);
   const gasRefundByAddress = await computeGasRefundByAddress(
     accTxFeesByAddress,
-    pspStakesByAddress,
+    stakes,
   );
 
   // compute mapping(networkId => MerkleTree)
@@ -72,7 +72,7 @@ export async function calculateGasRefundForChain({
   // @TODO: store merkleTreeByChain in db (or file to start with) with epochNum
   console.log({ merkleTreeByChain: JSON.stringify(merkleTree) });
   // todo: determine if epoch is over (epoch endtime < [now])
-  await writeCompletedEpochData(chainId, merkleTree, pspStakesByAddress);
+  await writeCompletedEpochData(chainId, merkleTree, stakes);
 
   // await saveMerkleTree({ merkleTree, chainId, epochNum });
 }
@@ -80,9 +80,16 @@ export async function calculateGasRefundForChain({
 async function start() {
   await Database.connectAndSync();
 
+  const stakes = await getPSPStakes();
+
+  if (!stakes) {
+    logger.warn('no staked psp found at all');
+    return;
+  }
+
   await Promise.all(
     GRP_SUPPORTED_CHAINS.map(chainId =>
-      calculateGasRefundForChain({ chainId, epoch: epochNum }),
+      calculateGasRefundForChain({ chainId, epoch: epochNum, stakes }),
     ),
   );
 }

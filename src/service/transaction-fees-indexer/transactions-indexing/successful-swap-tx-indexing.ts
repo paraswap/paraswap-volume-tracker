@@ -23,12 +23,14 @@ export async function computeAccumulatedTxFeesByAddressForSuccessfulSwapTxs({
   endTimestamp,
   pspNativeCurrencyDailyRate,
   epoch,
+  stakersAddress // @TODO: pass the thegraph gql query
 }: {
   chainId: number;
   startTimestamp: number;
   endTimestamp: number;
   pspNativeCurrencyDailyRate: HistoricalPrice;
   epoch: number;
+  stakersAddress: string[]
 }): Promise<TxFeesByAddress> {
   const swapTracker = SwapsTracker.getInstance(chainId, true);
   const blockInfo = BlockInfo.getInstance(chainId);

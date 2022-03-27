@@ -62,8 +62,10 @@ export type MerkleTreeData = {
   leaves: MerkleData[];
 };
 
-export type PSPStakesByAddress = { [address: string]: BigNumber };
-
 export type MerkleTreeDataByChain = {
   [chainId: number]: MerkleTreeData | null;
+};
+
+export type StakedPSPByAddress = {
+  [address: string]: string;
 };

@@ -1,24 +1,36 @@
-import { URLSearchParams } from "url"
-import { Utils } from "../../lib/utils"
+import { URLSearchParams } from 'url';
+import { Utils } from '../../../lib/utils';
 
-const COVALENT_API_KEY = process.env.COVALENT_API_KEY || "ckey_docs" // public, is rate-limited
+const COVALENT_API_KEY = process.env.COVALENT_API_KEY || 'ckey_docs'; // public, is rate-limited
 
 interface TokenHoldersOptions {
-  token: string,
-  chainId: number
-  blockHeight?: string
-  pageNumber?: number
-  pageSize?: number
+  token: string;
+  chainId: number;
+  blockHeight?: string;
+  pageNumber?: number;
+  pageSize?: number;
 }
 
-export async function getTokenHolders({ token, chainId, blockHeight, pageNumber, pageSize }: TokenHoldersOptions): Promise<TokensHoldersData> {
-  const queryString = makeQueryStr({ "block-height": blockHeight, "page-number": pageNumber?.toString(), "page-size": pageSize?.toString() })
+export async function getTokenHolders({
+  token,
+  chainId,
+  blockHeight,
+  pageNumber,
+  pageSize,
+}: TokenHoldersOptions): Promise<TokensHoldersData> {
+  const queryString = makeQueryStr({
+    'block-height': blockHeight,
+    'page-number': pageNumber?.toString(),
+    'page-size': pageSize?.toString(),
+  });
 
-  const url = `https://api.covalenthq.com/v1/${chainId}/tokens/${token}/token_holders/?key=${COVALENT_API_KEY}${queryString ? "&" + queryString : ""}`
+  const url = `https://api.covalenthq.com/v1/${chainId}/tokens/${token}/token_holders/?key=${COVALENT_API_KEY}${
+    queryString ? '&' + queryString : ''
+  }`;
 
-  const { data } = await Utils._get<TokensHoldersResponse>(url, 2000) // times out otherwise
+  const { data } = await Utils._get<TokensHoldersResponse>(url, 2000); // times out otherwise
 
-  return data.data
+  return data.data;
 }
 
 interface TokensHoldersResponse {
@@ -63,14 +75,12 @@ interface TokenItem {
   block_height: number;
 }
 
-
-
-
 function makeQueryStr(mapping: Record<string, string | undefined>): string {
-  const entries = Object.entries(mapping).filter((entry): entry is [string, string] => !!entry[1])
+  const entries = Object.entries(mapping).filter(
+    (entry): entry is [string, string] => !!entry[1],
+  );
 
-  const url = new URLSearchParams(entries)
+  const url = new URLSearchParams(entries);
 
-
-  return url.toString()
+  return url.toString();
 }

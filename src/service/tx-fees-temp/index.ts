@@ -7,7 +7,7 @@ import {
   CHAIN_ID_MAINNET,
   CHAIN_ID_POLYGON,
 } from '../../lib/constants';
-import { getStakersForChainId } from './getStakers';
+import { getSPSPStakes } from '../transaction-fees-indexer/staking/spsp-stakes';
 import { BlockInfo } from '../../lib/block-info';
 import { assert } from 'ts-essentials';
 import { getSwapsForAccounts } from './getSwaps';
@@ -25,11 +25,8 @@ const GRP_SUPPORTED_CHAINS = [
   //CHAIN_ID_FANTOM,
 ];
 
-
-
 async function start() {
-
-  const chainId = CHAIN_ID_MAINNET
+  const chainId = CHAIN_ID_MAINNET;
 
   const blockInfo = BlockInfo.getInstance(chainId);
   const [startBlock, endBlock] = await Promise.all([
@@ -39,24 +36,41 @@ async function start() {
     blockInfo.getBlockAfterTimeStamp(epochEndTime),
   ]);
 
-  logger.info("startBlock", startBlock, "endBlock", endBlock)
+  logger.info('startBlock', startBlock, 'endBlock', endBlock);
 
-  assert(startBlock, "we need startBlock")
-  assert(endBlock, "we need endBlock")
+  assert(startBlock, 'we need startBlock');
+  assert(endBlock, 'we need endBlock');
 
   // @TODO stakers at which block do we really need?
-  const poolsAndStakers = await getStakersForChainId(CHAIN_ID_MAINNET, endBlock.toString(10))
+  // const poolsAndStakers = await getSPSPStakes(
+  //   CHAIN_ID_MAINNET,
+  //   endBlock.toString(10),
+  // );
 
-  logger.info("poolsAndStakers", poolsAndStakers.length, "pool", poolsAndStakers[0].pool, poolsAndStakers[0].stakers.slice(0, 2))
+  // logger.info(
+  //   'poolsAndStakers',
+  //   poolsAndStakers.length,
+  //   'pool',
+  //   poolsAndStakers[0].pool,
+  //   poolsAndStakers[0].stakers.slice(0, 2),
+  // );
 
-  const allStakers = Array.from(new Set(poolsAndStakers.flatMap(({ stakers }) => stakers.map(st => st.staker))))
+  // const allStakers = Array.from(
+  //   new Set(
+  //     poolsAndStakers.flatMap(({ stakers }) => stakers.map(st => st.staker)),
+  //   ),
+  // );
 
-  logger.info("all stakers", allStakers.length, allStakers.slice(0, 2))
+  // logger.info('all stakers', allStakers.length, allStakers.slice(0, 2));
 
-  const stakerSwaps = await getSwapsForAccounts({startBlock, endBlock, chainId, accounts: allStakers})
+  // const stakerSwaps = await getSwapsForAccounts({
+  //   startBlock,
+  //   endBlock,
+  //   chainId,
+  //   accounts: allStakers,
+  // });
 
-  logger.info("staker swaps", stakerSwaps.length, stakerSwaps.slice(0, 2))
-
+  // logger.info('staker swaps', stakerSwaps.length, stakerSwaps.slice(0, 2));
 
   // @TODO get {staker => refund %} mapping
   // @TODO get PSP pricing daily
@@ -64,5 +78,4 @@ async function start() {
   // from refund % and gasSpent and calc refundPSP
 }
 
-
-start()
+start();
