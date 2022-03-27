@@ -51,11 +51,8 @@ export const writeCompletedEpochData = async (
     // key
     const { epoch, address, chainId } = endEpochData;
 
-    await EpochGasRefund.update(
-      endEpochData,
-      {
-        where: { epoch, address, chainId },
-      },
-    );
+    await EpochGasRefund.update(endEpochData, {
+      where: { epoch, address, chainId },
+    });
   }
 };

@@ -9,7 +9,10 @@ import {
   createIndexDecorator,
 } from 'sequelize-typescript';
 
-import { DataType_ADDRESS, DataType_KECCAK256_HASHED_VALUE } from '../lib/sql-data-types';
+import {
+  DataType_ADDRESS,
+  DataType_KECCAK256_HASHED_VALUE,
+} from '../lib/sql-data-types';
 import { EpochGasRefundData } from '../service/transaction-fees-indexer/types';
 
 const compositeIndex = createIndexDecorator({
@@ -33,12 +36,12 @@ export class EpochGasRefund extends Model<EpochGasRefundData> {
   @Column(DataType_ADDRESS)
   address: string;
 
-  @Column(DataType.BOOLEAN)
-  isCompleted: boolean;
-
   @compositeIndex
   @Column(DataType.SMALLINT)
   chainId: number;
+
+  @Column(DataType.BOOLEAN)
+  isCompleted: boolean;
 
   @Column(DataType.INTEGER)
   lastBlockNum: number;

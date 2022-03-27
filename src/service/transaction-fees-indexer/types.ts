@@ -14,7 +14,8 @@ export interface PendingEpochGasRefundData extends BaseGasRefundData {
   isCompleted: false;
 }
 
-export interface CompletedEpochGasRefundData extends Partial<Omit<PendingEpochGasRefundData, 'isCompleted'>> {
+export interface CompletedEpochGasRefundData
+  extends Partial<Omit<PendingEpochGasRefundData, 'isCompleted'>> {
   totalStakeAmountPSP: string;
   refundedAmountPSP: string;
   merkleProofs: string[];
@@ -22,9 +23,9 @@ export interface CompletedEpochGasRefundData extends Partial<Omit<PendingEpochGa
   isCompleted: true;
 }
 
- export type EpochGasRefundData =
-   | PendingEpochGasRefundData
-   | CompletedEpochGasRefundData;
+export type EpochGasRefundData =
+  | PendingEpochGasRefundData
+  | CompletedEpochGasRefundData;
 
 export type TxFeesByAddress = {
   [address: string]: PendingEpochGasRefundData;
