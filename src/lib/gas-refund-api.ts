@@ -66,7 +66,7 @@ export class GasRefundApi {
   }
 
   // retrieve merkle root + compute tx params for last epoch
-  async getMerkleRootForLastEpoch(): Promise<{
+  async getRefundDataLastEpoch(): Promise<{
     root: MerkleRoot;
     txParams: TransactionRequest;
   } | null> {
@@ -155,7 +155,9 @@ export class GasRefundApi {
   }
 
   // get all ever constructed merkle data for addrress
-  async getMerkleDataForAddress(address: string): Promise<MerkleData[] | null> {
+  async getAllGasRefundDataForAddress(
+    address: string,
+  ): Promise<MerkleData[] | null> {
     const lastEpoch = (await this.epochInfo.getCurrentEpoch()) - 1;
 
     const startEpoch = GasRefundGenesisEpoch;
