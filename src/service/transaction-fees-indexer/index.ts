@@ -1,31 +1,19 @@
 import '../../lib/log4js';
 import * as dotenv from 'dotenv';
 dotenv.config();
-import {
-  CHAIN_ID_BINANCE,
-  CHAIN_ID_FANTOM,
-  CHAIN_ID_MAINNET,
-  CHAIN_ID_POLYGON,
-} from '../../lib/constants';
 import { reduceGasRefundByAddress } from './gas-refund';
 import { computeMerkleData } from './merkle-tree';
 import { fetchDailyPSPChainCurrencyRate } from './psp-chaincurrency-pricing';
 import { computeAccumulatedTxFeesByAddress } from './transaction-fees';
 import { fetchPSPStakes } from './staking';
 import { saveMerkleTree } from './persistance';
+import { GRP_SUPPORTED_CHAINS } from '../../lib/gas-refund-api';
 
 const logger = global.LOGGER('GRP');
 
-const epochNum = 7; // @TODO: read from EpochInfo
+const epochNum = 8; // @TODO: read from EpochInfo
 const epochStartTime = 1646654400; // @TODO: read from EpochInfo
 const epochEndTime = 1647864000; // @TODO: read from EpochInfo
-
-const GRP_SUPPORTED_CHAINS = [
-  CHAIN_ID_MAINNET,
-  //CHAIN_ID_POLYGON,
-  //CHAIN_ID_BINANCE,
-  //CHAIN_ID_FANTOM,
-];
 
 // @FIXME: we should invert the logic to first fetch stakers and then scan through their transactions as: len(stakers) << len(swappers)
 // @FIXME: should cap amount distributed to stakers to 30k

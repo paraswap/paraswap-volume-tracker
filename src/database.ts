@@ -39,6 +39,9 @@ export class Database {
     this.sequelize = new Sequelize(connectionString, {
       logging: IS_DEV ? msg => logger.debug(msg) : undefined,
       models: [__dirname + '/models'],
+      dialectOptions: {
+        ssl: !IS_DEV
+      }
     });
 
     try {

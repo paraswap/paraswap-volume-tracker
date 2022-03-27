@@ -1,9 +1,10 @@
+import { getMerkleTree } from '../service/transaction-fees-indexer/persistance';
 import {
   MerkleData,
   MerkleRoot,
 } from '../service/transaction-fees-indexer/types';
 
-export class GasRefundModel {
+export default class GasRefundModel {
   static instances: { [network: number]: GasRefundModel } = {};
 
   constructor(protected network: number) {}
@@ -24,5 +25,14 @@ export class GasRefundModel {
 
   async getMerkleDataForAddress(address: string): Promise<MerkleData[] | null> {
     return null; // @TODO: retrieve from file or database
+  }
+
+  async getMerkleTreeForEpoch(epochNum: number): Promise<MerkleRoot | null> {
+    const merkleTree = await getMerkleTree({
+      chainId: this.network,
+      epochNum,
+    });
+
+    return merkleTree?.root ?? null;
   }
 }

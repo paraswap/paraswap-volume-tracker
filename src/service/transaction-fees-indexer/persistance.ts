@@ -4,6 +4,8 @@ import * as path from 'path';
 
 const dir = path.join(__dirname, './merkle-trees');
 
+const logger = global.LOGGER('GAS_REFUND:PERSISTANCE');
+
 const constructFilePath = ({
   chainId,
   epochNum,
@@ -40,7 +42,15 @@ export async function getMerkleTree({
 }) {
   const fileLocation = constructFilePath({ chainId, epochNum });
 
-  const data = await readFile(fileLocation);
+  try {
+    const data = await readFile(fileLocation);
 
-  return JSON.parse(data.toString()) as MerkleTreeData | null;
+    return JSON.parse(data.toString()) as MerkleTreeData;
+  } catch (e) {
+    logger.error(
+      `Failed to read merkle tree for chain=${chainId} epoch=${epochNum} `,
+      e,
+    );
+    return null;
+  }
 }
