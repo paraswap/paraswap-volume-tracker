@@ -12,11 +12,11 @@ export interface PendingEpochGasRefundData extends BaseGasRefundData {
   accumulatedGasUsed: string;
   lastBlockNum: number;
   isCompleted: false;
+  totalStakeAmountPSP: string;
 }
 
 export interface CompletedEpochGasRefundData
   extends Partial<Omit<PendingEpochGasRefundData, 'isCompleted'>> {
-  totalStakeAmountPSP: string;
   refundedAmountPSP: string;
   merkleProofs: string[];
   isCompleted: true;
@@ -62,8 +62,10 @@ export type MerkleTreeData = {
   leaves: MerkleData[];
 };
 
-export type PSPStakesByAddress = { [address: string]: BigNumber };
-
 export type MerkleTreeDataByChain = {
   [chainId: number]: MerkleTreeData | null;
+};
+
+export type StakedPSPByAddress = {
+  [address: string]: string;
 };

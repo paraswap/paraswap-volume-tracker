@@ -12,6 +12,7 @@
     "start": "NODE_ENV=production && node ./dist",
     "store-airdrop-data": "NODE_ENV=development ts-node scripts/store-airdrop-data.ts",
     "compute-gas-refund-data": "NODE_ENV=development ts-node src/service/transaction-fees-indexer/index.ts",
+    "tx-fees": "NODE_ENV=development ts-node src/service/tx-fees-temp/index.ts",
     "test": "jest",
     "grp": "NODE_ENV=development node --inspect=9230 -r ts-node/register src/service/transaction-fees-indexer/index.ts"
   },

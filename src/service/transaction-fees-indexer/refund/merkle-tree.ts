@@ -1,4 +1,4 @@
-import { MerkleTreeData } from './types';
+import { MerkleTreeData } from '../types';
 import { logger, utils } from 'ethers';
 import { MerkleTree } from 'merkletreejs';
 
