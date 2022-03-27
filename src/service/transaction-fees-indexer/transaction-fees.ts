@@ -8,7 +8,7 @@ import {
 } from './types';
 import { BigNumber } from 'bignumber.js';
 import { constructSameDayPrice } from './psp-chaincurrency-pricing';
-import { EpochGasRefund } from '../../models/EpochGasRefund';
+import { writePendingEpochData } from './db-persistance';
 
 const logger = global.LOGGER('GRP:TRANSACTION_FEES_INDEXING');
 
@@ -124,32 +124,7 @@ export async function computeAccumulatedTxFeesByAddress({
       return acc;
     }, accumulatedTxFeesByAddress);
 
-    // todo: bulk insert/upsert initial epoch data at end of slice of above data once merged with mo's pr
-
-    // todo: bulkCreate must work in postgres?
-    /**
-   * ideally I'd just do a bulkCreate with update options for unique
-   * identifier clashes. but that seems problematic with postgres.
-   * will look into more later, for now I do each row one at a time...
-   *
-   * await EpochGasRefund.bulkCreate(initialIncompleteEpochData, {
-      updateOnDuplicate: ['accumulatedGasUsedPSP', 'lastBlockNum'],
-    })
-    */
-
-    for (const initialEpochData of Object.values(accumulatedTxFeesByAddress)) {
-      const { epoch, address, chainId } = initialEpochData;
-      const { accumulatedGasUsedPSP, lastBlockNum } = initialEpochData;
-
-      const row = await EpochGasRefund.findOne({
-        where: { epoch, address, chainId },
-      });
-      if (row) {
-        await row.update({ accumulatedGasUsedPSP, lastBlockNum });
-      } else {
-        await EpochGasRefund.create(initialEpochData);
-      }
-    }
+    await writePendingEpochData(Object.values(accumulatedTxFeesByAddress));
 
     swapTracker.indexedSwaps = {}; // cleaning step
   }

@@ -4,24 +4,28 @@ import {
   MerkleTreeData,
   PSPStakesByAddress,
   CompletedEpochGasRefundData,
+  PendingEpochGasRefundData,
 } from './types';
 
+export const writePendingEpochData = async (
+  pendingEpochGasRefundData: PendingEpochGasRefundData[],
+) => {
+  await EpochGasRefund.bulkCreate(pendingEpochGasRefundData, {
+    updateOnDuplicate: [
+      'accumulatedGasUsedPSP',
+      'accumulatedGasUsed',
+      'lastBlockNum',
+      'isCompleted',
+    ],
+  });
+};
+
+// @FIXME: slice DB writes
 export const writeCompletedEpochData = async (
   chainId: number,
   merkleTree: MerkleTreeData | null,
   pspStakesByAddress: PSPStakesByAddress,
 ) => {
-  /*
-  epoch: number                   merkleTreeDataByChain.[chainId].root.epoch
-  address: string                 merkleTreeDataByChain.[chainId].leaves[].address
-  chainId: string                 merkleTreeDataByChain.[chainId].leaves[].amount
-
-  totalStakeAmountPSP: string     pspStakesByAddress[address]
-  refundedAmountPSP: string       merkleTreeDataByChain.[chainId].root.totalAmount
-  merkleProofs: string[]          merkleTreeDataByChain.[chainId].leaves[].merkleProofs
-  merkleRoot: string              merkleTreeDataByChain.[chainId].root.merkleRoot
-  */
-
   if (!merkleTree) {
     return [];
   }
