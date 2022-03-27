@@ -7,6 +7,7 @@ import { getMerkleTree } from '../service/transaction-fees-indexer/persistance';
 import {
   MerkleData,
   MerkleRoot,
+  MerkleTreeData,
 } from '../service/transaction-fees-indexer/types';
 import {
   CHAIN_ID_BINANCE,
@@ -39,6 +40,13 @@ const MerkleRedeemAddress: { [chainId: number]: string } = {
   [CHAIN_ID_FANTOM]: '0x',
   [CHAIN_ID_BINANCE]: '0x',
 };
+
+export const GRP_SUPPORTED_CHAINS = [
+  CHAIN_ID_MAINNET,
+  //CHAIN_ID_POLYGON,
+  //CHAIN_ID_BINANCE,
+  //CHAIN_ID_FANTOM,
+];
 
 const GasRefundGenesisEpoch = 8; // @FIXME
 
@@ -169,5 +177,37 @@ export class GasRefundApi {
     ]);
 
     return merkleData.filter(m => !epochToClaimed[m.epoch]);
+  }
+
+  async getGasRefundDataForEpoch(
+    epoch: number,
+  ): Promise<MerkleTreeData | null> {
+    const merkleData = await getMerkleTree({
+      chainId: this.network,
+      epochNum: epoch,
+    });
+
+    return merkleData ?? null;
+  }
+
+  static async getGasRefundDataForEpochAllChains(
+    epoch?: number,
+  ): Promise<{ [chainId: number]: MerkleTreeData | null }> {
+    const _epoch =
+      epoch ??
+      (await EpochInfo.getInstance(CHAIN_ID_MAINNET).getCurrentEpoch());
+    const gasRefundDataAllChains = Object.fromEntries(
+      await Promise.all(
+        GRP_SUPPORTED_CHAINS.map(async network => {
+          const grpData = await GasRefundApi.getInstance(
+            network,
+          ).getGasRefundDataForEpoch(_epoch);
+
+          return [network, grpData];
+        }),
+      ),
+    );
+
+    return gasRefundDataAllChains;
   }
 }
