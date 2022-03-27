@@ -34,7 +34,7 @@ export const writeCompletedEpochData = async (
     (leaf: MerkleData) => ({
       epoch,
       address: leaf.address,
-      chainId,
+      chainId: String(chainId),
 
       totalStakeAmountPSP: pspStakesByAddress[leaf.address].toString(), // todo: make safe
       refundedAmountPSP: totalAmount,
