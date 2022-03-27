@@ -34,7 +34,7 @@ export async function computeMerkleData(
 
   logger.info(`merkleTree for chainId=${chainId}: ${tree.toString()}`);
 
-  const merkleRoot = tree.getRoot().toString('hex');
+  const merkleRoot = '0x' + tree.getRoot().toString('hex');
 
   const merkleLeaves = allLeaves.map(leaf => {
     const { address, amount } = hashedClaimabled[leaf];

@@ -22,7 +22,7 @@ Object {
   ],
   "root": Object {
     "epoch": 10,
-    "merkleRoot": "180c73a050b5d51522af1f41ddc776cb85ee9efb21c72c95cac8f362acdbc1d1",
+    "merkleRoot": "0x180c73a050b5d51522af1f41ddc776cb85ee9efb21c72c95cac8f362acdbc1d1",
     "totalAmount": "1846238219286901000",
   },
 }
@@ -140,7 +140,7 @@ Object {
   ],
   "root": Object {
     "epoch": 10,
-    "merkleRoot": "08a049bafd1b781e8fd80863910951c2a041aebdb6944becf8666931e435b8ae",
+    "merkleRoot": "0x08a049bafd1b781e8fd80863910951c2a041aebdb6944becf8666931e435b8ae",
     "totalAmount": "9366141190352757370",
   },
 }
@@ -17136,7 +17136,7 @@ Object {
   ],
   "root": Object {
     "epoch": 10,
-    "merkleRoot": "79ef762dd4dede67070578f196de8a52ba2a17045fe0d93df9308d0c435d95db",
+    "merkleRoot": "0x79ef762dd4dede67070578f196de8a52ba2a17045fe0d93df9308d0c435d95db",
     "totalAmount": "1015978727692113481418",
   },
 }
