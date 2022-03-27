@@ -70,7 +70,7 @@ async function fetchHistoricalPriceCoingecko({
   const accDailyPrices = prices.reduce<
     Record<string, { accRate: number; count: number }>
   >((acc, [timestamp, rate]) => {
-    if(!rate) return acc;
+    if (!rate) return acc;
 
     const startOfDaySec = projectToStartOfDay(timestamp);
 

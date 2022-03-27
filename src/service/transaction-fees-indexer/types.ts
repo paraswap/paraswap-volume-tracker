@@ -2,16 +2,46 @@ import BigNumber from 'bignumber.js';
 
 export type HistoricalPrice = { timestamp: number; rate: number }[];
 
+export interface BaseGasRefundData {
+  epoch: number;
+  address: string;
+  chainId: number;
+}
+export interface PendingEpochGasRefundData extends BaseGasRefundData {
+  accumulatedGasUsedPSP: string;
+  accumulatedGasUsed: string;
+  lastBlockNum: number;
+  isCompleted: false;
+}
+
+export interface CompletedEpochGasRefundData
+  extends Partial<Omit<PendingEpochGasRefundData, 'isCompleted'>> {
+  totalStakeAmountPSP: string;
+  refundedAmountPSP: string;
+  merkleProofs: string[];
+  isCompleted: true;
+}
+
+export type EpochGasRefundData =
+  | PendingEpochGasRefundData
+  | CompletedEpochGasRefundData;
+
+export type GasRefundProgramdata = {
+  epoch: number;
+  chainId: number;
+  totalPSPAmountToRefund: string;
+  merkleRoot: string;
+};
+
 export type TxFeesByAddress = {
-  [address: string]: {
-    accGasFeePSP: BigNumber;
-    // TODO: add debug data like accumulate gas used, avg gas price, first/last recorded block
-  };
+  [address: string]: PendingEpochGasRefundData;
 };
 
 export type Claimable = {
   address: string;
   amount: string;
+  lastBlockNum: number;
+  totalStakeAmountPSP: string;
 };
 
 export type MerkleRoot = {
@@ -30,4 +60,10 @@ export type MerkleData = {
 export type MerkleTreeData = {
   root: MerkleRoot;
   leaves: MerkleData[];
+};
+
+export type PSPStakesByAddress = { [address: string]: BigNumber };
+
+export type MerkleTreeDataByChain = {
+  [chainId: number]: MerkleTreeData | null;
 };

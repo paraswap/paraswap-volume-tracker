@@ -69,13 +69,16 @@ export function reduceGasRefundByAddress(
 
     assert(refundPercent, 'LogicError: refundPercent should be undefined');
 
-    const refundedAmount = accTxFees.accGasFeePSP
+    const refundedAmount = new BigNumber(accTxFees.accumulatedGasUsedPSP)
       .multipliedBy(refundPercent)
       .toFixed(0);
 
     acc.push({
       address,
       amount: refundedAmount,
+      // todo: maybe doesn't make sense to return here (as this func deals with refund calculation)
+      lastBlockNum: accTxFees.lastBlockNum,
+      totalStakeAmountPSP: stakedAmount.toFixed(0),
     });
 
     return acc;
