@@ -44,10 +44,6 @@ export async function computeAccumulatedTxFeesByAddress({
     `no start block found for chain ${chainId} for timestamp ${endTimestamp}`,
   );
 
-  /** @TODO: partitioning (startBlock,endBlock) in k (what's best value for k ? 100 ? 1000 ?)
-   * compute accumulated tx fees for address accross each partion
-   * clean indexedSwaps at end of partition processing
-   */
   logger.info(
     `swapTracker start indexing between ${startBlock} and ${endBlock}`,
   );
