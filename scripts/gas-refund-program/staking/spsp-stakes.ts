@@ -12,7 +12,6 @@ import * as SPSPABI from '../../../src/lib/abi/spsp.abi.json';
 import { Contract } from 'ethers';
 import { Interface } from '@ethersproject/abi';
 import { StakedPSPByAddress } from '../types';
-import { BlockInfo } from '../../../src/lib/block-info';
 
 interface GetStakersForPoolsInput {
   pools: string[];
