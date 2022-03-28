@@ -97,6 +97,7 @@ export async function getSPSPToPSPRatesByPool({
   return pspRatesByPool;
 }
 
+// @FIXME: pass epoch/block to check stakes on
 export async function getSPSPStakes(): Promise<StakedPSPByAddress | null> {
   const chainId = CHAIN_ID_MAINNET;
 
