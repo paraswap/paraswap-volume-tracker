@@ -1,12 +1,16 @@
 import BigNumber from 'bignumber.js';
-import { CHAIN_ID_MAINNET, CHAIN_ID_POLYGON } from './constants';
-
-export const GRP_SUPPORTED_CHAINS = [
-  // @FIME @dev
+import {
+  CHAIN_ID_BINANCE,
+  CHAIN_ID_FANTOM,
   CHAIN_ID_MAINNET,
   CHAIN_ID_POLYGON,
-  //CHAIN_ID_BINANCE,
-  //CHAIN_ID_FANTOM,
+} from './constants';
+
+export const GRP_SUPPORTED_CHAINS = [
+  CHAIN_ID_MAINNET,
+  CHAIN_ID_POLYGON,
+  CHAIN_ID_BINANCE,
+  CHAIN_ID_FANTOM,
 ];
 
 export const GasRefundGenesisEpoch = 8; // @FIXME @dev
