@@ -185,6 +185,7 @@ export default class Router {
       },
     );
 
+    // @TODO: remove
     router.get('/gas-refund/describe/:network/:epoch', async (req, res) => {
       const epoch = Number(req.params.epoch);
       const network = Number(req.params.network);
