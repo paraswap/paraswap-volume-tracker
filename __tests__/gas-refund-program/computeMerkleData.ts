@@ -2,7 +2,7 @@ import * as ethers from 'ethers';
 import {
   Claimable,
   computeMerkleData,
-} from '../../src/service/transaction-fees-indexer/merkle-tree';
+} from '../../scripts/gas-refund-program/refund/merkle-tree';
 import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
 import { getChance } from 'jest-chance';
 
