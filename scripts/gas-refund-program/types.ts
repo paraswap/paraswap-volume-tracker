@@ -8,6 +8,7 @@ interface BaseGasRefundData {
 export interface PendingEpochGasRefundData extends BaseGasRefundData {
   accumulatedGasUsedPSP: string;
   accumulatedGasUsed: string;
+  accumulatedGasUsedChainCurrency: string;
   lastBlockNum: number;
   isCompleted: false;
   totalStakeAmountPSP: string;

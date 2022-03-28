@@ -17,7 +17,7 @@ import { getRefundPercent } from '../../../src/lib/gas-refund';
 
 const logger = global.LOGGER('GRP:TRANSACTION_FEES_INDEXING');
 
-const PARTITION_SIZE = 100; // depends on thegraph capacity and memory
+const PARTITION_SIZE = 1000; // depends on thegraph capacity and memory
 
 export async function computeAccumulatedTxFeesByAddressForSuccessfulSwapTxs({
   chainId,
@@ -106,14 +106,18 @@ export async function computeAccumulatedTxFeesByAddressForSuccessfulSwapTxs({
         return acc;
       }
 
-      // @TODO: shoot bignumber overhead
       const currGasUsed = new BigNumber(swap.txGasUsed.toString());
       const accGasUsed = currGasUsed.plus(swapperAcc?.accumulatedGasUsed || 0);
 
-      const currGasFeePSP = currGasUsed
-        .multipliedBy(swap.txGasPrice.toString()) // in gwei
-        .multipliedBy(1e9) //  convert to wei
-        .multipliedBy(pspRateSameDay);
+      const currGasUsedChainCur = currGasUsed.multipliedBy(
+        swap.txGasPrice.toString(),
+      ); // in wei
+
+      const accGasUsedChainCur = currGasUsedChainCur.plus(
+        swapperAcc?.accumulatedGasUsedChainCurrency || 0,
+      );
+
+      const currGasFeePSP = currGasUsedChainCur.dividedBy(pspRateSameDay);
 
       const accGasFeePSP = currGasFeePSP.plus(
         swapperAcc?.accumulatedGasUsedPSP || 0,
@@ -135,6 +139,7 @@ export async function computeAccumulatedTxFeesByAddressForSuccessfulSwapTxs({
         chainId: chainId,
         accumulatedGasUsedPSP: accGasFeePSP.toFixed(0),
         accumulatedGasUsed: accGasUsed.toFixed(0),
+        accumulatedGasUsedChainCurrency: accGasUsedChainCur.toFixed(0),
         lastBlockNum: swap.blockNumber,
         isCompleted: false,
         totalStakeAmountPSP,

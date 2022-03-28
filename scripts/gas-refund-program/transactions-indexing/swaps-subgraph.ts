@@ -20,6 +20,7 @@ query ($number_gte: BigInt, $number_lt: BigInt, $txOrgins: [Bytes!]!) {
 			txOrigin_in: $txOrgins
 		}
 	) {
+    txHash
 		txOrigin
 		txGasUsed
 		txGasPrice
@@ -86,7 +87,8 @@ interface SwapsGQLRespose {
 }
 
 interface SwapData {
-  txOrigin: string; // same as initiator, mostly
+  txHash: string;
+  txOrigin: string;
   txGasUsed: string;
   txGasPrice: string;
   blockNumber: number;
