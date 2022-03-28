@@ -3,7 +3,6 @@ import { BlockInfo } from '../../../src/lib/block-info';
 import {
   HistoricalPrice,
   TxFeesByAddress,
-  PendingEpochGasRefundData,
   StakedPSPByAddress,
 } from '../types';
 import { BigNumber } from 'bignumber.js';
@@ -13,7 +12,7 @@ import {
   writePendingEpochData,
 } from '../persistance/db-persistance';
 import { getSwapsForAccounts } from './swaps-subgraph';
-import { getRefundPercent } from '../../../src/lib/gas-refund';
+import { getRefundPercent, PendingEpochGasRefundData } from '../../../src/lib/gas-refund';
 
 const logger = global.LOGGER('GRP:TRANSACTION_FEES_INDEXING');
 

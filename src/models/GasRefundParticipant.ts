@@ -9,12 +9,12 @@ import {
   createIndexDecorator,
   Index,
 } from 'sequelize-typescript';
+import { EpochGasRefundData } from '../lib/gas-refund';
 
 import {
   DataType_ADDRESS,
   DataType_KECCAK256_HASHED_VALUE,
 } from '../lib/sql-data-types';
-import { EpochGasRefundData } from '../../scripts/gas-refund-program/types';
 
 const compositeIndex = createIndexDecorator({
   name: 'epochgasrefund_epoch_address_chain',

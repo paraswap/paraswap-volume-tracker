@@ -1,10 +1,9 @@
+import { CompletedEpochGasRefundData, PendingEpochGasRefundData } from '../../../src/lib/gas-refund';
 import { GasRefundParticipant } from '../../../src/models/GasRefundParticipant';
 import { GasRefundProgram } from '../../../src/models/GasRefundProgram';
 import {
   MerkleData,
   MerkleTreeData,
-  CompletedEpochGasRefundData,
-  PendingEpochGasRefundData,
   TxFeesByAddress,
   StakedPSPByAddress,
 } from '../types';
