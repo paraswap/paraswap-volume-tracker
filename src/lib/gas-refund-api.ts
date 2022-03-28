@@ -11,6 +11,7 @@ import {
   CHAIN_ID_POLYGON,
 } from './constants';
 import { EpochInfo } from './epoch-info';
+import { GasRefundGenesisEpoch } from './gas-refund';
 import { Provider } from './provider';
 
 const MerkleRedeemAbi = [
@@ -35,15 +36,6 @@ const MerkleRedeemAddress: { [chainId: number]: string } = {
   [CHAIN_ID_FANTOM]: '0x',
   [CHAIN_ID_BINANCE]: '0x',
 };
-
-export const GRP_SUPPORTED_CHAINS = [
-  CHAIN_ID_MAINNET,
-  //CHAIN_ID_POLYGON,
-  //CHAIN_ID_BINANCE,
-  //CHAIN_ID_FANTOM,
-];
-
-const GasRefundGenesisEpoch = 8; // @FIXME
 
 export class GasRefundApi {
   epochInfo: EpochInfo;

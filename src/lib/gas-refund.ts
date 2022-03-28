@@ -1,4 +1,15 @@
 import BigNumber from 'bignumber.js';
+import { CHAIN_ID_MAINNET } from './constants';
+
+export const GRP_SUPPORTED_CHAINS = [
+  // @FIME @dev
+  CHAIN_ID_MAINNET,
+  //CHAIN_ID_POLYGON,
+  //CHAIN_ID_BINANCE,
+  //CHAIN_ID_FANTOM,
+];
+
+export const GasRefundGenesisEpoch = 8; // @FIXME @dev
 
 type GasRefundLevel = 'level_1' | 'level_2' | 'level_3' | 'level_4';
 
@@ -11,12 +22,12 @@ type GasRefundLevelsDef = {
 //                                                  psp decimals
 const scale = (num: number) => new BigNumber(num).multipliedBy(1e18);
 
-export const minStake = scale(500); // @FIXME: resolve min stake automatically
+export const GRP_MIN_STAKE = scale(500);
 
 const gasRefundLevels: GasRefundLevelsDef[] = [
   {
     level: 'level_1' as const,
-    minStakedAmount: minStake,
+    minStakedAmount: GRP_MIN_STAKE,
     refundPercent: 0.25,
   },
   {

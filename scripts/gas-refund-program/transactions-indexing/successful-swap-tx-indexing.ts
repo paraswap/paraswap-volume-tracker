@@ -13,7 +13,7 @@ import {
   writePendingEpochData,
 } from '../persistance/db-persistance';
 import { getSwapsForAccounts } from './swaps-subgraph';
-import { getRefundPercent } from '../refund/gas-refund';
+import { getRefundPercent } from '../../../src/lib/gas-refund';
 
 const logger = global.LOGGER('GRP:TRANSACTION_FEES_INDEXING');
 

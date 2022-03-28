@@ -8,12 +8,12 @@ import Database from '../../src/database';
 
 import { writeCompletedEpochData } from './persistance/db-persistance';
 
-import { GRP_SUPPORTED_CHAINS } from '../../src/lib/gas-refund-api';
 import { getPSPStakes } from './staking';
 import { StakedPSPByAddress } from './types';
 import { EpochInfo } from '../../src/lib/epoch-info';
 import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
 import { assert } from 'ts-essentials';
+import { GRP_SUPPORTED_CHAINS } from '../../src/lib/gas-refund';
 
 const logger = global.LOGGER('GRP');
 

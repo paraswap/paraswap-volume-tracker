@@ -1,5 +1,5 @@
 import BigNumber from 'bignumber.js';
-import { minStake } from '../refund/gas-refund';
+import { GRP_MIN_STAKE } from '../../../src/lib/gas-refund';
 import { StakedPSPByAddress } from '../types';
 import { getSPSPStakes } from './spsp-stakes';
 
@@ -12,7 +12,7 @@ export const getPSPStakes = async (): Promise<StakedPSPByAddress | null> => {
   const filteredStakesByAddress = Object.entries(
     stakesByAddress,
   ).reduce<StakedPSPByAddress>((acc, [address, stakes]) => {
-    if (new BigNumber(stakes).lt(minStake)) return acc;
+    if (new BigNumber(stakes).lt(GRP_MIN_STAKE)) return acc;
     acc[address] = stakes;
     return acc;
   }, {});
