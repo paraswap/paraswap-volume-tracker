@@ -186,9 +186,11 @@ export default class Router {
     );
 
     // @TODO: remove
-    router.get('/gas-refund/describe/:network/:epoch', async (req, res) => {
-      const epoch = Number(req.params.epoch);
-      const network = Number(req.params.network);
+    router.get('/gas-refund/describe', async (req, res) => {
+      const epoch = Number(req.query.epoch);
+      const network = Number(req.query.network);
+
+      if(isNaN(epoch) || isNaN(network)) return res.status(403).send({error: 'please pass ?epoch=:epoch&network=:network'});
 
       try {
         const gasRefundApi = GasRefundApi.getInstance(network);
