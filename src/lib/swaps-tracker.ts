@@ -10,6 +10,7 @@ import {
   CHAIN_ID_BINANCE,
   CHAIN_ID_POLYGON,
   CHAIN_ID_AVALANCHE,
+  CHAIN_ID_FANTOM,
 } from './constants';
 import { PriceApi } from './price-api';
 import { BlockInfo } from './block-info';
@@ -30,18 +31,18 @@ export type Swap = {
   beneficiary: string;
   srcToken: string;
   destToken: string;
-  srcAmount: BigInt;
-  srcAmountUSD: string;
-  destAmount: BigInt;
-  destAmountUSD: string;
-  expectedAmount: BigInt | null;
+  srcAmount: bigint;
+  srcAmountUSD: string | null;
+  destAmount: bigint;
+  destAmountUSD: string | null;
+  expectedAmount: bigint | null;
   expectedAmountUSD: string | null;
   referrer: string | null;
   txHash: string;
   txOrigin: string;
   txTarget: string;
-  txGasUsed: BigInt;
-  txGasPrice: BigInt;
+  txGasUsed: bigint;
+  txGasPrice: bigint;
   blockHash: string;
   blockNumber: number;
   timestamp: number;
@@ -62,6 +63,8 @@ const SubgraphURLs: { [network: number]: string } = {
     'https://api.thegraph.com/subgraphs/name/paraswap/paraswap-subgraph-bsc',
   [CHAIN_ID_POLYGON]:
     'https://api.thegraph.com/subgraphs/name/paraswap/paraswap-subgraph-polygon',
+  [CHAIN_ID_FANTOM]:
+    'https://api.thegraph.com/subgraphs/name/paraswap/paraswap-subgraph-fantom',
 };
 
 const InitTime: { [network: number]: number } = {
@@ -120,6 +123,7 @@ export class SwapsTracker {
 
   private constructor(
     protected network: number = CHAIN_ID_MAINNET,
+    protected skipTokenPricing: boolean = false,
     protected blockDelay = defaultBlockDelay,
     protected indexRefreshDelay = defaultIndexRefreshDelay,
   ) {
@@ -130,9 +134,12 @@ export class SwapsTracker {
     this.blockInfo = BlockInfo.getInstance(this.network);
   }
 
-  static getInstance(network: number): SwapsTracker {
+  static getInstance(
+    network: number,
+    skipTokenPricing: boolean = false,
+  ): SwapsTracker {
     if (!this.instances[network])
-      this.instances[network] = new SwapsTracker(network);
+      this.instances[network] = new SwapsTracker(network, skipTokenPricing);
     return this.instances[network];
   }
 
@@ -161,23 +168,29 @@ export class SwapsTracker {
         data.swaps.map(async (swap: any) => {
           const blockNumber = parseInt(swap.blockNumber);
 
-          const srcAmountUSD = (
-            await this._getTokenPrice(
-              blockNumber,
-              swap.srcToken,
-              new BigNumber(swap.srcAmount),
-            )
-          ).toFixed();
+          const srcAmountUSD = this.skipTokenPricing
+            ? null
+            : (
+                await this._getTokenPrice(
+                  blockNumber,
+                  swap.srcToken,
+                  new BigNumber(swap.srcAmount),
+                )
+              ).toFixed();
 
-          const destAmountUSD = (
-            await this._getTokenPrice(
-              blockNumber,
-              swap.destToken,
-              new BigNumber(swap.destAmount),
-            )
-          ).toFixed();
+          const destAmountUSD = this.skipTokenPricing
+            ? null
+            : (
+                await this._getTokenPrice(
+                  blockNumber,
+                  swap.destToken,
+                  new BigNumber(swap.destAmount),
+                )
+              ).toFixed();
 
-          const expectedAmountUSD = swap.expectedAmount
+          const expectedAmountUSD = this.skipTokenPricing
+            ? null
+            : swap.expectedAmount
             ? (
                 await this._getTokenPrice(
                   blockNumber,
@@ -186,6 +199,9 @@ export class SwapsTracker {
                 )
               ).toFixed()
             : null;
+
+          if (!this.indexedSwaps[blockNumber])
+            this.indexedSwaps[blockNumber] = [];
 
           return this.indexedSwaps[blockNumber].push({
             id: swap.id,
@@ -258,7 +274,9 @@ export class SwapsTracker {
           this.initTime,
         );
         if (!this.initBlock) {
-          logger.error(`_indexLatest: unable to fetch block number for ${this.initTime}`);
+          logger.error(
+            `_indexLatest: unable to fetch block number for ${this.initTime}`,
+          );
           return;
         }
         this.lastIndexedBlock = this.initBlock;
@@ -286,7 +304,7 @@ export class SwapsTracker {
   }
 
   async startIndexing() {
-    await this.priceApi.init();
+    if (!this.skipTokenPricing) await this.priceApi.init();
     await this.indexLatest();
     setInterval(() => this.indexLatest(), this.indexRefreshDelay);
   }

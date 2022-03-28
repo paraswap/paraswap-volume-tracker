@@ -1,13 +1,25 @@
-import { CHAIN_ID_MAINNET, CHAIN_ID_ROPSTEN, CHAIN_ID_BINANCE, CHAIN_ID_POLYGON } from './constants';
+import {
+  CHAIN_ID_MAINNET,
+  CHAIN_ID_ROPSTEN,
+  CHAIN_ID_BINANCE,
+  CHAIN_ID_POLYGON,
+  CHAIN_ID_FANTOM,
+} from './constants';
 import { Utils } from './utils';
 
 const logger = global.LOGGER();
 
 const SUBGRAPH_URL: { [network: number]: string } = {
-  [CHAIN_ID_MAINNET]: 'https://api.thegraph.com/subgraphs/name/blocklytics/ethereum-blocks',
-  [CHAIN_ID_ROPSTEN]: 'https://api.thegraph.com/subgraphs/name/blocklytics/ropsten-blocks',
-  [CHAIN_ID_BINANCE]: 'https://api.thegraph.com/subgraphs/name/polytoken/blocks-bsc',
-  [CHAIN_ID_POLYGON]: 'https://api.thegraph.com/subgraphs/name/polytoken/blocks-matic',
+  [CHAIN_ID_MAINNET]:
+    'https://api.thegraph.com/subgraphs/name/blocklytics/ethereum-blocks',
+  [CHAIN_ID_ROPSTEN]:
+    'https://api.thegraph.com/subgraphs/name/blocklytics/ropsten-blocks',
+  [CHAIN_ID_BINANCE]:
+    'https://api.thegraph.com/subgraphs/name/polytoken/blocks-bsc',
+  [CHAIN_ID_POLYGON]:
+    'https://api.thegraph.com/subgraphs/name/matthewlilley/polygon-blocks',
+  [CHAIN_ID_FANTOM]:
+    'https://thegraph.com/hosted-service/subgraph/publu/fantom-blocks',
   // 43114: TODO: deploy blocks in avalanche
 };
 const SUBGRAPH_TIMEOUT = 5000;
@@ -87,8 +99,9 @@ export class BlockInfo {
         { query, variables },
         SUBGRAPH_TIMEOUT,
       );
-      this.blockInfo[parseInt(data.blocks[0].number)] =
-        parseInt(data.blocks[0].timestamp);
+      this.blockInfo[parseInt(data.blocks[0].number)] = parseInt(
+        data.blocks[0].timestamp,
+      );
       return parseInt(data.blocks[0].timestamp);
     } catch (e) {
       logger.error('getBlockTimeStamp', e);
