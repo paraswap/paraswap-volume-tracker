@@ -85,10 +85,11 @@ async function start() {
   const epochNum = 8; // @TODO: automatise
   await Database.connectAndSync();
 
-  const [stakes, { epochStartTime, epochEndTime }] = await Promise.all([
-    getPSPStakes(),
-    resolveEpochStartEndTime(epochNum),
-  ]);
+  const { epochStartTime, epochEndTime } = await resolveEpochStartEndTime(
+    epochNum,
+  );
+
+  const stakes = await getPSPStakes(epochEndTime);
 
   assert(stakes, 'no stakers found at all');
   assert(epochStartTime, `could not resolve ${epochNum}th epoch start time`);
