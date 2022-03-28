@@ -12,10 +12,12 @@ import * as SPSPABI from '../../../src/lib/abi/spsp.abi.json';
 import { Contract } from 'ethers';
 import { Interface } from '@ethersproject/abi';
 import { StakedPSPByAddress } from '../types';
+import { BlockInfo } from '../../../src/lib/block-info';
 
 interface GetStakersForPoolsInput {
   pools: string[];
   chainId: number;
+  blockNumber: number | undefined;
 }
 
 interface PoolWithStakers {
@@ -30,13 +32,19 @@ interface PoolWithStakers {
 async function getStakersForPools({
   pools,
   chainId,
+  blockNumber,
 }: GetStakersForPoolsInput): Promise<PoolWithStakers[]> {
   if (pools.length == 0) return [];
 
   const tokenHoldersAndPools = await Promise.all(
     pools.map(async pool => {
       // @WARNING pagination doesn't seem to work, so ask a large pageSize
-      const options = { pageSize: 10000, token: pool, chainId }; // always fetch latest state
+      const options = {
+        pageSize: 10000,
+        token: pool,
+        chainId,
+        blockHeight: blockNumber ? String(blockNumber) : undefined,
+      };
 
       const { items } = await getTokenHolders(options);
 
@@ -67,9 +75,11 @@ type PSPRateByPool = { [poolAddess: string]: number };
 export async function getSPSPToPSPRatesByPool({
   pools,
   chainId,
+  blockNumber,
 }: {
   pools: string[];
   chainId: number;
+  blockNumber: number | undefined;
 }): Promise<PSPRateByPool> {
   const provider = Provider.getJsonRpcProvider(chainId);
   const multicallContract = new Contract(
@@ -82,7 +92,9 @@ export async function getSPSPToPSPRatesByPool({
     callData: sPSPInterface.encodeFunctionData('PSPForSPSP', [ONE_UNIT]),
   }));
 
-  const rawResult = await multicallContract.functions.aggregate(multicallData);
+  const rawResult = await multicallContract.functions.aggregate(multicallData, {
+    blockTag: blockNumber,
+  });
 
   const pspRatesByPool = pools.reduce<PSPRateByPool>((acc, pool, i) => {
     const pspForOneSPS = sPSPInterface
@@ -98,7 +110,11 @@ export async function getSPSPToPSPRatesByPool({
 }
 
 // @FIXME: pass epoch/block to check stakes on
-export async function getSPSPStakes(): Promise<StakedPSPByAddress | null> {
+export async function getSPSPStakes({
+  blockNumber,
+}: {
+  blockNumber: number | undefined;
+}): Promise<StakedPSPByAddress | null> {
   const chainId = CHAIN_ID_MAINNET;
 
   const SPSPs = PoolConfigsMap[chainId]
@@ -106,8 +122,8 @@ export async function getSPSPStakes(): Promise<StakedPSPByAddress | null> {
     .map(p => p.address);
 
   const [stakersByPool, spspToPSPRateByPool] = await Promise.all([
-    getStakersForPools({ pools: SPSPs, chainId }),
-    getSPSPToPSPRatesByPool({ pools: SPSPs, chainId }),
+    getStakersForPools({ pools: SPSPs, chainId, blockNumber }),
+    getSPSPToPSPRatesByPool({ pools: SPSPs, chainId, blockNumber }),
   ]);
 
   if (!spspToPSPRateByPool) return null;
