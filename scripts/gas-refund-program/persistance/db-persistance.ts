@@ -77,14 +77,20 @@ export const writeCompletedEpochData = async (
   chainId: number,
   merkleTree: MerkleTreeData | null,
   pspStakesByAddress: StakedPSPByAddress,
-) => {
+): Promise<void> => {
   if (!merkleTree) {
-    return [];
+    return;
   }
   const {
     root: { epoch, totalAmount, merkleRoot },
     leaves,
   } = merkleTree;
+
+
+  const existingGasRefundProgramEntry = await GasRefundProgram.findOne({ where: { chainId, epoch }})
+  if (existingGasRefundProgramEntry) {
+    return;
+  }
 
   const epochDataToUpdate: CompletedEpochGasRefundData[] = leaves.map(
     (leaf: MerkleData) => ({
