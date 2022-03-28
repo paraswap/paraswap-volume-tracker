@@ -8,6 +8,7 @@ import {
   TxFeesByAddress,
   StakedPSPByAddress,
 } from '../types';
+import { sliceCalls } from '../utils'
 
 const fetchPendingEpochData = async ({
   chainId,
@@ -105,12 +106,8 @@ export const writeCompletedEpochData = async (
     }),
   );
 
-  const partitionSize = 100
-  for (let i = 0; i < epochDataToUpdate.length; i += partitionSize) {
-    const dataSlice = epochDataToUpdate.slice(i, i + partitionSize);
-
-    // do bulk upsert
-    await GasRefundParticipant.bulkCreate(dataSlice, {
+  const bulkUpdateParticipants = async (participantsToUpdate: CompletedEpochGasRefundData[]) => {
+    await GasRefundParticipant.bulkCreate(participantsToUpdate, {
       updateOnDuplicate: [
         'totalStakeAmountPSP',
         'refundedAmountPSP',
@@ -121,6 +118,8 @@ export const writeCompletedEpochData = async (
       ],
     });
   }
+
+  await Promise.all(sliceCalls({ inputArray: epochDataToUpdate, execute: bulkUpdateParticipants, sliceLength: 100 }))
 
   await GasRefundProgram.create({
     epoch,
