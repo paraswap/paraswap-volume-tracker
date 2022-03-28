@@ -68,7 +68,7 @@ export class GasRefundApi {
     const data = await GasRefundProgram.findOne({
       where: { chainId: this.network, epoch },
       attributes: ['merkleRoot', 'epoch', 'chainId', 'totalPSPAmountToRefund'],
-      raw: true
+      raw: true,
     });
 
     if (!data) return null;

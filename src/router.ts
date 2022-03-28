@@ -151,9 +151,8 @@ export default class Router {
 
           const currentEpochNum = await epochInfo.getCurrentEpoch();
           const lastEpochNum = currentEpochNum - 1;
-          const gasRefundDataLastEpoch = await gasRefundApi.gasRefundDataForEpoch(
-            lastEpochNum,
-          );
+          const gasRefundDataLastEpoch =
+            await gasRefundApi.gasRefundDataForEpoch(lastEpochNum);
 
           return res.json(gasRefundDataLastEpoch);
         } catch (e) {
