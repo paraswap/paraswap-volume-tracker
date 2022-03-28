@@ -111,8 +111,6 @@ export const writeCompletedEpochData = async (
       updateOnDuplicate: [
         'totalStakeAmountPSP',
         'refundedAmountPSP',
-        // todo: fix this: model inference not working
-        // @ts-ignore
         'merkleProofs',
         'isCompleted',
       ],
