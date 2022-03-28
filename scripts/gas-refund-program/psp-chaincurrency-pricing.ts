@@ -120,12 +120,21 @@ async function fetchDailyPspUsdPrice({
   startTimestamp: number;
   endTimestamp: number;
 }) {
-  return fetchHistoricalPriceCoingecko({
-    chainId,
-    address: PSP_ADDRESS[chainId],
-    startTimestamp,
-    endTimestamp,
-  });
+  try {
+    return await fetchHistoricalPriceCoingecko({
+      chainId,
+      address: PSP_ADDRESS[chainId],
+      startTimestamp,
+      endTimestamp,
+    });
+  } catch {
+    return fetchHistoricalPriceCoingecko({
+      chainId: CHAIN_ID_MAINNET,
+      address: PSP_ADDRESS[CHAIN_ID_MAINNET],
+      startTimestamp,
+      endTimestamp,
+    });
+  }
 }
 
 export async function fetchDailyPSPChainCurrencyRate({
