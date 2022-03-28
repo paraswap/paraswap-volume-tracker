@@ -1,10 +1,10 @@
 import BigNumber from 'bignumber.js';
-import { CHAIN_ID_MAINNET } from './constants';
+import { CHAIN_ID_MAINNET, CHAIN_ID_POLYGON } from './constants';
 
 export const GRP_SUPPORTED_CHAINS = [
   // @FIME @dev
   CHAIN_ID_MAINNET,
-  //CHAIN_ID_POLYGON,
+  CHAIN_ID_POLYGON,
   //CHAIN_ID_BINANCE,
   //CHAIN_ID_FANTOM,
 ];
