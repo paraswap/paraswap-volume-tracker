@@ -61,15 +61,14 @@ export class GasRefundApi {
   }
 
   // retrieve merkle root + compute tx params for last epoch
-  async getRefundDataLastEpoch(): Promise<{
+  async gasRefundDataForEpoch(epoch: number): Promise<{
     data: GasRefundProgram;
     txParams: TransactionRequest;
   } | null> {
-    const currentEpochNum = await this.epochInfo.getCurrentEpoch();
-    const lastEpochNum = currentEpochNum - 1;
-
     const data = await GasRefundProgram.findOne({
-      where: { chainId: this.network, epoch: lastEpochNum },
+      where: { chainId: this.network, epoch },
+      attributes: ['merkleRoot', 'epoch', 'chainId', 'totalPSPAmountToRefund'],
+      raw: true
     });
 
     if (!data) return null;
@@ -78,7 +77,7 @@ export class GasRefundApi {
 
     const txData = this.merkleRedem.interface.encodeFunctionData(
       'seedAllocations',
-      [lastEpochNum, merkleRoot, totalPSPAmountToRefund],
+      [epoch, merkleRoot, totalPSPAmountToRefund],
     );
 
     return {
@@ -97,9 +96,6 @@ export class GasRefundApi {
         'epoch',
         'address',
         'chainId',
-        'lastBlockNum',
-        'accumulatedGasUsed',
-        'accumulatedGasUsedPSP',
         'totalStakeAmountPSP',
         'refundedAmountPSP',
         'merkleProofs',
@@ -153,5 +149,26 @@ export class GasRefundApi {
     ]);
 
     return merkleData.filter(m => !epochToClaimed[m.epoch]);
+  }
+
+  async getAllEntriesForEpoch(epoch: number): Promise<GasRefundParticipant[]> {
+    const grpData = await GasRefundParticipant.findAll({
+      attributes: [
+        'epoch',
+        'address',
+        'chainId',
+        'lastBlockNum',
+        'accumulatedGasUsed',
+        'accumulatedGasUsedChainCurrency',
+        'accumulatedGasUsedPSP',
+        'totalStakeAmountPSP',
+        'refundedAmountPSP',
+        'merkleProofs',
+      ],
+      where: { epoch, chainId: this.network },
+      raw: true,
+    });
+
+    return grpData;
   }
 }

@@ -6,6 +6,7 @@ import { PoolInfo } from './lib/pool-info';
 import { Claim } from './models/Claim';
 import { DEFAULT_CHAIN_ID, STAKING_CHAIN_IDS_SET } from './lib/constants';
 import { GasRefundApi } from './lib/gas-refund-api';
+import { EpochInfo } from './lib/epoch-info';
 
 const logger = global.LOGGER();
 
@@ -146,9 +147,15 @@ export default class Router {
         try {
           const network = Number(req.params.network);
           const gasRefundApi = GasRefundApi.getInstance(network);
-          const lastMerkleRoot = await gasRefundApi.getRefundDataLastEpoch();
+          const epochInfo = EpochInfo.getInstance(network);
 
-          return res.json(lastMerkleRoot);
+          const currentEpochNum = await epochInfo.getCurrentEpoch();
+          const lastEpochNum = currentEpochNum - 1;
+          const gasRefundDataLastEpoch = await gasRefundApi.gasRefundDataForEpoch(
+            lastEpochNum,
+          );
+
+          return res.json(gasRefundDataLastEpoch);
         } catch (e) {
           logger.error(req.path, e);
           res.status(403).send({
@@ -166,10 +173,10 @@ export default class Router {
         try {
           const network = Number(req.params.network);
           const gasRefundApi = GasRefundApi.getInstance(network);
-          const merkleDataForAddress =
+          const gasRefundDataAddress =
             await gasRefundApi.getAllGasRefundDataForAddress(address);
 
-          return res.json(merkleDataForAddress);
+          return res.json(gasRefundDataAddress);
         } catch (e) {
           logger.error(req.path, e);
           res.status(403).send({
@@ -178,6 +185,29 @@ export default class Router {
         }
       },
     );
+
+    router.get('/gas-refund/describe/:network/:epoch', async (req, res) => {
+      const epoch = Number(req.params.epoch);
+      const network = Number(req.params.network);
+
+      try {
+        const gasRefundApi = GasRefundApi.getInstance(network);
+
+        const [root, leaves] = await Promise.all([
+          gasRefundApi.gasRefundDataForEpoch(epoch),
+          gasRefundApi.getAllEntriesForEpoch(epoch),
+        ]);
+        return res.json({
+          root,
+          leaves,
+        });
+      } catch (e) {
+        logger.error(req.path, e);
+        res.status(403).send({
+          error: `GasRefundError: could not retrieve grp data for chain=${network} epoch=${epoch}`,
+        });
+      }
+    });
 
     return router;
   }
