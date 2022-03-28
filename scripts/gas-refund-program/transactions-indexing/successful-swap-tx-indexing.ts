@@ -13,6 +13,7 @@ import {
   writePendingEpochData,
 } from '../persistance/db-persistance';
 import { getSwapsForAccounts } from './swaps-subgraph';
+import { getRefundPercent } from '../refund/gas-refund';
 
 const logger = global.LOGGER('GRP:TRANSACTION_FEES_INDEXING');
 
@@ -118,6 +119,16 @@ export async function computeAccumulatedTxFeesByAddressForSuccessfulSwapTxs({
         swapperAcc?.accumulatedGasUsedPSP || 0,
       );
 
+      const totalStakeAmountPSP = stakes[address];
+      const refundPercent = getRefundPercent(totalStakeAmountPSP);
+      assert(
+        refundPercent,
+        `Logic Error: failed to find refund percent for ${address}`,
+      );
+      const refundedAmountPSP = accGasFeePSP
+        .multipliedBy(refundPercent)
+        .toFixed(0);
+
       const pendingGasRefundDatum: PendingEpochGasRefundData = {
         epoch,
         address,
@@ -126,7 +137,9 @@ export async function computeAccumulatedTxFeesByAddressForSuccessfulSwapTxs({
         accumulatedGasUsed: accGasUsed.toFixed(0),
         lastBlockNum: swap.blockNumber,
         isCompleted: false,
-        totalStakeAmountPSP: stakes[address],
+        totalStakeAmountPSP,
+        refundedAmountPSP,
+        updated: true,
       };
 
       acc[address] = pendingGasRefundDatum;
@@ -134,9 +147,11 @@ export async function computeAccumulatedTxFeesByAddressForSuccessfulSwapTxs({
       return acc;
     }, accumulatedTxFeesByAddress);
 
-    const values = Object.values(accumulatedTxFeesByAddress);
-    if (values.length > 0) {
-      await writePendingEpochData(values);
+    const updatedData = Object.values(accumulatedTxFeesByAddress).filter(
+      v => v.updated,
+    );
+    if (updatedData.length > 0) {
+      await writePendingEpochData(updatedData);
     }
   }
 

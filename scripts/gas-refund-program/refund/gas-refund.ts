@@ -1,8 +1,4 @@
 import BigNumber from 'bignumber.js';
-import { assert } from 'ts-essentials';
-import { Claimable, StakedPSPByAddress, TxFeesByAddress } from '../types';
-
-const logger = global.LOGGER('GRP:GAS_REFUND_COMPUTATION');
 
 type GasRefundLevel = 'level_1' | 'level_2' | 'level_3' | 'level_4';
 
@@ -40,50 +36,7 @@ const gasRefundLevels: GasRefundLevelsDef[] = [
   },
 ].reverse(); // reverse for descending lookup
 
-const getRefundPercent = (stakedAmount: string): number | undefined =>
+export const getRefundPercent = (stakedAmount: string): number | undefined =>
   gasRefundLevels.find(({ minStakedAmount }) =>
     new BigNumber(stakedAmount).gte(minStakedAmount),
   )?.refundPercent;
-
-export function computeGasRefundByAddress(
-  accTxFeesByAddress: TxFeesByAddress,
-  pspStakesByAddress: StakedPSPByAddress,
-): Claimable[] {
-  const claimableAmounts = Object.entries(accTxFeesByAddress).reduce<
-    Claimable[]
-  >((acc, [address, accTxFees]) => {
-    const stakedAmount = pspStakesByAddress[address];
-
-    if (!stakedAmount) {
-      //  logger.info(`skipping ${address} as not staked`);
-      return acc;
-    }
-
-    assert(
-      new BigNumber(stakedAmount).gte(minStake),
-      'Logic Errror: stakedAmount is lower than min stake',
-    ); // should be guaranteed by previous logic
-
-    const refundPercent = getRefundPercent(stakedAmount);
-
-    assert(refundPercent, 'LogicError: refundPercent should be undefined');
-
-    const refundedAmount = new BigNumber(accTxFees.accumulatedGasUsedPSP)
-      .multipliedBy(refundPercent)
-      .toFixed(0);
-
-    acc.push({
-      address,
-      amount: refundedAmount,
-      // todo: maybe doesn't make sense to return here (as this func deals with refund calculation)
-      lastBlockNum: accTxFees.lastBlockNum,
-      totalStakeAmountPSP: stakedAmount,
-    });
-
-    return acc;
-  }, []);
-
-  logger.info(`found ${claimableAmounts.length} eligble for gas refund`);
-
-  return claimableAmounts;
-}

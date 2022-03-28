@@ -1,7 +1,6 @@
 import '../../src/lib/log4js';
 import * as dotenv from 'dotenv';
 dotenv.config();
-import { computeGasRefundByAddress } from './refund/gas-refund';
 import { computeMerkleData } from './refund/merkle-tree';
 import { fetchDailyPSPChainCurrencyRate } from './psp-chaincurrency-pricing';
 import { computeAccumulatedTxFeesByAddress } from './transactions-indexing';
@@ -58,18 +57,14 @@ export async function calculateGasRefundForChain({
 
   // combine data to form mapping(chainId => address => {totalStakes@debug, gasRefundPercent@debug, accGasUsedPSP@debug, refundAmount})  // amount = accGasUsedPSP * gasRefundPercent
   logger.info(`reduce gas refund by address for chainId=${chainId}`);
-  const gasRefundByAddress = await computeGasRefundByAddress(
-    accTxFeesByAddress,
-    stakes,
-  );
 
   // compute mapping(networkId => MerkleTree)
   logger.info(`compute merkleTree for chainId=${chainId}`);
-  const merkleTree = await computeMerkleData(
-    chainId,
-    gasRefundByAddress,
-    epoch,
-  );
+  const claimables = Object.values(accTxFeesByAddress).map(t => ({
+    address: t.address,
+    amount: t.refundedAmountPSP,
+  }));
+  const merkleTree = await computeMerkleData(chainId, claimables, epoch);
 
   await writeCompletedEpochData(chainId, merkleTree, stakes);
 }

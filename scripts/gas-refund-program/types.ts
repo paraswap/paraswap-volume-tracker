@@ -1,8 +1,6 @@
-import BigNumber from 'bignumber.js';
-
 export type HistoricalPrice = { timestamp: number; rate: number }[];
 
-export interface BaseGasRefundData {
+interface BaseGasRefundData {
   epoch: number;
   address: string;
   chainId: number;
@@ -13,11 +11,12 @@ export interface PendingEpochGasRefundData extends BaseGasRefundData {
   lastBlockNum: number;
   isCompleted: false;
   totalStakeAmountPSP: string;
+  refundedAmountPSP: string;
+  updated?: boolean;
 }
 
 export interface CompletedEpochGasRefundData
   extends Partial<Omit<PendingEpochGasRefundData, 'isCompleted'>> {
-  refundedAmountPSP: string;
   merkleProofs: string[];
   isCompleted: true;
 }
