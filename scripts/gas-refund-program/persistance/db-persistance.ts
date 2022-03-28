@@ -66,8 +66,11 @@ export const writePendingEpochData = async (
     updateOnDuplicate: [
       'accumulatedGasUsedPSP',
       'accumulatedGasUsed',
+      'accumulatedGasUsedChainCurrency',
       'lastBlockNum',
       'isCompleted',
+      'totalStakeAmountPSP',
+      'refundedAmountPSP'
     ],
   });
 };
