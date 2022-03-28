@@ -99,15 +99,20 @@ export const writeCompletedEpochData = async (
     }),
   );
 
-  // todo: bulk upsert epoch data once models are defined
-  for (let i = 0; i < epochDataToUpdate.length; i++) {
-    const endEpochData = epochDataToUpdate[i];
+  const partitionSize = 100
+  for (let i = 0; i < epochDataToUpdate.length; i += partitionSize) {
+    const dataSlice = epochDataToUpdate.slice(i, i + partitionSize);
 
-    // key
-    const { epoch, address, chainId } = endEpochData;
-
-    await GasRefundParticipant.update(endEpochData, {
-      where: { epoch, address, chainId },
+    // do bulk upsert
+    await GasRefundParticipant.bulkCreate(dataSlice, {
+      updateOnDuplicate: [
+        'totalStakeAmountPSP',
+        'refundedAmountPSP',
+        // todo: fix this: model inference not working
+        // @ts-ignore
+        'merkleProofs',
+        'isCompleted',
+      ],
     });
   }
 
