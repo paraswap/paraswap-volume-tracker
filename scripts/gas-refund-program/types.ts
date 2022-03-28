@@ -10,7 +10,7 @@ export interface PendingEpochGasRefundData extends BaseGasRefundData {
   accumulatedGasUsed: string;
   accumulatedGasUsedChainCurrency: string;
   lastBlockNum: number;
-  isCompleted: boolean;
+  isCompleted: false;
   totalStakeAmountPSP: string;
   refundedAmountPSP: string;
   updated?: boolean;
@@ -19,10 +19,15 @@ export interface PendingEpochGasRefundData extends BaseGasRefundData {
 export interface CompletedEpochGasRefundData
   extends Partial<Omit<PendingEpochGasRefundData, 'isCompleted'>> {
   merkleProofs: string[];
-  isCompleted: boolean;
+  isCompleted: true;
 }
 
-export interface EpochGasRefundData extends Partial<BaseGasRefundData>, Partial<PendingEpochGasRefundData>, Partial<Omit<CompletedEpochGasRefundData, 'isCompleted'>> {}
+export interface EpochGasRefundData
+  extends Partial<BaseGasRefundData>,
+  Partial<Omit<PendingEpochGasRefundData, 'isCompleted'>>,
+  Partial<Omit<CompletedEpochGasRefundData, 'isCompleted'>> {
+  isCompleted: boolean
+}
 
 export type GasRefundProgramdata = {
   epoch: number;
