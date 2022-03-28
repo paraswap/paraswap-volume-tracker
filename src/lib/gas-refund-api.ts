@@ -1,5 +1,5 @@
 import { TransactionRequest } from '@ethersproject/providers';
-import { Contract } from 'ethers';
+import { Contract } from '@ethersproject/contracts';
 import _ from 'lodash';
 import { assert } from 'ts-essentials';
 import { GasRefundParticipant } from '../models/GasRefundParticipant';
