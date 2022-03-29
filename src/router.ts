@@ -190,7 +190,10 @@ export default class Router {
       const epoch = Number(req.query.epoch);
       const network = Number(req.query.network);
 
-      if(isNaN(epoch) || isNaN(network)) return res.status(403).send({error: 'please pass ?epoch=:epoch&network=:network'});
+      if (isNaN(epoch) || isNaN(network))
+        return res
+          .status(403)
+          .send({ error: 'please pass ?epoch=:epoch&network=:network' });
 
       try {
         const gasRefundApi = GasRefundApi.getInstance(network);

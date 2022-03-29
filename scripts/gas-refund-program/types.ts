@@ -1,4 +1,4 @@
-import { PendingEpochGasRefundData } from "../../src/lib/gas-refund";
+import { PendingEpochGasRefundData } from '../../src/lib/gas-refund';
 
 export type HistoricalPrice = { timestamp: number; rate: number }[];
 
@@ -30,7 +30,6 @@ export type MerkleTreeData = {
   root: MerkleRoot;
   leaves: MerkleData[];
 };
-
 
 export type StakedPSPByAddress = {
   [address: string]: string;

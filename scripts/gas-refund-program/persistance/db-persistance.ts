@@ -1,4 +1,7 @@
-import { CompletedEpochGasRefundData, PendingEpochGasRefundData } from '../../../src/lib/gas-refund';
+import {
+  CompletedEpochGasRefundData,
+  PendingEpochGasRefundData,
+} from '../../../src/lib/gas-refund';
 import { GasRefundParticipant } from '../../../src/models/GasRefundParticipant';
 import { GasRefundProgram } from '../../../src/models/GasRefundProgram';
 import {
@@ -69,7 +72,7 @@ export const writePendingEpochData = async (
       'lastBlockNum',
       'isCompleted',
       'totalStakeAmountPSP',
-      'refundedAmountPSP'
+      'refundedAmountPSP',
     ],
   });
 };

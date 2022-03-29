@@ -1,10 +1,6 @@
 import { assert } from 'ts-essentials';
 import { BlockInfo } from '../../../src/lib/block-info';
-import {
-  HistoricalPrice,
-  TxFeesByAddress,
-  StakedPSPByAddress,
-} from '../types';
+import { HistoricalPrice, TxFeesByAddress, StakedPSPByAddress } from '../types';
 import { BigNumber } from 'bignumber.js';
 import { constructSameDayPrice } from '../psp-chaincurrency-pricing';
 import {
@@ -12,7 +8,10 @@ import {
   writePendingEpochData,
 } from '../persistance/db-persistance';
 import { getSwapsForAccounts } from './swaps-subgraph';
-import { getRefundPercent, PendingEpochGasRefundData } from '../../../src/lib/gas-refund';
+import {
+  getRefundPercent,
+  PendingEpochGasRefundData,
+} from '../../../src/lib/gas-refund';
 
 const logger = global.LOGGER('GRP:TRANSACTION_FEES_INDEXING');
 

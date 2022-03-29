@@ -15,7 +15,6 @@ export const GRP_SUPPORTED_CHAINS = [
 
 export const GasRefundGenesisEpoch = 8; // @FIXME @dev
 
-
 interface BaseGasRefundData {
   epoch: number;
   address: string;
