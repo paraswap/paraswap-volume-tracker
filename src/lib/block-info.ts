@@ -19,7 +19,7 @@ const SUBGRAPH_URL: { [network: number]: string } = {
   [CHAIN_ID_POLYGON]:
     'https://api.thegraph.com/subgraphs/name/matthewlilley/polygon-blocks',
   [CHAIN_ID_FANTOM]:
-    'https://thegraph.com/hosted-service/subgraph/publu/fantom-blocks',
+    'https://api.thegraph.com/subgraphs/name/ducquangkstn/fantom-blocks',
   // 43114: TODO: deploy blocks in avalanche
 };
 const SUBGRAPH_TIMEOUT = 5000;
