@@ -151,9 +151,8 @@ export default class Router {
 
           const currentEpochNum = await epochInfo.getCurrentEpoch();
           const lastEpochNum = currentEpochNum - 1;
-          const gasRefundDataLastEpoch = await gasRefundApi.gasRefundDataForEpoch(
-            lastEpochNum,
-          );
+          const gasRefundDataLastEpoch =
+            await gasRefundApi.gasRefundDataForEpoch(lastEpochNum);
 
           return res.json(gasRefundDataLastEpoch);
         } catch (e) {
@@ -168,7 +167,7 @@ export default class Router {
     router.get(
       '/gas-refund/all-merkle-data/:network/:address',
       async (req, res) => {
-        const address = req.params.address;
+        const address = req.params.address.toLowerCase();
 
         try {
           const network = Number(req.params.network);
@@ -186,9 +185,15 @@ export default class Router {
       },
     );
 
-    router.get('/gas-refund/describe/:network/:epoch', async (req, res) => {
-      const epoch = Number(req.params.epoch);
-      const network = Number(req.params.network);
+    // @TODO: remove
+    router.get('/gas-refund/describe', async (req, res) => {
+      const epoch = Number(req.query.epoch);
+      const network = Number(req.query.network);
+
+      if (isNaN(epoch) || isNaN(network))
+        return res
+          .status(403)
+          .send({ error: 'please pass ?epoch=:epoch&network=:network' });
 
       try {
         const gasRefundApi = GasRefundApi.getInstance(network);

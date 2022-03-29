@@ -49,6 +49,7 @@ interface GetSwapsForAccountsInput {
   chainId: number;
 }
 
+// get filtered by accounts swaps from the graphql endpoint
 export async function getSwapsForAccounts({
   startBlock,
   endBlock,
@@ -64,7 +65,6 @@ export async function getSwapsForAccounts({
       txOrgins: accounts,
     };
 
-    // @TODO set up pagination, but seems alright for now
     const { data } = await Utils._post<SwapsGQLRespose>(
       subgraphURL,
       { query: SwapsQuery, variables },

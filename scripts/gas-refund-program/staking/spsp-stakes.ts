@@ -16,6 +16,7 @@ import { StakedPSPByAddress } from '../types';
 interface GetStakersForPoolsInput {
   pools: string[];
   chainId: number;
+  blockNumber: number;
 }
 
 interface PoolWithStakers {
@@ -30,13 +31,19 @@ interface PoolWithStakers {
 async function getStakersForPools({
   pools,
   chainId,
+  blockNumber,
 }: GetStakersForPoolsInput): Promise<PoolWithStakers[]> {
   if (pools.length == 0) return [];
 
   const tokenHoldersAndPools = await Promise.all(
     pools.map(async pool => {
       // @WARNING pagination doesn't seem to work, so ask a large pageSize
-      const options = { pageSize: 10000, token: pool, chainId }; // always fetch latest state
+      const options = {
+        pageSize: 10000,
+        token: pool,
+        chainId,
+        blockHeight: String(blockNumber),
+      };
 
       const { items } = await getTokenHolders(options);
 
@@ -67,9 +74,11 @@ type PSPRateByPool = { [poolAddess: string]: number };
 export async function getSPSPToPSPRatesByPool({
   pools,
   chainId,
+  blockNumber,
 }: {
   pools: string[];
   chainId: number;
+  blockNumber: number;
 }): Promise<PSPRateByPool> {
   const provider = Provider.getJsonRpcProvider(chainId);
   const multicallContract = new Contract(
@@ -82,14 +91,16 @@ export async function getSPSPToPSPRatesByPool({
     callData: sPSPInterface.encodeFunctionData('PSPForSPSP', [ONE_UNIT]),
   }));
 
-  const rawResult = await multicallContract.functions.aggregate(multicallData);
+  const rawResult = await multicallContract.functions.aggregate(multicallData, {
+    blockTag: blockNumber,
+  });
 
   const pspRatesByPool = pools.reduce<PSPRateByPool>((acc, pool, i) => {
     const pspForOneSPS = sPSPInterface
       .decodeFunctionResult('PSPForSPSP', rawResult.returnData[i])
       .toString();
 
-    acc[pool] = new BigNumber(ONE_UNIT).dividedBy(pspForOneSPS).toNumber();
+    acc[pool] = new BigNumber(pspForOneSPS).dividedBy(ONE_UNIT).toNumber();
 
     return acc;
   }, {});
@@ -97,8 +108,11 @@ export async function getSPSPToPSPRatesByPool({
   return pspRatesByPool;
 }
 
-// @FIXME: pass epoch/block to check stakes on
-export async function getSPSPStakes(): Promise<StakedPSPByAddress | null> {
+export async function getSPSPStakes({
+  blockNumber,
+}: {
+  blockNumber: number;
+}): Promise<StakedPSPByAddress | null> {
   const chainId = CHAIN_ID_MAINNET;
 
   const SPSPs = PoolConfigsMap[chainId]
@@ -106,8 +120,8 @@ export async function getSPSPStakes(): Promise<StakedPSPByAddress | null> {
     .map(p => p.address);
 
   const [stakersByPool, spspToPSPRateByPool] = await Promise.all([
-    getStakersForPools({ pools: SPSPs, chainId }),
-    getSPSPToPSPRatesByPool({ pools: SPSPs, chainId }),
+    getStakersForPools({ pools: SPSPs, chainId, blockNumber }),
+    getSPSPToPSPRatesByPool({ pools: SPSPs, chainId, blockNumber }),
   ]);
 
   if (!spspToPSPRateByPool) return null;

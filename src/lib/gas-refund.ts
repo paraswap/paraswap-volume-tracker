@@ -1,15 +1,52 @@
 import BigNumber from 'bignumber.js';
-import { CHAIN_ID_MAINNET, CHAIN_ID_POLYGON } from './constants';
-
-export const GRP_SUPPORTED_CHAINS = [
-  // @FIME @dev
+import {
+  CHAIN_ID_BINANCE,
+  CHAIN_ID_FANTOM,
   CHAIN_ID_MAINNET,
   CHAIN_ID_POLYGON,
-  //CHAIN_ID_BINANCE,
-  //CHAIN_ID_FANTOM,
+} from './constants';
+
+export const GRP_SUPPORTED_CHAINS = [
+  CHAIN_ID_MAINNET,
+  CHAIN_ID_POLYGON,
+  CHAIN_ID_BINANCE,
+  CHAIN_ID_FANTOM,
 ];
 
 export const GasRefundGenesisEpoch = 8; // @FIXME @dev
+
+interface BaseGasRefundData {
+  epoch: number;
+  address: string;
+  chainId: number;
+}
+export interface PendingEpochGasRefundData extends BaseGasRefundData {
+  accumulatedGasUsedPSP: string;
+  accumulatedGasUsed: string;
+  accumulatedGasUsedChainCurrency: string;
+  lastBlockNum: number;
+  isCompleted: false;
+  totalStakeAmountPSP: string;
+  refundedAmountPSP: string;
+  updated?: boolean;
+}
+
+export interface CompletedEpochGasRefundData
+  extends Partial<Omit<PendingEpochGasRefundData, 'isCompleted'>> {
+  merkleProofs: string[];
+  isCompleted: true;
+}
+
+export type EpochGasRefundData =
+  | PendingEpochGasRefundData
+  | CompletedEpochGasRefundData;
+
+export type GasRefundProgramData = {
+  epoch: number;
+  chainId: number;
+  totalPSPAmountToRefund: string;
+  merkleRoot: string;
+};
 
 type GasRefundLevel = 'level_1' | 'level_2' | 'level_3' | 'level_4';
 

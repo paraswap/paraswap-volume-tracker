@@ -22,23 +22,25 @@ export async function calculateGasRefundForChain({
   chainId,
   epoch,
   stakes,
-  epochStartTime,
-  epochEndTime,
+  startCalcTime,
+  endCalcTime,
+  isEpochEnded,
 }: {
   chainId: number;
   epoch: number;
   stakes: StakedPSPByAddress;
-  epochStartTime: number;
-  epochEndTime: number;
+  startCalcTime: number;
+  endCalcTime: number;
+  isEpochEnded: boolean;
 }) {
-  // retrieve daily psp/native currency rate for (epochStartTime, epochEndTime
+  // retrieve daily psp/native currency rate for (startCalcTime, endCalcTime
   logger.info(
     `start fetching daily psp/native currency rate for chainId=${chainId}`,
   );
   const pspNativeCurrencyDailyRate = await fetchDailyPSPChainCurrencyRate({
     chainId,
-    startTimestamp: epochStartTime,
-    endTimestamp: epochEndTime,
+    startTimestamp: startCalcTime,
+    endTimestamp: endCalcTime,
   });
 
   // retrieve all tx beetween (start_epoch_timestamp, end_epoch_timestamp) +  compute progressively mapping(chainId => address => mapping(timestamp => accGasUsedPSP)) // address: txOrigin, timestamp: start of the day
@@ -48,15 +50,12 @@ export async function calculateGasRefundForChain({
     chainId,
     epoch,
     pspNativeCurrencyDailyRate,
-    startTimestamp: epochStartTime,
-    endTimestamp: epochEndTime,
+    startTimestamp: startCalcTime,
+    endTimestamp: endCalcTime,
     stakes,
   });
 
-  if (Date.now() < epochEndTime * 1000) return; // skip other operations as epoch is not finished
-
-  // combine data to form mapping(chainId => address => {totalStakes@debug, gasRefundPercent@debug, accGasUsedPSP@debug, refundAmount})  // amount = accGasUsedPSP * gasRefundPercent
-  logger.info(`reduce gas refund by address for chainId=${chainId}`);
+  if (!isEpochEnded) return; // skip other operations as epoch is not finished
 
   // compute mapping(networkId => MerkleTree)
   logger.info(`compute merkleTree for chainId=${chainId}`);
@@ -69,30 +68,42 @@ export async function calculateGasRefundForChain({
   await writeCompletedEpochData(chainId, merkleTree, stakes);
 }
 
-async function resolveEpochStartEndTime(
-  epoch: number,
-): Promise<{ epochStartTime: number; epochEndTime: number }> {
+const OFFSET_CALC_TIME = 5 * 60; // 5min delay to ensure that all third parties providers are synced
+
+async function resolveCalcTimeInterval(epoch: number): Promise<{
+  startCalcTime: number;
+  endCalcTime: number;
+  isEpochEnded: boolean;
+}> {
   const epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET, true);
   await epochInfo.getEpochDetails();
-  const [epochStartTime, epochEndTime] = await Promise.all([
+  const [epochStartTime, epochDuration] = await Promise.all([
     epochInfo.getEpochStartCalcTime(epoch),
-    epochInfo.getEpochEndCalcTime(epoch),
+    epochInfo.getEpochDuration(),
   ]);
-  return { epochStartTime, epochEndTime };
+  const epochEndTime = epochStartTime + epochDuration; // safer than getEpochEndCalcTime as it fails for current epoch
+
+  const nowUnixTime = Math.round(Date.now() / 1000);
+
+  return {
+    startCalcTime: epochStartTime,
+    endCalcTime: Math.min(nowUnixTime - OFFSET_CALC_TIME, epochEndTime),
+    isEpochEnded: nowUnixTime > epochEndTime,
+  };
 }
 
 async function start() {
   const epochNum = 8; // @TODO: automatise
   await Database.connectAndSync();
 
-  const [stakes, { epochStartTime, epochEndTime }] = await Promise.all([
-    getPSPStakes(),
-    resolveEpochStartEndTime(epochNum),
-  ]);
+  const { startCalcTime, endCalcTime, isEpochEnded } =
+    await resolveCalcTimeInterval(epochNum);
+
+  const stakes = await getPSPStakes(endCalcTime);
 
   assert(stakes, 'no stakers found at all');
-  assert(epochStartTime, `could not resolve ${epochNum}th epoch start time`);
-  assert(epochEndTime, `could not resolve ${epochNum}th epoch end time`);
+  assert(startCalcTime, `could not resolve ${epochNum}th epoch start time`);
+  assert(endCalcTime, `could not resolve ${epochNum}th epoch end time`);
 
   await Promise.all(
     GRP_SUPPORTED_CHAINS.map(chainId =>
@@ -100,8 +111,9 @@ async function start() {
         chainId,
         epoch: epochNum,
         stakes,
-        epochStartTime,
-        epochEndTime,
+        startCalcTime,
+        endCalcTime,
+        isEpochEnded,
       }),
     ),
   );

@@ -6,9 +6,9 @@ import {
   DataType,
   createIndexDecorator,
 } from 'sequelize-typescript';
+import { GasRefundProgramData } from '../lib/gas-refund';
 
 import { DataType_KECCAK256_HASHED_VALUE } from '../lib/sql-data-types';
-import { GasRefundProgramdata } from '../../scripts/gas-refund-program/types';
 
 const compositeIndex = createIndexDecorator({
   name: 'grp_epoch_chain',
@@ -17,7 +17,7 @@ const compositeIndex = createIndexDecorator({
 });
 
 @Table
-export class GasRefundProgram extends Model<GasRefundProgramdata> {
+export class GasRefundProgram extends Model<GasRefundProgramData> {
   @PrimaryKey
   @Column(DataType_KECCAK256_HASHED_VALUE)
   merkleRoot: string;

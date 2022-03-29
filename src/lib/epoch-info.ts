@@ -1,6 +1,5 @@
 import { retry } from 'ts-retry-promise';
 import { Contract } from '@ethersproject/contracts';
-import { id } from '@ethersproject/hash';
 import * as RewardDistributionAbi from './abi/reward-distribution.abi.json';
 import {
   CHAIN_ID_ROPSTEN,
