@@ -160,7 +160,7 @@ export class GasRefundApi {
 
           const { refundedAmountPSP, ...rClaim } = claim;
           acc.claims.push({ ...rClaim, amount: refundedAmountPSP });
-          acc.totalClaimable += BigInt(claim.refundedAmountPSP);
+          acc.totalClaimable += BigInt(refundedAmountPSP);
 
           return acc;
         },
