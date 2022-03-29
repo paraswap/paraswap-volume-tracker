@@ -28,6 +28,7 @@ export const Web3Provider: { [network: number]: string } = {
   [CHAIN_ID_ROPSTEN]: process.env.HTTP_PROVIDER_3 || '',
   [CHAIN_ID_BINANCE]: process.env.HTTP_PROVIDER_56 || '',
   [CHAIN_ID_POLYGON]: process.env.HTTP_PROVIDER_137 || '',
+  [CHAIN_ID_FANTOM]: process.env.HTTP_PROVIDER_250 || '',
   [CHAIN_ID_AVALANCHE]: process.env.HTTP_PROVIDER_43114 || '',
 };
 
