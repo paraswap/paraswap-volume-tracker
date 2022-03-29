@@ -43,8 +43,8 @@ type GasRefundClaim = Pick<
 >;
 
 type BaseGasRefundClaimsResponse<T> = {
-  totalAmountRefunded: T;
-  claims: GasRefundClaim[];
+  totalClaimable: T;
+  claims: (Omit<GasRefundClaim, 'refundedAmountPSP'> & { amount: string })[];
 };
 type GasRefundClaimsResponseAcc = BaseGasRefundClaimsResponse<bigint>;
 type GasRefundClaimsResponse = BaseGasRefundClaimsResponse<string>;
@@ -153,24 +153,25 @@ export class GasRefundApi {
       this._getClaimStatus(address, startEpoch, endEpoch),
     ]);
 
-    const { totalAmountRefunded, claims } =
+    const { totalClaimable, claims } =
       merkleData.reduce<GasRefundClaimsResponseAcc>(
         (acc, claim) => {
           if (epochToClaimed[claim.epoch]) return acc;
 
-          acc.claims.push(claim);
-          acc.totalAmountRefunded += BigInt(claim.refundedAmountPSP);
+          const { refundedAmountPSP, ...rClaim } = claim;
+          acc.claims.push({ ...rClaim, amount: refundedAmountPSP });
+          acc.totalClaimable += BigInt(claim.refundedAmountPSP);
 
           return acc;
         },
         {
-          totalAmountRefunded: BigInt(0),
+          totalClaimable: BigInt(0),
           claims: [],
         },
       );
 
     return {
-      totalAmountRefunded: totalAmountRefunded.toString(),
+      totalClaimable: totalClaimable.toString(),
       claims,
     };
   }
