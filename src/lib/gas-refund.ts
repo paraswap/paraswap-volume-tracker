@@ -8,9 +8,9 @@ import {
 
 export const GRP_SUPPORTED_CHAINS = [
   CHAIN_ID_MAINNET,
-  CHAIN_ID_POLYGON,
-  CHAIN_ID_BINANCE,
-  CHAIN_ID_FANTOM,
+  // CHAIN_ID_POLYGON,
+  // CHAIN_ID_BINANCE,
+  // CHAIN_ID_FANTOM,
 ];
 
 export const GasRefundGenesisEpoch = 8; // @FIXME @dev
@@ -37,9 +37,7 @@ export interface CompletedEpochGasRefundData
   isCompleted: true;
 }
 
-export type EpochGasRefundData =
-  | PendingEpochGasRefundData
-  | CompletedEpochGasRefundData;
+export type EpochGasRefundData = Partial<Omit<CompletedEpochGasRefundData, 'isCompleted'>> & {isCompleted: boolean}
 
 export type GasRefundProgramData = {
   epoch: number;
