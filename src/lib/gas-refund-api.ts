@@ -32,7 +32,7 @@ interface MerkleRedeem extends Contract {
 const MerkleRedeemAddress: { [chainId: number]: string } = {
   // @TODO
   [CHAIN_ID_MAINNET]: '0x6d19b2bF3A36A61530909Ae65445a906D98A2Fa8', // @FIXME
-  [CHAIN_ID_POLYGON]: '0xe4aa70d4b77533000dc51bc4b98f26f4ee1aaea4', // @FIXME
+  [CHAIN_ID_POLYGON]: '0xa9303ce4c15a036d2df3438c98cc6c7e884b3d5d', // @FIXME
   [CHAIN_ID_FANTOM]: '0x',
   [CHAIN_ID_BINANCE]: '0x',
 };
