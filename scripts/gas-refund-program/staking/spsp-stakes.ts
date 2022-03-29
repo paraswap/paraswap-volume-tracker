@@ -100,7 +100,7 @@ export async function getSPSPToPSPRatesByPool({
       .decodeFunctionResult('PSPForSPSP', rawResult.returnData[i])
       .toString();
 
-    acc[pool] = new BigNumber(ONE_UNIT).dividedBy(pspForOneSPS).toNumber();
+    acc[pool] = new BigNumber(pspForOneSPS).dividedBy(ONE_UNIT).toNumber();
 
     return acc;
   }, {});
