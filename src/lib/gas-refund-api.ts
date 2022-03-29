@@ -52,13 +52,11 @@ type GasRefundClaimsResponse = BaseGasRefundClaimsResponse<string>;
 export class GasRefundApi {
   epochInfo: EpochInfo;
   merkleRedem: MerkleRedeem;
-  // gasRefundModel: GasRefundModel;
 
   static instances: { [network: number]: GasRefundApi } = {};
 
   constructor(protected network: number) {
     this.epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET);
-    // this.gasRefundModel = new GasRefundModel(network);
     this.merkleRedem = new Contract(
       MerkleRedeemAddress[network],
       MerkleRedeemAbi,
