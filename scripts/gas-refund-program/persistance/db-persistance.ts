@@ -10,6 +10,7 @@ import {
   TxFeesByAddress,
   StakedPSPByAddress,
 } from '../types';
+import { sliceCalls } from '../utils'
 
 const fetchPendingEpochData = async ({
   chainId,
@@ -82,14 +83,20 @@ export const writeCompletedEpochData = async (
   chainId: number,
   merkleTree: MerkleTreeData | null,
   pspStakesByAddress: StakedPSPByAddress,
-) => {
+): Promise<void> => {
   if (!merkleTree) {
-    return [];
+    return;
   }
   const {
     root: { epoch, totalAmount, merkleRoot },
     leaves,
   } = merkleTree;
+
+
+  const existingGasRefundProgramEntry = await GasRefundProgram.findOne({ where: { chainId, epoch }})
+  if (existingGasRefundProgramEntry) {
+    return;
+  }
 
   const epochDataToUpdate: CompletedEpochGasRefundData[] = leaves.map(
     (leaf: MerkleData) => ({
@@ -104,17 +111,18 @@ export const writeCompletedEpochData = async (
     }),
   );
 
-  // todo: bulk upsert epoch data once models are defined
-  for (let i = 0; i < epochDataToUpdate.length; i++) {
-    const endEpochData = epochDataToUpdate[i];
-
-    // key
-    const { epoch, address, chainId } = endEpochData;
-
-    await GasRefundParticipant.update(endEpochData, {
-      where: { epoch, address, chainId },
+  const bulkUpdateParticipants = async (participantsToUpdate: CompletedEpochGasRefundData[]) => {
+    await GasRefundParticipant.bulkCreate(participantsToUpdate, {
+      updateOnDuplicate: [
+        'totalStakeAmountPSP',
+        'refundedAmountPSP',
+        'merkleProofs',
+        'isCompleted',
+      ],
     });
   }
+
+  await Promise.all(sliceCalls({ inputArray: epochDataToUpdate, execute: bulkUpdateParticipants, sliceLength: 100 }))
 
   await GasRefundProgram.create({
     epoch,

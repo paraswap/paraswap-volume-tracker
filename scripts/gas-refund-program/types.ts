@@ -9,8 +9,6 @@ export type TxFeesByAddress = {
 export type Claimable = {
   address: string;
   amount: string;
-  lastBlockNum: number;
-  totalStakeAmountPSP: string;
 };
 
 export type MerkleRoot = {
