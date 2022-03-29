@@ -95,7 +95,7 @@ export class GasRefundApi {
     return {
       data,
       txParams: {
-        to: '0x',
+        to: MerkleRedeemAddress[this.network],
         data: txData,
         chainId: this.network,
       },
