@@ -167,7 +167,7 @@ export default class Router {
     router.get(
       '/gas-refund/all-merkle-data/:network/:address',
       async (req, res) => {
-        const address = req.params.address;
+        const address = req.params.address.toLowerCase();
 
         try {
           const network = Number(req.params.network);

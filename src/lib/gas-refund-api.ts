@@ -37,6 +37,18 @@ const MerkleRedeemAddress: { [chainId: number]: string } = {
   [CHAIN_ID_BINANCE]: '0x',
 };
 
+type GasRefundClaim = Pick<
+  GasRefundParticipant,
+  'epoch' | 'address' | 'refundedAmountPSP' | 'merkleProofs'
+>;
+
+type BaseGasRefundClaimsResponse<T> = {
+  totalAmountRefunded: T;
+  claims: GasRefundClaim[];
+};
+type GasRefundClaimsResponseAcc = BaseGasRefundClaimsResponse<bigint>;
+type GasRefundClaimsResponse = BaseGasRefundClaimsResponse<string>;
+
 export class GasRefundApi {
   epochInfo: EpochInfo;
   merkleRedem: MerkleRedeem;
@@ -90,17 +102,10 @@ export class GasRefundApi {
     };
   }
 
-  async _fetchMerkleData(address: string): Promise<GasRefundParticipant[]> {
+  async _fetchMerkleData(address: string): Promise<GasRefundClaim[]> {
     const grpData = await GasRefundParticipant.findAll({
-      attributes: [
-        'epoch',
-        'address',
-        'chainId',
-        'totalStakeAmountPSP',
-        'refundedAmountPSP',
-        'merkleProofs',
-      ],
-      where: { address, chainId: this.network },
+      attributes: ['epoch', 'address', 'refundedAmountPSP', 'merkleProofs'],
+      where: { address, chainId: this.network, isCompleted: true },
       raw: true,
     });
 
@@ -137,7 +142,7 @@ export class GasRefundApi {
   // get all ever constructed merkle data for addrress
   async getAllGasRefundDataForAddress(
     address: string,
-  ): Promise<GasRefundParticipant[] | null> {
+  ): Promise<GasRefundClaimsResponse> {
     const lastEpoch = (await this.epochInfo.getCurrentEpoch()) - 1;
 
     const startEpoch = GasRefundGenesisEpoch;
@@ -148,7 +153,26 @@ export class GasRefundApi {
       this._getClaimStatus(address, startEpoch, endEpoch),
     ]);
 
-    return merkleData.filter(m => !epochToClaimed[m.epoch]);
+    const { totalAmountRefunded, claims } =
+      merkleData.reduce<GasRefundClaimsResponseAcc>(
+        (acc, claim) => {
+          if (epochToClaimed[claim.epoch]) return acc;
+
+          acc.claims.push(claim);
+          acc.totalAmountRefunded += BigInt(claim.refundedAmountPSP);
+
+          return acc;
+        },
+        {
+          totalAmountRefunded: BigInt(0),
+          claims: [],
+        },
+      );
+
+    return {
+      totalAmountRefunded: totalAmountRefunded.toString(),
+      claims,
+    };
   }
 
   async getAllEntriesForEpoch(epoch: number): Promise<GasRefundParticipant[]> {
