@@ -22,12 +22,7 @@ export interface CompletedEpochGasRefundData
   isCompleted: true;
 }
 
-export interface EpochGasRefundData
-  extends Partial<BaseGasRefundData>,
-  Partial<Omit<PendingEpochGasRefundData, 'isCompleted'>>,
-  Partial<Omit<CompletedEpochGasRefundData, 'isCompleted'>> {
-  isCompleted: boolean
-}
+export type EpochGasRefundData = Partial<Omit<CompletedEpochGasRefundData, 'isCompleted'>> & {isCompleted: boolean}
 
 export type GasRefundProgramdata = {
   epoch: number;
