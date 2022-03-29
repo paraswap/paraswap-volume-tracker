@@ -16,7 +16,7 @@ import { StakedPSPByAddress } from '../types';
 interface GetStakersForPoolsInput {
   pools: string[];
   chainId: number;
-  blockNumber: number | undefined;
+  blockNumber: number;
 }
 
 interface PoolWithStakers {
@@ -42,7 +42,7 @@ async function getStakersForPools({
         pageSize: 10000,
         token: pool,
         chainId,
-        blockHeight: blockNumber ? String(blockNumber) : undefined,
+        blockHeight: String(blockNumber),
       };
 
       const { items } = await getTokenHolders(options);
@@ -78,7 +78,7 @@ export async function getSPSPToPSPRatesByPool({
 }: {
   pools: string[];
   chainId: number;
-  blockNumber: number | undefined;
+  blockNumber: number;
 }): Promise<PSPRateByPool> {
   const provider = Provider.getJsonRpcProvider(chainId);
   const multicallContract = new Contract(
@@ -111,7 +111,7 @@ export async function getSPSPToPSPRatesByPool({
 export async function getSPSPStakes({
   blockNumber,
 }: {
-  blockNumber: number | undefined;
+  blockNumber: number;
 }): Promise<StakedPSPByAddress | null> {
   const chainId = CHAIN_ID_MAINNET;
 
