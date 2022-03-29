@@ -6,7 +6,10 @@ import { fetchDailyPSPChainCurrencyRate } from './psp-chaincurrency-pricing';
 import { computeAccumulatedTxFeesByAddress } from './transactions-indexing';
 import Database from '../../src/database';
 
-import { writeCompletedEpochData } from './persistance/db-persistance';
+import {
+  merkleRootExists,
+  writeCompletedEpochData,
+} from './persistance/db-persistance';
 
 import { getPSPStakes } from './staking';
 import { StakedPSPByAddress } from './types';
@@ -33,6 +36,11 @@ export async function calculateGasRefundForChain({
   endCalcTime: number;
   isEpochEnded: boolean;
 }) {
+  if (await merkleRootExists({ chainId, epoch }))
+    return logger.info(
+      `merkle root for chainId=${chainId} epoch=${epoch} already exists`,
+    );
+
   // retrieve daily psp/native currency rate for (startCalcTime, endCalcTime
   logger.info(
     `start fetching daily psp/native currency rate for chainId=${chainId}`,

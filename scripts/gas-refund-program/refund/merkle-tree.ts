@@ -11,7 +11,7 @@ export async function computeMerkleData(
   chainId: number,
   amounts: Claimable[],
   epoch: number,
-): Promise<MerkleTreeData | null> {
+): Promise<MerkleTreeData> {
   const totalAmount = amounts
     .reduce((acc, curr) => (acc += BigInt(curr.amount)), BigInt(0))
     .toString();

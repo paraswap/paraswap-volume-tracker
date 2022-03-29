@@ -10,7 +10,7 @@ import {
   TxFeesByAddress,
   StakedPSPByAddress,
 } from '../types';
-import { sliceCalls } from '../utils'
+import { sliceCalls } from '../utils';
 
 const fetchPendingEpochData = async ({
   chainId,
@@ -78,25 +78,29 @@ export const writePendingEpochData = async (
   });
 };
 
-// @FIXME: slice DB writes
+export const merkleRootExists = async ({
+  chainId,
+  epoch,
+}: {
+  chainId: number;
+  epoch: number;
+}): Promise<boolean> => {
+  const existingGasRefundProgramEntry = await GasRefundProgram.findOne({
+    where: { chainId, epoch },
+  });
+
+  return !!existingGasRefundProgramEntry;
+};
+
 export const writeCompletedEpochData = async (
   chainId: number,
-  merkleTree: MerkleTreeData | null,
+  merkleTree: MerkleTreeData,
   pspStakesByAddress: StakedPSPByAddress,
 ): Promise<void> => {
-  if (!merkleTree) {
-    return;
-  }
   const {
     root: { epoch, totalAmount, merkleRoot },
     leaves,
   } = merkleTree;
-
-
-  const existingGasRefundProgramEntry = await GasRefundProgram.findOne({ where: { chainId, epoch }})
-  if (existingGasRefundProgramEntry) {
-    return;
-  }
 
   const epochDataToUpdate: CompletedEpochGasRefundData[] = leaves.map(
     (leaf: MerkleData) => ({
@@ -111,7 +115,9 @@ export const writeCompletedEpochData = async (
     }),
   );
 
-  const bulkUpdateParticipants = async (participantsToUpdate: CompletedEpochGasRefundData[]) => {
+  const bulkUpdateParticipants = async (
+    participantsToUpdate: CompletedEpochGasRefundData[],
+  ) => {
     await GasRefundParticipant.bulkCreate(participantsToUpdate, {
       updateOnDuplicate: [
         'totalStakeAmountPSP',
@@ -120,9 +126,15 @@ export const writeCompletedEpochData = async (
         'isCompleted',
       ],
     });
-  }
+  };
 
-  await Promise.all(sliceCalls({ inputArray: epochDataToUpdate, execute: bulkUpdateParticipants, sliceLength: 100 }))
+  await Promise.all(
+    sliceCalls({
+      inputArray: epochDataToUpdate,
+      execute: bulkUpdateParticipants,
+      sliceLength: 100,
+    }),
+  );
 
   await GasRefundProgram.create({
     epoch,
