@@ -1,7 +1,12 @@
 import { Claimable, MerkleTreeData } from '../types';
-import { utils } from 'ethers';
+import { utils, logger } from 'ethers';
 import { MerkleTree } from 'merkletreejs';
 import { GasRefundParticipant } from '../../../src/models/GasRefundParticipant';
+
+export type MinGasRefundParticipant = Pick<
+  GasRefundParticipant,
+  'refundedAmountPSP' | 'address'
+>;
 
 export async function computeMerkleData({
   chainId,
@@ -10,15 +15,8 @@ export async function computeMerkleData({
 }: {
   chainId: number;
   epoch: number;
-  gasRefundParticipants: Pick<
-    GasRefundParticipant,
-    'refundedAmountPSP' | 'address'
-  >[];
+  gasRefundParticipants: MinGasRefundParticipant[];
 }): Promise<MerkleTreeData> {
-  const logger = global.LOGGER(
-    `GRP:COMPUTE_MERKE_TREE: chainId=${chainId}, epoch=${epoch}`,
-  );
-
   const totalAmount = gasRefundParticipants
     .reduce((acc, curr) => (acc += BigInt(curr.refundedAmountPSP)), BigInt(0))
     .toString();
@@ -56,7 +54,9 @@ export async function computeMerkleData({
   };
 
   logger.info(
-    `merkleTree for chainId=${chainId}: ${JSON.stringify(merkleTreeData.root)}`,
+    `chainId=${chainId}, epoch=${epoch} merkleTree for: ${JSON.stringify(
+      merkleTreeData.root,
+    )}`,
   );
 
   return merkleTreeData;

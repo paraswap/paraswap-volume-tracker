@@ -4,11 +4,7 @@ import {
 } from '../../../src/lib/gas-refund';
 import { GasRefundParticipant } from '../../../src/models/GasRefundParticipant';
 import { GasRefundProgram } from '../../../src/models/GasRefundProgram';
-import {
-  MerkleData,
-  MerkleTreeData,
-  TxFeesByAddress,
-} from '../types';
+import { MerkleData, MerkleTreeData, TxFeesByAddress } from '../types';
 import { sliceCalls } from '../utils';
 
 const fetchPendingEpochData = async ({
