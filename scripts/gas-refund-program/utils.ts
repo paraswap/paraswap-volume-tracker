@@ -1,4 +1,3 @@
-// From FE with love
 interface SliceCallsInput<T, U> {
   inputArray: T[];
   execute: (inputSlice: T[], sliceIndex: number) => U;
@@ -15,7 +14,7 @@ export function sliceCalls<T, U>({
 
   for (
     let i = 0, sliceIndex = 0;
-    i <= inputArray.length;
+    i < inputArray.length;
     i += sliceLength, ++sliceIndex
   ) {
     const inputSlice = inputArray.slice(i, i + sliceLength);
