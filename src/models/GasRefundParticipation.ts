@@ -48,7 +48,7 @@ export class GasRefundParticipation extends Model<EpochGasRefundData> {
   @Column(DataType.INTEGER)
   lastBlockNum: number;
 
-  @Column(DataType.STRING)
+  @Column(DataType.BIGINT)
   accumulatedGasUsed: string;
 
   @Column(DataType.STRING)
