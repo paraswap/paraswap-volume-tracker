@@ -1,7 +1,7 @@
 import * as ethers from 'ethers';
 import {
   computeMerkleData,
-  MinGasRefundParticipant,
+  MinGasRefundParticipation,
 } from '../../scripts/gas-refund-program/refund/merkle-tree';
 import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
 import { getChance } from 'jest-chance';
@@ -38,14 +38,14 @@ describe('computeMerkleData', () => {
     const { genWallets, genClaimable } = makeGenerators(nClaims);
     const wallets = genWallets(nClaims);
 
-    const claimableAmmounts: MinGasRefundParticipant[] = wallets.map(w =>
+    const claimableAmmounts: MinGasRefundParticipation[] = wallets.map(w =>
       genClaimable(w.address),
     );
 
     const merkleTree = await computeMerkleData({
       chainId: CHAIN_ID,
       epoch: EPOCH,
-      gasRefundParticipants: claimableAmmounts,
+      gasRefundParticipations: claimableAmmounts,
     });
 
     expect(merkleTree).toBeTruthy();
@@ -74,7 +74,7 @@ function makeGenerators(randomPart: string | number = '') {
     return Array.from({ length: n }, genWallet);
   };
 
-  const genClaimable = (address: string): MinGasRefundParticipant => {
+  const genClaimable = (address: string): MinGasRefundParticipation => {
     const refundedAmountPSP = chance
       .integer({ min: 1e8, max: 2e18 })
       .toString(10);

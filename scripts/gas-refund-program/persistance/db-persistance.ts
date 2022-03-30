@@ -2,8 +2,8 @@ import {
   CompletedEpochGasRefundData,
   PendingEpochGasRefundData,
 } from '../../../src/lib/gas-refund';
-import { GasRefundParticipant } from '../../../src/models/GasRefundParticipant';
-import { GasRefundProgram } from '../../../src/models/GasRefundProgram';
+import { GasRefundParticipation } from '../../../src/models/GasRefundParticipation';
+import { GasRefundDistribution } from '../../../src/models/GasRefundDistribution';
 import { MerkleData, MerkleTreeData, TxFeesByAddress } from '../types';
 import { sliceCalls } from '../utils';
 
@@ -14,7 +14,7 @@ const fetchPendingEpochData = async ({
   chainId: number;
   epoch: number;
 }): Promise<TxFeesByAddress> => {
-  const pendingEpochData = (await GasRefundParticipant.findAll({
+  const pendingEpochData = (await GasRefundParticipation.findAll({
     where: { chainId, epoch },
     raw: true,
   })) as PendingEpochGasRefundData[];
@@ -37,7 +37,7 @@ async function fetchVeryLastBlockNumProcessed({
   chainId: number;
   epoch: number;
 }): Promise<number> {
-  const lastBlockNum = await GasRefundParticipant.max('lastBlockNum', {
+  const lastBlockNum = await GasRefundParticipation.max('lastBlockNum', {
     where: { chainId, epoch },
   });
 
@@ -60,7 +60,7 @@ export const readPendingEpochData = async ({
 export const writePendingEpochData = async (
   pendingEpochGasRefundData: PendingEpochGasRefundData[],
 ) => {
-  await GasRefundParticipant.bulkCreate(pendingEpochGasRefundData, {
+  await GasRefundParticipation.bulkCreate(pendingEpochGasRefundData, {
     updateOnDuplicate: [
       'accumulatedGasUsedPSP',
       'accumulatedGasUsed',
@@ -80,11 +80,11 @@ export const merkleRootExists = async ({
   chainId: number;
   epoch: number;
 }): Promise<boolean> => {
-  const existingGasRefundProgramEntry = await GasRefundProgram.findOne({
+  const existingGasRefundDistributionEntry = await GasRefundDistribution.findOne({
     where: { chainId, epoch },
   });
 
-  return !!existingGasRefundProgramEntry;
+  return !!existingGasRefundDistributionEntry;
 };
 
 export const saveMerkleTreeInDB = async ({
@@ -112,10 +112,10 @@ export const saveMerkleTreeInDB = async ({
     }),
   );
 
-  const bulkUpdateParticipants = async (
+  const bulkUpdateParticipations = async (
     participantsToUpdate: CompletedEpochGasRefundData[],
   ) => {
-    await GasRefundParticipant.bulkCreate(participantsToUpdate, {
+    await GasRefundParticipation.bulkCreate(participantsToUpdate, {
       updateOnDuplicate: ['merkleProofs', 'isCompleted'],
     });
   };
@@ -123,12 +123,12 @@ export const saveMerkleTreeInDB = async ({
   await Promise.all(
     sliceCalls({
       inputArray: epochDataToUpdate,
-      execute: bulkUpdateParticipants,
+      execute: bulkUpdateParticipations,
       sliceLength: 100,
     }),
   );
 
-  await GasRefundProgram.create({
+  await GasRefundDistribution.create({
     epoch,
     chainId,
     totalPSPAmountToRefund: totalAmount,

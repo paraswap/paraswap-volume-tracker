@@ -6,7 +6,7 @@ import {
   DataType,
   createIndexDecorator,
 } from 'sequelize-typescript';
-import { GasRefundProgramData } from '../lib/gas-refund';
+import { GasRefundDistributionData } from '../lib/gas-refund';
 
 import { DataType_KECCAK256_HASHED_VALUE } from '../lib/sql-data-types';
 
@@ -17,7 +17,7 @@ const compositeIndex = createIndexDecorator({
 });
 
 @Table
-export class GasRefundProgram extends Model<GasRefundProgramData> {
+export class GasRefundDistribution extends Model<GasRefundDistributionData> {
   @PrimaryKey
   @Column(DataType_KECCAK256_HASHED_VALUE)
   merkleRoot: string;

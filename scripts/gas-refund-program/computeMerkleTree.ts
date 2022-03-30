@@ -11,7 +11,7 @@ import {
 
 import { assert } from 'ts-essentials';
 import { GRP_SUPPORTED_CHAINS } from '../../src/lib/gas-refund';
-import { GasRefundParticipant } from '../../src/models/GasRefundParticipant';
+import { GasRefundParticipation } from '../../src/models/GasRefundParticipation';
 import { resolveEpochCalcTimeInterval } from './utils';
 import { saveMerkleTreeInFile } from './persistance/file-persistance';
 
@@ -33,14 +33,14 @@ export async function computeAndStoreMerkleTreeForChain({
       `merkle root for chainId=${chainId} epoch=${epoch} already exists`,
     );
 
-  const gasRefundParticipants = await GasRefundParticipant.findAll({
+  const gasRefundParticipations = await GasRefundParticipation.findAll({
     where: { epoch, chainId },
   });
 
   const merkleTree = await computeMerkleData({
     chainId,
     epoch,
-    gasRefundParticipants,
+    gasRefundParticipations,
   });
 
   if (saveDB) {

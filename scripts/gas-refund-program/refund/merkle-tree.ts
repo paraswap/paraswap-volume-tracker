@@ -1,27 +1,27 @@
 import { Claimable, MerkleTreeData } from '../types';
 import { utils, logger } from 'ethers';
 import { MerkleTree } from 'merkletreejs';
-import { GasRefundParticipant } from '../../../src/models/GasRefundParticipant';
+import { GasRefundParticipation } from '../../../src/models/GasRefundParticipation';
 
-export type MinGasRefundParticipant = Pick<
-  GasRefundParticipant,
+export type MinGasRefundParticipation = Pick<
+  GasRefundParticipation,
   'refundedAmountPSP' | 'address'
 >;
 
 export async function computeMerkleData({
   chainId,
   epoch,
-  gasRefundParticipants,
+  gasRefundParticipations,
 }: {
   chainId: number;
   epoch: number;
-  gasRefundParticipants: MinGasRefundParticipant[];
+  gasRefundParticipations: MinGasRefundParticipation[];
 }): Promise<MerkleTreeData> {
-  const totalAmount = gasRefundParticipants
+  const totalAmount = gasRefundParticipations
     .reduce((acc, curr) => (acc += BigInt(curr.refundedAmountPSP)), BigInt(0))
     .toString();
 
-  const hashedClaimabled = gasRefundParticipants.reduce<
+  const hashedClaimabled = gasRefundParticipations.reduce<
     Record<string, Claimable>
   >((acc, curr) => {
     const { address, refundedAmountPSP } = curr;

@@ -2,8 +2,8 @@ import { TransactionRequest } from '@ethersproject/providers';
 import { Contract } from '@ethersproject/contracts';
 import _ from 'lodash';
 import { assert } from 'ts-essentials';
-import { GasRefundParticipant } from '../models/GasRefundParticipant';
-import { GasRefundProgram } from '../models/GasRefundProgram';
+import { GasRefundParticipation } from '../models/GasRefundParticipation';
+import { GasRefundDistribution } from '../models/GasRefundDistribution';
 import {
   CHAIN_ID_BINANCE,
   CHAIN_ID_FANTOM,
@@ -38,7 +38,7 @@ const MerkleRedeemAddress: { [chainId: number]: string } = {
 };
 
 type GasRefundClaim = Pick<
-  GasRefundParticipant,
+  GasRefundParticipation,
   'epoch' | 'address' | 'refundedAmountPSP' | 'merkleProofs'
 >;
 
@@ -72,10 +72,10 @@ export class GasRefundApi {
 
   // retrieve merkle root + compute tx params for last epoch
   async gasRefundDataForEpoch(epoch: number): Promise<{
-    data: GasRefundProgram;
+    data: GasRefundDistribution;
     txParams: TransactionRequest;
   } | null> {
-    const data = await GasRefundProgram.findOne({
+    const data = await GasRefundDistribution.findOne({
       where: { chainId: this.network, epoch },
       attributes: ['merkleRoot', 'epoch', 'chainId', 'totalPSPAmountToRefund'],
       raw: true,
@@ -101,7 +101,7 @@ export class GasRefundApi {
   }
 
   async _fetchMerkleData(address: string): Promise<GasRefundClaim[]> {
-    const grpData = await GasRefundParticipant.findAll({
+    const grpData = await GasRefundParticipation.findAll({
       attributes: ['epoch', 'address', 'refundedAmountPSP', 'merkleProofs'],
       where: { address, chainId: this.network, isCompleted: true },
       raw: true,
@@ -174,8 +174,8 @@ export class GasRefundApi {
     };
   }
 
-  async getAllEntriesForEpoch(epoch: number): Promise<GasRefundParticipant[]> {
-    const grpData = await GasRefundParticipant.findAll({
+  async getAllEntriesForEpoch(epoch: number): Promise<GasRefundParticipation[]> {
+    const grpData = await GasRefundParticipation.findAll({
       attributes: [
         'epoch',
         'address',

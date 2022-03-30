@@ -41,7 +41,7 @@ export type EpochGasRefundData = Partial<
   Omit<CompletedEpochGasRefundData, 'isCompleted'>
 > & { isCompleted: boolean };
 
-export type GasRefundProgramData = {
+export type GasRefundDistributionData = {
   epoch: number;
   chainId: number;
   totalPSPAmountToRefund: string;

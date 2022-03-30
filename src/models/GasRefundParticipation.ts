@@ -23,7 +23,7 @@ const compositeIndex = createIndexDecorator({
 });
 
 @Table
-export class GasRefundParticipant extends Model<EpochGasRefundData> {
+export class GasRefundParticipation extends Model<EpochGasRefundData> {
   @PrimaryKey
   @AutoIncrement
   @Column(DataType.INTEGER)
