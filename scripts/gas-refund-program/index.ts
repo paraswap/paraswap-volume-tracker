@@ -101,7 +101,7 @@ async function resolveCalcTimeInterval(epoch: number): Promise<{
 }
 
 async function start() {
-  const epochNum = 8; // @TODO: automatise
+  const epochNum = 8; // @TODO: automate
   await Database.connectAndSync();
 
   const { startCalcTime, endCalcTime, isEpochEnded } =
