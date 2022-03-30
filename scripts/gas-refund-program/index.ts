@@ -101,7 +101,7 @@ async function resolveCalcTimeInterval(epoch: number): Promise<{
 }
 
 async function start() {
-  const epoch = 8; // @TODO: automate
+  const epoch = Number(process.env.GRP_EPOCH) || 8; // @TODO: automate
   await Database.connectAndSync();
 
   const { startCalcTime, endCalcTime, isEpochEnded } =
