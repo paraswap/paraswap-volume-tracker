@@ -63,7 +63,7 @@ export async function calculateGasRefundForChain({
     stakes,
   });
 
-  if (!isEpochEnded) return; // skip other operations as epoch is not finished
+  if (!isEpochEnded) return logger.info(`skip merkleTree computation for chainId=${chainId} epoch=${epoch} as epoch did not end yet`);
 
   // compute mapping(networkId => MerkleTree)
   logger.info(`compute merkleTree for chainId=${chainId}`);
