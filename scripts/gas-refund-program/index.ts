@@ -101,23 +101,23 @@ async function resolveCalcTimeInterval(epoch: number): Promise<{
 }
 
 async function start() {
-  const epochNum = 8; // @TODO: automate
+  const epoch = 8; // @TODO: automate
   await Database.connectAndSync();
 
   const { startCalcTime, endCalcTime, isEpochEnded } =
-    await resolveCalcTimeInterval(epochNum);
+    await resolveCalcTimeInterval(epoch);
 
   const stakes = await getPSPStakes(endCalcTime);
 
   assert(stakes, 'no stakers found at all');
-  assert(startCalcTime, `could not resolve ${epochNum}th epoch start time`);
-  assert(endCalcTime, `could not resolve ${epochNum}th epoch end time`);
+  assert(startCalcTime, `could not resolve ${epoch}th epoch start time`);
+  assert(endCalcTime, `could not resolve ${epoch}th epoch end time`);
 
   await Promise.all(
     GRP_SUPPORTED_CHAINS.map(chainId =>
       calculateGasRefundForChain({
         chainId,
-        epoch: epochNum,
+        epoch,
         stakes,
         startCalcTime,
         endCalcTime,
