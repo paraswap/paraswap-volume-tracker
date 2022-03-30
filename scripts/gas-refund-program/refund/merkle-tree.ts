@@ -1,32 +1,27 @@
-import { MerkleTreeData } from '../types';
+import { Claimable, MerkleTreeData } from '../types';
 import { logger, utils } from 'ethers';
 import { MerkleTree } from 'merkletreejs';
-
-export type Claimable = {
-  address: string;
-  amount: string;
-};
+import { GasRefundParticipant } from '../../../src/models/GasRefundParticipant';
 
 export async function computeMerkleData(
   chainId: number,
-  amounts: Claimable[],
+  gasRefundParticipants: GasRefundParticipant[],
   epoch: number,
 ): Promise<MerkleTreeData> {
-  const totalAmount = amounts
-    .reduce((acc, curr) => (acc += BigInt(curr.amount)), BigInt(0))
+  const totalAmount = gasRefundParticipants
+    .reduce((acc, curr) => (acc += BigInt(curr.refundedAmountPSP)), BigInt(0))
     .toString();
 
-  const hashedClaimabled = amounts.reduce<Record<string, Claimable>>(
-    (acc, curr) => {
-      const { address, amount } = curr;
-      const hash = utils.keccak256(
-        utils.solidityPack(['address', 'uint256'], [address, amount]),
-      );
-      acc[hash] = { address, amount };
-      return acc;
-    },
-    {},
-  );
+  const hashedClaimabled = gasRefundParticipants.reduce<
+    Record<string, Claimable>
+  >((acc, curr) => {
+    const { address, refundedAmountPSP } = curr;
+    const hash = utils.keccak256(
+      utils.solidityPack(['address', 'uint256'], [address, refundedAmountPSP]),
+    );
+    acc[hash] = { address, amount: refundedAmountPSP };
+    return acc;
+  }, {});
 
   const allLeaves = Object.keys(hashedClaimabled);
 

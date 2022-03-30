@@ -1,8 +1,8 @@
-import { HistoricalPrice, StakedPSPByAddress, TxFeesByAddress } from '../types';
-import { computeAccumulatedTxFeesByAddressForSuccessfulSwapTxs } from './successful-swap-tx-indexing';
+import { HistoricalPrice, StakedPSPByAddress } from '../types';
+import { computeSuccessfulSwapsTxFeesRefund as computeGasRefundSuccessSwaps } from './successful-swap-tx-indexing';
 
 // @TODO: index more transactions (failed swap tx, staking tx)
-export async function computeAccumulatedTxFeesByAddress({
+export async function computeGasRefundAllTxs({
   chainId,
   startTimestamp,
   endTimestamp,
@@ -16,8 +16,8 @@ export async function computeAccumulatedTxFeesByAddress({
   pspNativeCurrencyDailyRate: HistoricalPrice;
   epoch: number;
   stakes: StakedPSPByAddress;
-}): Promise<TxFeesByAddress> {
-  return computeAccumulatedTxFeesByAddressForSuccessfulSwapTxs({
+}) {
+  await computeGasRefundSuccessSwaps({
     chainId,
     startTimestamp,
     endTimestamp,

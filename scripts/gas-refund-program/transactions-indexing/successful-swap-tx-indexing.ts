@@ -13,11 +13,9 @@ import {
   PendingEpochGasRefundData,
 } from '../../../src/lib/gas-refund';
 
-const logger = global.LOGGER('GRP:TRANSACTION_FEES_INDEXING');
-
 const PARTITION_SIZE = 1000; // depends on thegraph capacity and memory
 
-export async function computeAccumulatedTxFeesByAddressForSuccessfulSwapTxs({
+export async function computeSuccessfulSwapsTxFeesRefund({
   chainId,
   startTimestamp,
   endTimestamp,
@@ -31,7 +29,11 @@ export async function computeAccumulatedTxFeesByAddressForSuccessfulSwapTxs({
   pspNativeCurrencyDailyRate: HistoricalPrice;
   epoch: number;
   stakes: StakedPSPByAddress;
-}): Promise<TxFeesByAddress> {
+}): Promise<void> {
+  const logger = global.LOGGER(
+    `GRP:TRANSACTION_FEES_INDEXING: epoch=${epoch}, chainId=${chainId}`,
+  );
+
   const blockInfo = BlockInfo.getInstance(chainId);
   const [epochStartBlock, epochEndBlock] = await Promise.all([
     blockInfo.getBlockAfterTimeStamp(startTimestamp),
@@ -163,6 +165,4 @@ export async function computeAccumulatedTxFeesByAddressForSuccessfulSwapTxs({
       Object.keys(accumulatedTxFeesByAddress).length
     } addresses`,
   );
-
-  return accumulatedTxFeesByAddress;
 }

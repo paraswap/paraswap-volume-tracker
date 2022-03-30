@@ -1,3 +1,6 @@
+import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
+import { EpochInfo } from '../../src/lib/epoch-info';
+
 interface SliceCallsInput<T, U> {
   inputArray: T[];
   execute: (inputSlice: T[], sliceIndex: number) => U;
@@ -23,4 +26,28 @@ export function sliceCalls<T, U>({
   }
 
   return results as [U, ...U[]];
+}
+
+const OFFSET_CALC_TIME = 5 * 60; // 5min delay to ensure that all third parties providers are synced
+
+export async function resolveEpochCalcTimeInterval(epoch: number): Promise<{
+  startCalcTime: number;
+  endCalcTime: number;
+  isEpochEnded: boolean;
+}> {
+  const epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET, true);
+  await epochInfo.getEpochDetails();
+  const [epochStartTime, epochDuration] = await Promise.all([
+    epochInfo.getEpochStartCalcTime(epoch),
+    epochInfo.getEpochDuration(),
+  ]);
+  const epochEndTime = epochStartTime + epochDuration; // safer than getEpochEndCalcTime as it fails for current epoch
+
+  const nowUnixTime = Math.round(Date.now() / 1000);
+
+  return {
+    startCalcTime: epochStartTime,
+    endCalcTime: Math.min(nowUnixTime - OFFSET_CALC_TIME, epochEndTime),
+    isEpochEnded: nowUnixTime > epochEndTime + OFFSET_CALC_TIME,
+  };
 }

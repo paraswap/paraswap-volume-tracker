@@ -95,7 +95,6 @@ export const merkleRootExists = async ({
 export const writeCompletedEpochData = async (
   chainId: number,
   merkleTree: MerkleTreeData,
-  pspStakesByAddress: StakedPSPByAddress,
 ): Promise<void> => {
   const {
     root: { epoch, totalAmount, merkleRoot },
@@ -108,8 +107,6 @@ export const writeCompletedEpochData = async (
       address: leaf.address,
       chainId: chainId,
 
-      totalStakeAmountPSP: pspStakesByAddress[leaf.address],
-      refundedAmountPSP: leaf.amount,
       merkleProofs: leaf.merkleProofs,
       isCompleted: true,
     }),
@@ -119,12 +116,7 @@ export const writeCompletedEpochData = async (
     participantsToUpdate: CompletedEpochGasRefundData[],
   ) => {
     await GasRefundParticipant.bulkCreate(participantsToUpdate, {
-      updateOnDuplicate: [
-        'totalStakeAmountPSP',
-        'refundedAmountPSP',
-        'merkleProofs',
-        'isCompleted',
-      ],
+      updateOnDuplicate: ['merkleProofs', 'isCompleted'],
     });
   };
 

@@ -11,7 +11,8 @@
     "build": "NODE_ENV=production tsc",
     "start": "NODE_ENV=production && node ./dist",
     "store-airdrop-data": "NODE_ENV=development ts-node scripts/store-airdrop-data.ts",
-    "compute-gas-refund-data": "patch-package && NODE_ENV=development ts-node scripts/gas-refund-program",
+    "gas-refund:compute-gas-refund": "patch-package && NODE_ENV=development ts-node scripts/gas-refund-program/computeGasRefund",
+    "gas-refund:compute-merkle-tree": "patch-package && NODE_ENV=development ts-node scripts/gas-refund-program/computeMerkleTree",
     "test": "jest"
   },
   "husky": {
