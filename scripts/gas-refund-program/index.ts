@@ -96,7 +96,7 @@ async function resolveCalcTimeInterval(epoch: number): Promise<{
   return {
     startCalcTime: epochStartTime,
     endCalcTime: Math.min(nowUnixTime - OFFSET_CALC_TIME, epochEndTime),
-    isEpochEnded: nowUnixTime > epochEndTime,
+    isEpochEnded: nowUnixTime > epochEndTime + OFFSET_CALC_TIME,
   };
 }
 
