@@ -1,13 +1,24 @@
 import { Claimable, MerkleTreeData } from '../types';
-import { logger, utils } from 'ethers';
+import { utils } from 'ethers';
 import { MerkleTree } from 'merkletreejs';
 import { GasRefundParticipant } from '../../../src/models/GasRefundParticipant';
 
-export async function computeMerkleData(
-  chainId: number,
-  gasRefundParticipants: GasRefundParticipant[],
-  epoch: number,
-): Promise<MerkleTreeData> {
+export async function computeMerkleData({
+  chainId,
+  epoch,
+  gasRefundParticipants,
+}: {
+  chainId: number;
+  epoch: number;
+  gasRefundParticipants: Pick<
+    GasRefundParticipant,
+    'refundedAmountPSP' | 'address'
+  >[];
+}): Promise<MerkleTreeData> {
+  const logger = global.LOGGER(
+    `GRP:COMPUTE_MERKE_TREE: chainId=${chainId}, epoch=${epoch}`,
+  );
+
   const totalAmount = gasRefundParticipants
     .reduce((acc, curr) => (acc += BigInt(curr.refundedAmountPSP)), BigInt(0))
     .toString();
@@ -25,19 +36,17 @@ export async function computeMerkleData(
 
   const allLeaves = Object.keys(hashedClaimabled);
 
-  const tree = new MerkleTree(allLeaves, utils.keccak256, { sort: true });
+  const merkleTree = new MerkleTree(allLeaves, utils.keccak256, { sort: true });
 
-  logger.info(`merkleTree for chainId=${chainId}: ${tree.toString()}`);
-
-  const merkleRoot = tree.getHexRoot();
+  const merkleRoot = merkleTree.getHexRoot();
 
   const merkleLeaves = allLeaves.map(leaf => {
     const { address, amount } = hashedClaimabled[leaf];
-    const proofs = tree.getHexProof(leaf);
+    const proofs = merkleTree.getHexProof(leaf);
     return { address, amount, epoch, merkleProofs: proofs };
   });
 
-  return {
+  const merkleTreeData = {
     root: {
       merkleRoot,
       totalAmount,
@@ -45,4 +54,10 @@ export async function computeMerkleData(
     },
     leaves: merkleLeaves,
   };
+
+  logger.info(
+    `merkleTree for chainId=${chainId}: ${JSON.stringify(merkleTreeData.root)}`,
+  );
+
+  return merkleTreeData;
 }

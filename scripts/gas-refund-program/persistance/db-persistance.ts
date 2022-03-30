@@ -8,7 +8,6 @@ import {
   MerkleData,
   MerkleTreeData,
   TxFeesByAddress,
-  StakedPSPByAddress,
 } from '../types';
 import { sliceCalls } from '../utils';
 
@@ -92,12 +91,17 @@ export const merkleRootExists = async ({
   return !!existingGasRefundProgramEntry;
 };
 
-export const writeCompletedEpochData = async (
-  chainId: number,
-  merkleTree: MerkleTreeData,
-): Promise<void> => {
+export const saveMerkleTreeInDB = async ({
+  chainId,
+  epoch,
+  merkleTree,
+}: {
+  epoch: number;
+  chainId: number;
+  merkleTree: MerkleTreeData;
+}): Promise<void> => {
   const {
-    root: { epoch, totalAmount, merkleRoot },
+    root: { totalAmount, merkleRoot },
     leaves,
   } = merkleTree;
 

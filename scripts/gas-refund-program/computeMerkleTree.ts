@@ -6,15 +6,19 @@ import Database from '../../src/database';
 
 import {
   merkleRootExists,
-  writeCompletedEpochData,
+  saveMerkleTreeInDB,
 } from './persistance/db-persistance';
 
 import { assert } from 'ts-essentials';
 import { GRP_SUPPORTED_CHAINS } from '../../src/lib/gas-refund';
 import { GasRefundParticipant } from '../../src/models/GasRefundParticipant';
 import { resolveEpochCalcTimeInterval } from './utils';
+import { saveMerkleTreeInFile } from './persistance/file-persistance';
 
-const logger = global.LOGGER('GRP');
+const logger = global.LOGGER('GRP:COMPUTE_MERKLE_TREE');
+
+const skipCheck = process.env.SKIP_CHECKS === 'true';
+const saveDB = process.env.SAVE_FILE === 'true';
 
 // @FIXME: should cap amount distributed to stakers to 30k
 export async function computeAndStoreMerkleTreeForChain({
@@ -24,18 +28,28 @@ export async function computeAndStoreMerkleTreeForChain({
   chainId: number;
   epoch: number;
 }) {
-  if (await merkleRootExists({ chainId, epoch }))
+  if (!skipCheck && (await merkleRootExists({ chainId, epoch })))
     return logger.warn(
       `merkle root for chainId=${chainId} epoch=${epoch} already exists`,
     );
 
-  const claimables = await GasRefundParticipant.findAll({
+  const gasRefundParticipants = await GasRefundParticipant.findAll({
     where: { epoch, chainId },
   });
 
-  const merkleTree = await computeMerkleData(chainId, claimables, epoch);
+  const merkleTree = await computeMerkleData({
+    chainId,
+    epoch,
+    gasRefundParticipants,
+  });
 
-  await writeCompletedEpochData(chainId, merkleTree);
+  if (saveDB) {
+    logger.info('saving merkle tree in file');
+    await saveMerkleTreeInFile({ chainId, epoch, merkleTree });
+  } else {
+    logger.info('saving merkle tree in db');
+    await saveMerkleTreeInDB({ chainId, epoch, merkleTree });
+  }
 }
 
 async function startComputingMerkleTreesAllChains() {
