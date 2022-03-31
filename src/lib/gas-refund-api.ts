@@ -31,10 +31,10 @@ interface MerkleRedeem extends Contract {
 
 const MerkleRedeemAddress: { [chainId: number]: string } = {
   // @TODO
-  [CHAIN_ID_MAINNET]: '0x6d19b2bF3A36A61530909Ae65445a906D98A2Fa8', // @FIXME
-  [CHAIN_ID_POLYGON]: '0xa9303ce4c15a036d2df3438c98cc6c7e884b3d5d', // @FIXME
-  [CHAIN_ID_FANTOM]: '0x',
-  [CHAIN_ID_BINANCE]: '0x',
+  [CHAIN_ID_MAINNET]: '0xfeb7e2d8584bef7bb21da0b70c148dabf1388031', 
+  [CHAIN_ID_POLYGON]: '0xa9303ce4c15a036d2df3438c98cc6c7e884b3d5d', 
+  [CHAIN_ID_FANTOM]: '0x07331334294cE1A78a140125ec8c816DB864887D',
+  [CHAIN_ID_BINANCE]: '0x0B7eE2c4e925d878811136c52b3fAda68e4e4629',
 };
 
 type GasRefundClaim = Pick<
