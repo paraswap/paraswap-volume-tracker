@@ -18,7 +18,7 @@ import { saveMerkleTreeInFile } from './persistance/file-persistance';
 const logger = global.LOGGER('GRP:COMPUTE_MERKLE_TREE');
 
 const skipCheck = process.env.SKIP_CHECKS === 'true';
-const saveDB = process.env.SAVE_FILE === 'true';
+const saveFile = process.env.SAVE_FILE === 'true';
 
 // @FIXME: should cap amount distributed to stakers to 30k
 export async function computeAndStoreMerkleTreeForChain({
@@ -43,7 +43,7 @@ export async function computeAndStoreMerkleTreeForChain({
     gasRefundParticipations,
   });
 
-  if (saveDB) {
+  if (saveFile) {
     logger.info('saving merkle tree in file');
     await saveMerkleTreeInFile({ chainId, epoch, merkleTree });
   } else {
