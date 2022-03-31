@@ -58,6 +58,7 @@ export async function getSwapsForAccounts({
 }: GetSwapsForAccountsInput): Promise<SwapData[]> {
   const subgraphURL = SubgraphURLs[chainId];
 
+  // @TODO set up pagination, but seems alright for now
   const execute = async (accounts: string[]): Promise<SwapData[]> => {
     const variables = {
       number_gte: startBlock,
