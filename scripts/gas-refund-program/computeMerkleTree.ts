@@ -58,10 +58,11 @@ async function startComputingMerkleTreesAllChains() {
 
   const { isEpochEnded } = await resolveEpochCalcTimeInterval(epoch);
 
-  assert(
-    isEpochEnded,
-    `Epoch ${epoch} has not ended or data not available yet`,
-  );
+  if (!skipCheck)
+    assert(
+      isEpochEnded,
+      `Epoch ${epoch} has not ended or data not available yet`,
+    );
 
   await Promise.allSettled(
     GRP_SUPPORTED_CHAINS.map(chainId =>
