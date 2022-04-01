@@ -73,7 +73,7 @@ async function startComputingGasRefundAllChains() {
   assert(startCalcTime, `could not resolve ${epoch}th epoch start time`);
   assert(endCalcTime, `could not resolve ${epoch}th epoch end time`);
 
-  await Promise.all(
+  await Promise.allSettled(
     GRP_SUPPORTED_CHAINS.map(chainId =>
       fetchPSPRatesAndComputeGasRefundForChain({
         chainId,
