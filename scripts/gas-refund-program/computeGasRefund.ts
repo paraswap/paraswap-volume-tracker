@@ -73,7 +73,7 @@ async function startComputingGasRefundAllChains() {
   assert(startCalcTime, `could not resolve ${epoch}th epoch start time`);
   assert(endCalcTime, `could not resolve ${epoch}th epoch end time`);
 
-  await Promise.all(
+  return await Promise.allSettled(
     GRP_SUPPORTED_CHAINS.map(chainId =>
       fetchPSPRatesAndComputeGasRefundForChain({
         chainId,
@@ -87,7 +87,15 @@ async function startComputingGasRefundAllChains() {
 }
 
 startComputingGasRefundAllChains()
-  .then(() => process.exit(0))
+  .then(ps => {
+    const maybeOneRejected = ps.find(
+      p => p.status === 'rejected',
+    ) as PromiseRejectedResult;
+
+    if (maybeOneRejected) throw maybeOneRejected.reason;
+
+    process.exit(0);
+  })
   .catch(err => {
     logger.error('startComputingGasRefundAllChains exited with error:', err);
     process.exit(1);
