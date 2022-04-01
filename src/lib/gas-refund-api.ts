@@ -178,18 +178,6 @@ export class GasRefundApi {
     epoch: number,
   ): Promise<GasRefundParticipation[]> {
     const grpData = await GasRefundParticipation.findAll({
-      attributes: [
-        'epoch',
-        'address',
-        'chainId',
-        'lastBlock',
-        'accumulatedGasUsed',
-        'accumulatedGasUsedChainCurrency',
-        'accumulatedGasUsedPSP',
-        'totalStakeAmountPSP',
-        'refundedAmountPSP',
-        'merkleProofs',
-      ],
       where: { epoch, chainId: this.network },
       raw: true,
     });
