@@ -37,11 +37,11 @@ async function fetchVeryLastBlockNumProcessed({
   chainId: number;
   epoch: number;
 }): Promise<number> {
-  const lastBlockNum = await GasRefundParticipation.max('lastBlockNum', {
+  const lastBlock = await GasRefundParticipation.max('lastBlock', {
     where: { chainId, epoch },
   });
 
-  return lastBlockNum as number;
+  return lastBlock as number;
 }
 
 export const readPendingEpochData = async ({
@@ -65,7 +65,11 @@ export const writePendingEpochData = async (
       'accumulatedGasUsedPSP',
       'accumulatedGasUsed',
       'accumulatedGasUsedChainCurrency',
-      'lastBlockNum',
+      'firstBlock',
+      'lastBlock',
+      'firstTx',
+      'lastTx',
+      'numTx',
       'isCompleted',
       'totalStakeAmountPSP',
       'refundedAmountPSP',

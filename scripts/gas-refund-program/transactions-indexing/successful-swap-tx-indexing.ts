@@ -102,7 +102,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
       (acc, swap) => {
         const address = swap.txOrigin;
 
-        const swapperAcc = acc[address];
+        const swapperAcc = acc[address]
 
         const pspRateSameDay = findSameDayPrice(swap.timestamp);
 
@@ -119,21 +119,19 @@ export async function computeSuccessfulSwapsTxFeesRefund({
         }
 
         const currGasUsed = new BigNumber(swap.txGasUsed);
-        const accGasUsed = currGasUsed.plus(
-          swapperAcc?.accumulatedGasUsed || 0,
-        );
+        const accumulatedGasUsed = currGasUsed.plus(swapperAcc?.accumulatedGasUsed || 0);
 
         const currGasUsedChainCur = currGasUsed.multipliedBy(
           swap.txGasPrice.toString(),
         ); // in wei
 
-        const accGasUsedChainCur = currGasUsedChainCur.plus(
+        const accumulatedGasUsedChainCurrency = currGasUsedChainCur.plus(
           swapperAcc?.accumulatedGasUsedChainCurrency || 0,
         );
 
         const currGasFeePSP = currGasUsedChainCur.dividedBy(pspRateSameDay);
 
-        const accGasFeePSP = currGasFeePSP.plus(
+        const accumulatedGasUsedPSP = currGasFeePSP.plus(
           swapperAcc?.accumulatedGasUsedPSP || 0,
         );
 
@@ -152,14 +150,18 @@ export async function computeSuccessfulSwapsTxFeesRefund({
         const pendingGasRefundDatum: PendingEpochGasRefundData = {
           epoch,
           address,
-          chainId: chainId,
-          accumulatedGasUsedPSP: accGasFeePSP.toFixed(0),
-          accumulatedGasUsed: accGasUsed.toFixed(0),
-          accumulatedGasUsedChainCurrency: accGasUsedChainCur.toFixed(0),
-          lastBlockNum: swap.blockNumber,
-          isCompleted: false,
+          chainId,
+          accumulatedGasUsedPSP: accumulatedGasUsedPSP.toFixed(0),
+          accumulatedGasUsed: accumulatedGasUsed.toFixed(0),
+          accumulatedGasUsedChainCurrency: accumulatedGasUsedChainCurrency.toFixed(0),
+          firstBlock: swapperAcc?.lastBlock || swap.blockNumber,
+          lastBlock: swap.blockNumber,
           totalStakeAmountPSP,
           refundedAmountPSP: accRefundedAmountPSP.toFixed(0),
+          firstTx: swapperAcc?.firstTx || swap.txHash,
+          lastTx: swap.txHash,
+          numTx: (swapperAcc?.numTx || 0) + 1,
+          isCompleted: false,
           updated: true,
         };
 

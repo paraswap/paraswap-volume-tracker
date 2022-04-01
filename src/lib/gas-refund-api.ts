@@ -182,7 +182,7 @@ export class GasRefundApi {
         'epoch',
         'address',
         'chainId',
-        'lastBlockNum',
+        'lastBlock',
         'accumulatedGasUsed',
         'accumulatedGasUsedChainCurrency',
         'accumulatedGasUsedPSP',
