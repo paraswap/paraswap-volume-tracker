@@ -80,9 +80,10 @@ export const merkleRootExists = async ({
   chainId: number;
   epoch: number;
 }): Promise<boolean> => {
-  const existingGasRefundDistributionEntry = await GasRefundDistribution.findOne({
-    where: { chainId, epoch },
-  });
+  const existingGasRefundDistributionEntry =
+    await GasRefundDistribution.findOne({
+      where: { chainId, epoch },
+    });
 
   return !!existingGasRefundDistributionEntry;
 };

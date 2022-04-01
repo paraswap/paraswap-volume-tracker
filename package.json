@@ -55,6 +55,8 @@
     "@snapshot-labs/snapshot.js": "^0.3.56",
     "@types/pg": "^8.6.1",
     "axios": "0.24.0",
+    "axios-rate-limit": "^1.3.0",
+    "axios-retry": "^3.2.4",
     "bignumber.js": "9.0.1",
     "body-parser": "1.19.0",
     "compression": "1.7.4",

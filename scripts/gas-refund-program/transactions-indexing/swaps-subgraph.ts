@@ -5,9 +5,10 @@ import {
   CHAIN_ID_MAINNET,
   CHAIN_ID_POLYGON,
 } from '../../../src/lib/constants';
-import { Utils } from '../../../src/lib/utils';
+import { thegraphClient } from '../data-providers-clients';
 import { sliceCalls } from '../utils';
 
+// Note: txGasUsed from thegraph is unsafe as it's actually txGasLimit https://github.com/graphprotocol/graph-node/issues/2619
 const SwapsQuery = `
 query ($number_gte: BigInt, $number_lt: BigInt, $txOrgins: [Bytes!]!) {
 	swaps(
@@ -22,7 +23,6 @@ query ($number_gte: BigInt, $number_lt: BigInt, $txOrgins: [Bytes!]!) {
 	) {
     txHash
 		txOrigin
-		txGasUsed
 		txGasPrice
 		blockNumber
     timestamp
@@ -66,11 +66,10 @@ export async function getSwapsForAccounts({
       txOrgins: accounts,
     };
 
-    const { data } = await Utils._post<SwapsGQLRespose>(
-      subgraphURL,
-      { query: SwapsQuery, variables },
-      5000,
-    );
+    const { data } = await thegraphClient.post<SwapsGQLRespose>(subgraphURL, {
+      query: SwapsQuery,
+      variables,
+    });
 
     return data.data.swaps;
   };
@@ -90,7 +89,6 @@ interface SwapsGQLRespose {
 interface SwapData {
   txHash: string;
   txOrigin: string;
-  txGasUsed: string;
   txGasPrice: string;
   blockNumber: number;
   timestamp: number;

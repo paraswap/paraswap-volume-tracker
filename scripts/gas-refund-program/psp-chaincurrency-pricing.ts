@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { assert } from 'ts-essentials';
 import { startOfDay } from 'date-fns';
 import {
@@ -10,6 +9,7 @@ import {
   PSP_ADDRESS,
 } from '../../src/lib/constants';
 import { HistoricalPrice } from './types';
+import { coingeckoClient } from './data-providers-clients';
 
 const logger = global.LOGGER('GRP:PSP-CHAIN-CURRENCY-PRICING');
 
@@ -62,10 +62,10 @@ async function fetchHistoricalPriceCoingecko({
   endTimestamp: number;
 }): Promise<HistoricalPrice> {
   const platformId = COINGECKO_METADATA[chainId].platformId;
-  const url = `https://api.coingecko.com/api/v3/coins/${platformId}/contract/${address}/market_chart/range?vs_currency=usd&from=${startTimestamp}&to=${endTimestamp}`;
+  const url = `/coins/${platformId}/contract/${address}/market_chart/range?vs_currency=usd&from=${startTimestamp}&to=${endTimestamp}`;
   const {
     data: { prices },
-  } = await axios.get<CoingeckoPriceHistory>(url);
+  } = await coingeckoClient.get<CoingeckoPriceHistory>(url);
 
   const accDailyPrices = prices.reduce<
     Record<string, { accRate: number; count: number }>

@@ -12,6 +12,7 @@ import {
   getRefundPercent,
   PendingEpochGasRefundData,
 } from '../../../src/lib/gas-refund';
+import { getTransactionGasUsed } from '../staking/covalent';
 
 const PARTITION_SIZE = 1000; // depends on thegraph capacity and memory
 
@@ -87,72 +88,87 @@ export async function computeSuccessfulSwapsTxFeesRefund({
       `fetched ${swaps.length} swaps withing startBlock ${_startBlock} and endBlock ${_endBlock}`,
     );
 
-    accumulatedTxFeesByAddress = swaps.reduce<TxFeesByAddress>((acc, swap) => {
-      const address = swap.txOrigin;
+    const swapsWithGasUsed = await Promise.all(
+      swaps.map(async swap => ({
+        ...swap,
+        txGasUsed: await getTransactionGasUsed({
+          chainId,
+          txHash: swap.txHash,
+        }),
+      })),
+    );
 
-      const swapperAcc = acc[address];
+    accumulatedTxFeesByAddress = swapsWithGasUsed.reduce<TxFeesByAddress>(
+      (acc, swap) => {
+        const address = swap.txOrigin;
 
-      const pspRateSameDay = findSameDayPrice(swap.timestamp);
+        const swapperAcc = acc[address];
 
-      if (!pspRateSameDay) {
-        logger.warn(
-          `Fail to find price for same day ${
-            swap.timestamp
-          } and rates=${JSON.stringify(
-            pspNativeCurrencyDailyRate.flatMap(p => p.timestamp),
-          )}`,
+        const pspRateSameDay = findSameDayPrice(swap.timestamp);
+
+        if (!pspRateSameDay) {
+          logger.warn(
+            `Fail to find price for same day ${
+              swap.timestamp
+            } and rates=${JSON.stringify(
+              pspNativeCurrencyDailyRate.flatMap(p => p.timestamp),
+            )}`,
+          );
+
+          return acc;
+        }
+
+        const currGasUsed = new BigNumber(swap.txGasUsed);
+        const accGasUsed = currGasUsed.plus(
+          swapperAcc?.accumulatedGasUsed || 0,
         );
 
+        const currGasUsedChainCur = currGasUsed.multipliedBy(
+          swap.txGasPrice.toString(),
+        ); // in wei
+
+        const accGasUsedChainCur = currGasUsedChainCur.plus(
+          swapperAcc?.accumulatedGasUsedChainCurrency || 0,
+        );
+
+        const currGasFeePSP = currGasUsedChainCur.dividedBy(pspRateSameDay);
+
+        const accGasFeePSP = currGasFeePSP.plus(
+          swapperAcc?.accumulatedGasUsedPSP || 0,
+        );
+
+        const totalStakeAmountPSP = stakes[address];
+        const refundPercent = getRefundPercent(totalStakeAmountPSP);
+        assert(
+          refundPercent,
+          `Logic Error: failed to find refund percent for ${address}`,
+        );
+        const currRefundedAmountPSP = currGasFeePSP.multipliedBy(refundPercent);
+
+        const accRefundedAmountPSP = currRefundedAmountPSP.plus(
+          swapperAcc?.refundedAmountPSP || 0,
+        );
+
+        const pendingGasRefundDatum: PendingEpochGasRefundData = {
+          epoch,
+          address,
+          chainId: chainId,
+          accumulatedGasUsedPSP: accGasFeePSP.toFixed(0),
+          accumulatedGasUsed: accGasUsed.toFixed(0),
+          accumulatedGasUsedChainCurrency: accGasUsedChainCur.toFixed(0),
+          lastBlockNum: swap.blockNumber,
+          isCompleted: false,
+          totalStakeAmountPSP,
+          refundedAmountPSP: accRefundedAmountPSP.toFixed(0),
+          updated: true,
+        };
+
+        acc[address] = pendingGasRefundDatum;
+
         return acc;
-      }
-
-      const currGasUsed = new BigNumber(swap.txGasUsed.toString());
-      const accGasUsed = currGasUsed.plus(swapperAcc?.accumulatedGasUsed || 0);
-
-      const currGasUsedChainCur = currGasUsed.multipliedBy(
-        swap.txGasPrice.toString(),
-      ); // in wei
-
-      const accGasUsedChainCur = currGasUsedChainCur.plus(
-        swapperAcc?.accumulatedGasUsedChainCurrency || 0,
-      );
-
-      const currGasFeePSP = currGasUsedChainCur.dividedBy(pspRateSameDay);
-
-      const accGasFeePSP = currGasFeePSP.plus(
-        swapperAcc?.accumulatedGasUsedPSP || 0,
-      );
-
-      const totalStakeAmountPSP = stakes[address];
-      const refundPercent = getRefundPercent(totalStakeAmountPSP);
-      assert(
-        refundPercent,
-        `Logic Error: failed to find refund percent for ${address}`,
-      );
-      const currRefundedAmountPSP = currGasFeePSP.multipliedBy(refundPercent);
-
-      const accRefundedAmountPSP = currRefundedAmountPSP.plus(
-        swapperAcc?.refundedAmountPSP || 0,
-      );
-
-      const pendingGasRefundDatum: PendingEpochGasRefundData = {
-        epoch,
-        address,
-        chainId: chainId,
-        accumulatedGasUsedPSP: accGasFeePSP.toFixed(0),
-        accumulatedGasUsed: accGasUsed.toFixed(0),
-        accumulatedGasUsedChainCurrency: accGasUsedChainCur.toFixed(0),
-        lastBlockNum: swap.blockNumber,
-        isCompleted: false,
-        totalStakeAmountPSP,
-        refundedAmountPSP: accRefundedAmountPSP.toFixed(0),
-        updated: true,
-      };
-
-      acc[address] = pendingGasRefundDatum;
-
-      return acc;
-    }, accumulatedTxFeesByAddress);
+      },
+      accumulatedTxFeesByAddress,
+    );
 
     const updatedData = Object.values(accumulatedTxFeesByAddress).filter(
       v => v.updated,

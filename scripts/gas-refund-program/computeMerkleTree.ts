@@ -64,7 +64,7 @@ async function startComputingMerkleTreesAllChains() {
       `Epoch ${epoch} has not ended or data not available yet`,
     );
 
-  await Promise.allSettled(
+  await Promise.all(
     GRP_SUPPORTED_CHAINS.map(chainId =>
       computeAndStoreMerkleTreeForChain({
         chainId,
