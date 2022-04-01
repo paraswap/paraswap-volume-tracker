@@ -129,9 +129,11 @@ export async function computeSuccessfulSwapsTxFeesRefund({
         refundPercent,
         `Logic Error: failed to find refund percent for ${address}`,
       );
-      const refundedAmountPSP = accGasFeePSP
-        .multipliedBy(refundPercent)
-        .toFixed(0);
+      const currRefundedAmountPSP = currGasFeePSP.multipliedBy(refundPercent);
+
+      const accRefundedAmountPSP = currRefundedAmountPSP.plus(
+        swapperAcc?.refundedAmountPSP || 0,
+      );
 
       const pendingGasRefundDatum: PendingEpochGasRefundData = {
         epoch,
@@ -143,7 +145,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
         lastBlockNum: swap.blockNumber,
         isCompleted: false,
         totalStakeAmountPSP,
-        refundedAmountPSP,
+        refundedAmountPSP: accRefundedAmountPSP.toFixed(0),
         updated: true,
       };
 
