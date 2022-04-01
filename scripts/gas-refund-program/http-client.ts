@@ -1,6 +1,9 @@
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from 'axios';
 import * as https from 'https';
-import axiosRetry, { IAxiosRetryConfig } from 'axios-retry';
+import axiosRetry, {
+  IAxiosRetryConfig,
+  isNetworkOrIdempotentRequestError,
+} from 'axios-retry';
 import * as _rateLimit from 'axios-rate-limit';
 
 type rateLimitOptions = {
@@ -19,6 +22,13 @@ const DEFAULT_HTTP_TIMEOUT = 5_000;
 const DEFAULT_RETRY_COUNT = 5;
 const DEFAULT_RT_MAX_RPS = 2;
 const DEFAULT_RETRY_DELAY = axiosRetry.exponentialDelay;
+const DEFAULT_RETRY_COND = function retryOnRateLimit(error: AxiosError) {
+  return (
+    isNetworkOrIdempotentRequestError(error) ||
+    error.response?.status === 429 ||
+    error.code === 'ECONNABORTED'
+  );
+};
 
 type RateLimitOptions = {
   maxRequests?: number;
@@ -57,6 +67,8 @@ export const constructHttpClient = (options?: Options) => {
   axiosRetry(client, {
     retries: DEFAULT_RETRY_COUNT,
     retryDelay: DEFAULT_RETRY_DELAY,
+    retryCondition: DEFAULT_RETRY_COND,
+    shouldResetTimeout: true,
     ...(options?.retryOptions || {}),
   });
 
