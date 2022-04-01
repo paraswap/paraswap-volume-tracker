@@ -102,7 +102,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
       (acc, swap) => {
         const address = swap.txOrigin;
 
-        const swapperAcc = acc[address]
+        const swapperAcc = acc[address];
 
         const pspRateSameDay = findSameDayPrice(swap.timestamp);
 
@@ -119,7 +119,9 @@ export async function computeSuccessfulSwapsTxFeesRefund({
         }
 
         const currGasUsed = new BigNumber(swap.txGasUsed);
-        const accumulatedGasUsed = currGasUsed.plus(swapperAcc?.accumulatedGasUsed || 0);
+        const accumulatedGasUsed = currGasUsed.plus(
+          swapperAcc?.accumulatedGasUsed || 0,
+        );
 
         const currGasUsedChainCur = currGasUsed.multipliedBy(
           swap.txGasPrice.toString(),
@@ -153,7 +155,8 @@ export async function computeSuccessfulSwapsTxFeesRefund({
           chainId,
           accumulatedGasUsedPSP: accumulatedGasUsedPSP.toFixed(0),
           accumulatedGasUsed: accumulatedGasUsed.toFixed(0),
-          accumulatedGasUsedChainCurrency: accumulatedGasUsedChainCurrency.toFixed(0),
+          accumulatedGasUsedChainCurrency:
+            accumulatedGasUsedChainCurrency.toFixed(0),
           firstBlock: swapperAcc?.lastBlock || swap.blockNumber,
           lastBlock: swap.blockNumber,
           totalStakeAmountPSP,
