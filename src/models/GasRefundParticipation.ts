@@ -38,7 +38,7 @@ export class GasRefundParticipation extends Model<EpochGasRefundData> {
   address: string;
 
   @compositeIndex
-  @Column(DataType.SMALLINT)
+  @Column(DataType.INTEGER)
   chainId: number;
 
   @Column(DataType.BOOLEAN)
