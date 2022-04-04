@@ -13,7 +13,7 @@ export const GRP_SUPPORTED_CHAINS = [
   CHAIN_ID_FANTOM,
 ];
 
-export const GasRefundGenesisEpoch = 8; // @FIXME @dev
+export const GasRefundGenesisEpoch = 9;
 
 interface BaseGasRefundData {
   epoch: number;

@@ -10,7 +10,7 @@ import { merkleRootExists } from './persistance/db-persistance';
 import { getPSPStakes } from './staking';
 import { StakedPSPByAddress } from './types';
 import { assert } from 'ts-essentials';
-import { GRP_SUPPORTED_CHAINS } from '../../src/lib/gas-refund';
+import { GasRefundGenesisEpoch, GRP_SUPPORTED_CHAINS } from '../../src/lib/gas-refund';
 import { resolveEpochCalcTimeInterval } from './utils';
 
 const logger = global.LOGGER('GRP');
@@ -60,7 +60,10 @@ export async function fetchPSPRatesAndComputeGasRefundForChain({
 }
 
 async function startComputingGasRefundAllChains() {
-  const epoch = Number(process.env.GRP_EPOCH) || 8; // @TODO: automate
+  const epoch = Number(process.env.GRP_EPOCH) || GasRefundGenesisEpoch; // @TODO: automate
+  
+  assert(epoch >= GasRefundGenesisEpoch, 'cannot compute refund data for epoch < genesis_epoch');
+  
   await Database.connectAndSync();
 
   const { startCalcTime, endCalcTime } = await resolveEpochCalcTimeInterval(
