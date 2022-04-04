@@ -1,5 +1,4 @@
 import { assert } from 'ts-essentials';
-import { BlockInfo } from '../../../src/lib/block-info';
 import { HistoricalPrice, TxFeesByAddress, StakedPSPByAddress } from '../types';
 import { BigNumber } from 'bignumber.js';
 import { constructSameDayPrice } from '../psp-chaincurrency-pricing';
@@ -14,7 +13,9 @@ import {
 } from '../../../src/lib/gas-refund';
 import { getTransactionGasUsed } from '../staking/covalent';
 
-const PARTITION_SIZE = 1000; // depends on thegraph capacity and memory
+// empirically set to maximise on processing time without penalising memory and fetching constraigns
+// @FIXME: fix swaps subgraph pagination to always stay on safest spot
+const SLICE_DURATION = 3 * 24 * 60 * 60;
 
 export async function computeSuccessfulSwapsTxFeesRefund({
   chainId,
@@ -35,57 +36,47 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     `GRP:TRANSACTION_FEES_INDEXING: epoch=${epoch}, chainId=${chainId}`,
   );
 
-  const blockInfo = BlockInfo.getInstance(chainId);
-  const [epochStartBlock, epochEndBlock] = await Promise.all([
-    blockInfo.getBlockAfterTimeStamp(startTimestamp),
-    blockInfo.getBlockAfterTimeStamp(endTimestamp),
-  ]);
   const findSameDayPrice = constructSameDayPrice(pspNativeCurrencyDailyRate);
   const stakersAddress = Object.keys(stakes);
 
-  assert(
-    epochStartBlock,
-    `no start block found for chain ${chainId} for timestamp ${startTimestamp}`,
-  );
-  assert(
-    epochEndBlock,
-    `no start block found for chain ${chainId} for timestamp ${endTimestamp}`,
-  );
-
   logger.info(
-    `swapTracker start indexing between ${epochStartBlock} and ${epochEndBlock}`,
+    `swapTracker start indexing between ${startTimestamp} and ${endTimestamp}`,
   );
 
-  let [accumulatedTxFeesByAddress, veryLastBlockNumProcessed] =
+  let [accumulatedTxFeesByAddress, veryLastTimestampProcessed] =
     await readPendingEpochData({
       chainId,
       epoch,
     });
 
-  const startBlock = Math.max(epochStartBlock, veryLastBlockNumProcessed + 1);
-
-  logger.info(`start processing at block ${startBlock}`);
+  const _startTimestamp = Math.max(
+    startTimestamp,
+    veryLastTimestampProcessed + 1,
+  );
 
   for (
-    let _startBlock = startBlock;
-    _startBlock < epochEndBlock;
-    _startBlock += PARTITION_SIZE
+    let _startTimestampSlice = _startTimestamp;
+    _startTimestampSlice < endTimestamp;
+    _startTimestampSlice += SLICE_DURATION
   ) {
-    const _endBlock = Math.min(_startBlock + PARTITION_SIZE, epochEndBlock);
+    const _endTimestampSlice = Math.min(
+      _startTimestampSlice + SLICE_DURATION,
+      endTimestamp,
+    );
 
     logger.info(
-      `start indexing partition between ${_startBlock} and ${_endBlock}`,
+      `start indexing partition between ${_startTimestampSlice} and ${_endTimestampSlice}`,
     );
 
     const swaps = await getSwapsForAccounts({
-      startBlock: _startBlock,
-      endBlock: _endBlock,
+      startTimestamp: _startTimestampSlice,
+      endTimestamp: _endTimestampSlice,
       accounts: stakersAddress,
       chainId,
     });
 
     logger.info(
-      `fetched ${swaps.length} swaps withing startBlock ${_startBlock} and endBlock ${_endBlock}`,
+      `fetched ${swaps.length} swaps withing _startTimestampSlice=${_startTimestampSlice} and _endTimestampSlice=${_endTimestampSlice}`,
     );
 
     const swapsWithGasUsed = await Promise.all(
@@ -163,6 +154,8 @@ export async function computeSuccessfulSwapsTxFeesRefund({
           refundedAmountPSP: accRefundedAmountPSP.toFixed(0),
           firstTx: swapperAcc?.firstTx || swap.txHash,
           lastTx: swap.txHash,
+          firstTimestamp: swapperAcc?.firstTimestamp || swap.timestamp,
+          lastTimestamp: swap.timestamp,
           numTx: (swapperAcc?.numTx || 0) + 1,
           isCompleted: false,
           updated: true,

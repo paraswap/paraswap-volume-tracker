@@ -44,6 +44,20 @@ async function fetchVeryLastBlockNumProcessed({
   return lastBlock as number;
 }
 
+async function fetchVeryLastTimestampProcessed({
+  chainId,
+  epoch,
+}: {
+  chainId: number;
+  epoch: number;
+}): Promise<number> {
+  const lastTimestamp = await GasRefundParticipation.max('lastTimestamp', {
+    where: { chainId, epoch },
+  });
+
+  return lastTimestamp as number;
+}
+
 export const readPendingEpochData = async ({
   chainId,
   epoch,
@@ -53,7 +67,7 @@ export const readPendingEpochData = async ({
 }): Promise<[TxFeesByAddress, number]> => {
   return Promise.all([
     fetchPendingEpochData({ chainId, epoch }),
-    fetchVeryLastBlockNumProcessed({ chainId, epoch }),
+    fetchVeryLastTimestampProcessed({ chainId, epoch }),
   ]);
 };
 
@@ -67,6 +81,8 @@ export const writePendingEpochData = async (
       'accumulatedGasUsedChainCurrency',
       'firstBlock',
       'lastBlock',
+      'firstTimestamp',
+      'lastTimestamp',
       'firstTx',
       'lastTx',
       'numTx',

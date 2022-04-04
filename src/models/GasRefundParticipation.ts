@@ -51,6 +51,13 @@ export class GasRefundParticipation extends Model<EpochGasRefundData> {
   @Column(DataType.INTEGER)
   lastBlock: number;
 
+  @Column(DataType.INTEGER)
+  firstTimestamp: number; // @debug
+
+  @Index
+  @Column(DataType.INTEGER)
+  lastTimestamp: number;
+
   @Column(DataType_KECCAK256_HASHED_VALUE)
   firstTx: string; // @debug
 
