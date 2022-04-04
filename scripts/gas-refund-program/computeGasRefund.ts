@@ -92,7 +92,9 @@ startComputingGasRefundAllChains()
       p => p.status === 'rejected',
     ) as PromiseRejectedResult;
 
-    if (maybeOneRejected) throw maybeOneRejected.reason;
+    if (maybeOneRejected) {
+      throw maybeOneRejected.reason;
+    }
 
     process.exit(0);
   })

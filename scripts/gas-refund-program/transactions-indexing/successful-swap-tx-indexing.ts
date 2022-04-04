@@ -1,5 +1,5 @@
 import { assert } from 'ts-essentials';
-import { HistoricalPrice, TxFeesByAddress, StakedPSPByAddress } from '../types';
+import { HistoricalPrice, TxFeesByAddress } from '../types';
 import { BigNumber } from 'bignumber.js';
 import { constructSameDayPrice } from '../psp-chaincurrency-pricing';
 import {
@@ -12,11 +12,13 @@ import {
   PendingEpochGasRefundData,
 } from '../../../src/lib/gas-refund';
 import { getTransactionGasUsed } from '../staking/covalent';
-import { getPSPStakesHourly } from '../staking';
+import { getPSPStakesHourlyWithinInterval } from '../staking';
+import * as _ from 'lodash';
+import { startOfHourUnix } from '../utils';
 
 // empirically set to maximise on processing time without penalising memory and fetching constraigns
 // @FIXME: fix swaps subgraph pagination to always stay on safest spot
-const SLICE_DURATION = 60 * 60; // @FIXME @temp: for naive hourly algo need sync swap and stakes fetching
+const SLICE_DURATION = 24 * 60 * 60;
 
 export async function computeSuccessfulSwapsTxFeesRefund({
   chainId,
@@ -65,21 +67,29 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     logger.info(
       `start getting stakers between ${_startTimestamp} and ${_endTimestampSlice}`,
     );
-    const stakes = await getPSPStakesHourly(_endTimestampSlice);
+    const stakesByHour = await getPSPStakesHourlyWithinInterval(
+      _startTimestampSlice,
+      _endTimestampSlice,
+    );
 
-    if (!stakes) {
+    const stakersAddress = _.uniq(
+      Object.values(stakesByHour).flatMap(stakesByAddress =>
+        Object.keys(stakesByAddress || {}),
+      ),
+    );
+
+    if (!stakersAddress || !stakersAddress.length) {
       logger.warn(
-        `no stakers found between ${_startTimestamp} and ${_endTimestampSlice}`,
+        `no stakers found between ${_startTimestampSlice} and ${_endTimestampSlice}`,
       );
       continue;
     }
-
-    const stakersAddress = Object.keys(stakes);
 
     logger.info(
       `start indexing partition between ${_startTimestampSlice} and ${_endTimestampSlice}`,
     );
 
+    // alternatively can slice requests over different sub intervals matching different stakers subset but we'd be refetching same data
     const swaps = await getSwapsForAccounts({
       startTimestamp: _startTimestampSlice,
       endTimestamp: _endTimestampSlice,
@@ -104,10 +114,15 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     accumulatedTxFeesByAddress = swapsWithGasUsed.reduce<TxFeesByAddress>(
       (acc, swap) => {
         const address = swap.txOrigin;
+        const startOfHourUnixTms = startOfHourUnix(+swap.timestamp);
+        const stakes = stakesByHour[startOfHourUnixTms];
+
+        if (!stakes || !stakes[address]) return acc;
 
         const swapperAcc = acc[address];
+        const swapperStake = stakes[address];
 
-        const pspRateSameDay = findSameDayPrice(swap.timestamp);
+        const pspRateSameDay = findSameDayPrice(+swap.timestamp);
 
         if (!pspRateSameDay) {
           logger.warn(
@@ -140,7 +155,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
           swapperAcc?.accumulatedGasUsedPSP || 0,
         );
 
-        const totalStakeAmountPSP = stakes[address];
+        const totalStakeAmountPSP = swapperStake; // @todo irrelevant?
         const refundPercent = getRefundPercent(totalStakeAmountPSP);
         assert(
           refundPercent,
@@ -166,8 +181,8 @@ export async function computeSuccessfulSwapsTxFeesRefund({
           refundedAmountPSP: accRefundedAmountPSP.toFixed(0),
           firstTx: swapperAcc?.firstTx || swap.txHash,
           lastTx: swap.txHash,
-          firstTimestamp: swapperAcc?.firstTimestamp || swap.timestamp,
-          lastTimestamp: swap.timestamp,
+          firstTimestamp: swapperAcc?.firstTimestamp || +swap.timestamp,
+          lastTimestamp: +swap.timestamp,
           numTx: (swapperAcc?.numTx || 0) + 1,
           isCompleted: false,
           updated: true,

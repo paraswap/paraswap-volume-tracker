@@ -1,5 +1,7 @@
+import { startOfHour } from 'date-fns';
 import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
 import { EpochInfo } from '../../src/lib/epoch-info';
+import * as _ from 'lodash';
 
 interface SliceCallsInput<T, U> {
   inputArray: T[];
@@ -51,3 +53,22 @@ export async function resolveEpochCalcTimeInterval(epoch: number): Promise<{
     isEpochEnded: nowUnixTime > epochEndTime + OFFSET_CALC_TIME,
   };
 }
+
+export const startOfHourUnix = (unixTimestamp: number) =>
+  startOfHour(unixTimestamp * 1000).getTime() / 1000;
+
+export const generateHourlyTimestamps = (
+  startUnixTimestamp: number,
+  endUnixTimestamp: number,
+) => {
+  const startOfHourTimestampUnix = startOfHourUnix(startUnixTimestamp);
+  const endOfHourTimestampUnix = startOfHourUnix(endUnixTimestamp);
+  const hoursInBetween = Math.floor(
+    (endOfHourTimestampUnix - startOfHourTimestampUnix) / 3600,
+  );
+  const hourlyTimestamps = _.range(0, hoursInBetween + 1).map(
+    i => startOfHourTimestampUnix + i * 3600,
+  );
+
+  return hourlyTimestamps;
+};

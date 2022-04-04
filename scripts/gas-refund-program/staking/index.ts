@@ -5,19 +5,21 @@ import { CHAIN_ID_MAINNET } from '../../../src/lib/constants';
 import { GRP_MIN_STAKE } from '../../../src/lib/gas-refund';
 import { StakedPSPByAddress } from '../types';
 import { getSPSPStakes } from './spsp-stakes';
-import { startOfHour } from 'date-fns';
-import * as NodeCache from 'node-cache';
-import _ from 'lodash';
+import { generateHourlyTimestamps, startOfHourUnix } from '../utils';
+import * as pMemoize from 'p-memoize';
+import * as QuickLRU from 'quick-lru';
+import * as pLimit from 'p-limit';
+
+// prefering limiting calls to avoid touching blockInfo implem
+const blockInfoLimit = pLimit(1);
 
 // @TODO: fetch safety-module stakes
-type GetPSPStakesOutput = Promise<StakedPSPByAddress | null>;
-
-export const getPSPStakes = async (
+const getAllPSPStakes = async (
   timestamp: number,
 ): Promise<StakedPSPByAddress | null> => {
-  const blockNumber = await BlockInfo.getInstance(
-    CHAIN_ID_MAINNET,
-  ).getBlockAfterTimeStamp(timestamp);
+  const blockNumber = await blockInfoLimit(() =>
+    BlockInfo.getInstance(CHAIN_ID_MAINNET).getBlockAfterTimeStamp(timestamp),
+  );
 
   assert(blockNumber, 'blocknumber could be retrieved');
 
@@ -36,24 +38,30 @@ export const getPSPStakes = async (
   return filteredStakesByAddress;
 };
 
-const timeseriesStakesCache = new NodeCache({ useClones: false, stdTTL: 60 });
+const getAllPSPStakesCached = pMemoize(getAllPSPStakes, {
+  cache: new QuickLRU({
+    maxSize: 30,
+  }),
+});
 
-export const getPSPStakesHourly = (unixTimestamp: number) => {
-  const startOfHourTimestampUnix =
-    startOfHour(unixTimestamp * 1000).getTime() / 1000;
-
-  if (timeseriesStakesCache.has(startOfHourTimestampUnix)) {
-    return timeseriesStakesCache.get<GetPSPStakesOutput>(
-      startOfHourTimestampUnix,
-    );
-  }
-
-  const pspStakesPromise = getPSPStakes(startOfHourTimestampUnix);
-
-  timeseriesStakesCache.set<GetPSPStakesOutput>(
-    startOfHourTimestampUnix,
-    pspStakesPromise,
+export const getPSPStakesHourlyWithinInterval = async (
+  startUnixTimestamp: number,
+  endUnixTimestamp: number,
+): Promise<{ [timestamp: number]: StakedPSPByAddress | null }> => {
+  const hourlyUnixTimestamps = generateHourlyTimestamps(
+    startUnixTimestamp,
+    endUnixTimestamp,
   );
 
-  return pspStakesPromise;
+  return Object.fromEntries(
+    await Promise.all(
+      hourlyUnixTimestamps.map(
+        async unixTimestamp =>
+          [
+            unixTimestamp,
+            await getAllPSPStakesCached(startOfHourUnix(unixTimestamp)),
+          ] as const,
+      ),
+    ),
+  );
 };
