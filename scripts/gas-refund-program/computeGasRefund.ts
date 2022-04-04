@@ -7,10 +7,11 @@ import Database from '../../src/database';
 
 import { merkleRootExists } from './persistance/db-persistance';
 
-import { getPSPStakes } from './staking';
-import { StakedPSPByAddress } from './types';
 import { assert } from 'ts-essentials';
-import { GasRefundGenesisEpoch, GRP_SUPPORTED_CHAINS } from '../../src/lib/gas-refund';
+import {
+  GasRefundGenesisEpoch,
+  GRP_SUPPORTED_CHAINS,
+} from '../../src/lib/gas-refund';
 import { resolveEpochCalcTimeInterval } from './utils';
 
 const logger = global.LOGGER('GRP');
@@ -19,13 +20,11 @@ const logger = global.LOGGER('GRP');
 export async function fetchPSPRatesAndComputeGasRefundForChain({
   chainId,
   epoch,
-  stakes,
   startCalcTime,
   endCalcTime,
 }: {
   chainId: number;
   epoch: number;
-  stakes: StakedPSPByAddress;
   startCalcTime: number;
   endCalcTime: number;
 }) {
@@ -55,24 +54,23 @@ export async function fetchPSPRatesAndComputeGasRefundForChain({
     pspNativeCurrencyDailyRate,
     startTimestamp: startCalcTime,
     endTimestamp: endCalcTime,
-    stakes,
   });
 }
 
 async function startComputingGasRefundAllChains() {
   const epoch = Number(process.env.GRP_EPOCH) || GasRefundGenesisEpoch; // @TODO: automate
-  
-  assert(epoch >= GasRefundGenesisEpoch, 'cannot compute refund data for epoch < genesis_epoch');
-  
+
+  assert(
+    epoch >= GasRefundGenesisEpoch,
+    'cannot compute refund data for epoch < genesis_epoch',
+  );
+
   await Database.connectAndSync();
 
   const { startCalcTime, endCalcTime } = await resolveEpochCalcTimeInterval(
     epoch,
   );
 
-  const stakes = await getPSPStakes(endCalcTime);
-
-  assert(stakes, 'no stakers found at all');
   assert(startCalcTime, `could not resolve ${epoch}th epoch start time`);
   assert(endCalcTime, `could not resolve ${epoch}th epoch end time`);
 
@@ -81,7 +79,6 @@ async function startComputingGasRefundAllChains() {
       fetchPSPRatesAndComputeGasRefundForChain({
         chainId,
         epoch,
-        stakes,
         startCalcTime,
         endCalcTime,
       }),

@@ -10,7 +10,10 @@ import {
 } from './persistance/db-persistance';
 
 import { assert } from 'ts-essentials';
-import { GasRefundGenesisEpoch, GRP_SUPPORTED_CHAINS } from '../../src/lib/gas-refund';
+import {
+  GasRefundGenesisEpoch,
+  GRP_SUPPORTED_CHAINS,
+} from '../../src/lib/gas-refund';
 import { GasRefundParticipation } from '../../src/models/GasRefundParticipation';
 import { resolveEpochCalcTimeInterval } from './utils';
 import { saveMerkleTreeInFile } from './persistance/file-persistance';
@@ -54,8 +57,11 @@ export async function computeAndStoreMerkleTreeForChain({
 
 async function startComputingMerkleTreesAllChains() {
   const epoch = Number(process.env.GRP_EPOCH) || GasRefundGenesisEpoch; // @TODO: automate
-  
-  assert(epoch >= GasRefundGenesisEpoch, 'cannot compute grp merkle data for epoch < genesis_epoch');
+
+  assert(
+    epoch >= GasRefundGenesisEpoch,
+    'cannot compute grp merkle data for epoch < genesis_epoch',
+  );
 
   await Database.connectAndSync();
 

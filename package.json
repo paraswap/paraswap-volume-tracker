@@ -68,6 +68,7 @@
     "merkletreejs": "^0.2.31",
     "moment": "2.29.1",
     "newrelic": "8.5.0",
+    "node-cache": "^5.1.2",
     "parse-duration": "1.0.2",
     "pg": "8.7.1",
     "pg-hstore": "2.3.4",

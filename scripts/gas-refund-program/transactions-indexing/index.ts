@@ -8,14 +8,12 @@ export async function computeGasRefundAllTxs({
   endTimestamp,
   pspNativeCurrencyDailyRate,
   epoch,
-  stakes,
 }: {
   chainId: number;
   startTimestamp: number;
   endTimestamp: number;
   pspNativeCurrencyDailyRate: HistoricalPrice;
   epoch: number;
-  stakes: StakedPSPByAddress;
 }) {
   await computeGasRefundSuccessSwaps({
     chainId,
@@ -23,6 +21,5 @@ export async function computeGasRefundAllTxs({
     endTimestamp,
     pspNativeCurrencyDailyRate,
     epoch,
-    stakes,
   });
 }

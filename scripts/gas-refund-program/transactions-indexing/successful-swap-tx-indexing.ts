@@ -12,10 +12,11 @@ import {
   PendingEpochGasRefundData,
 } from '../../../src/lib/gas-refund';
 import { getTransactionGasUsed } from '../staking/covalent';
+import { getPSPStakesHourly } from '../staking';
 
 // empirically set to maximise on processing time without penalising memory and fetching constraigns
 // @FIXME: fix swaps subgraph pagination to always stay on safest spot
-const SLICE_DURATION = 3 * 24 * 60 * 60;
+const SLICE_DURATION = 60 * 60; // @FIXME @temp: for naive hourly algo need sync swap and stakes fetching
 
 export async function computeSuccessfulSwapsTxFeesRefund({
   chainId,
@@ -23,21 +24,18 @@ export async function computeSuccessfulSwapsTxFeesRefund({
   endTimestamp,
   pspNativeCurrencyDailyRate,
   epoch,
-  stakes,
 }: {
   chainId: number;
   startTimestamp: number;
   endTimestamp: number;
   pspNativeCurrencyDailyRate: HistoricalPrice;
   epoch: number;
-  stakes: StakedPSPByAddress;
 }): Promise<void> {
   const logger = global.LOGGER(
     `GRP:TRANSACTION_FEES_INDEXING: epoch=${epoch}, chainId=${chainId}`,
   );
 
   const findSameDayPrice = constructSameDayPrice(pspNativeCurrencyDailyRate);
-  const stakersAddress = Object.keys(stakes);
 
   logger.info(
     `swapTracker start indexing between ${startTimestamp} and ${endTimestamp}`,
@@ -63,6 +61,20 @@ export async function computeSuccessfulSwapsTxFeesRefund({
       _startTimestampSlice + SLICE_DURATION,
       endTimestamp,
     );
+
+    logger.info(
+      `start getting stakers between ${_startTimestamp} and ${_endTimestampSlice}`,
+    );
+    const stakes = await getPSPStakesHourly(_endTimestampSlice);
+
+    if (!stakes) {
+      logger.warn(
+        `no stakers found between ${_startTimestamp} and ${_endTimestampSlice}`,
+      );
+      continue;
+    }
+
+    const stakersAddress = Object.keys(stakes);
 
     logger.info(
       `start indexing partition between ${_startTimestampSlice} and ${_endTimestampSlice}`,
