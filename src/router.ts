@@ -7,6 +7,7 @@ import { Claim } from './models/Claim';
 import { DEFAULT_CHAIN_ID, STAKING_CHAIN_IDS_SET } from './lib/constants';
 import { GasRefundApi } from './lib/gas-refund-api';
 import { EpochInfo } from './lib/epoch-info';
+import { GRP_SUPPORTED_CHAINS } from './lib/gas-refund';
 
 const logger = global.LOGGER();
 
@@ -171,6 +172,10 @@ export default class Router {
 
         try {
           const network = Number(req.params.network);
+          if (!GRP_SUPPORTED_CHAINS.includes(network))
+            return res
+              .status(403)
+              .send({ error: `Unsupported network: ${network}` });
           const gasRefundApi = GasRefundApi.getInstance(network);
           const gasRefundDataAddress =
             await gasRefundApi.getAllGasRefundDataForAddress(address);
