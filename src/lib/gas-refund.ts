@@ -10,7 +10,7 @@ export const GRP_SUPPORTED_CHAINS = [
   CHAIN_ID_MAINNET,
   CHAIN_ID_POLYGON,
   CHAIN_ID_BINANCE,
-  // CHAIN_ID_FANTOM,
+  CHAIN_ID_FANTOM,
 ];
 
 export const GasRefundGenesisEpoch = 9;
