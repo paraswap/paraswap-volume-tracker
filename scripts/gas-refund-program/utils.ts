@@ -1,9 +1,9 @@
-import { startOfHour } from 'date-fns';
 import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
 import { EpochInfo } from '../../src/lib/epoch-info';
 import * as _ from 'lodash';
 
 export const ONE_HOUR_SEC = 60 * 60;
+const DAY_SEC_MSEC = 1000 * 60 * 60 * 24;
 
 interface SliceCallsInput<T, U> {
   inputArray: T[];
@@ -56,15 +56,20 @@ export async function resolveEpochCalcTimeInterval(epoch: number): Promise<{
   };
 }
 
-export const startOfHourUnix = (unixTimestamp: number) =>
-  startOfHour(unixTimestamp * 1000).getTime() / 1000;
+export const startOfHourSec = (unixTimestamp: number) => {
+  return Math.floor(unixTimestamp / ONE_HOUR_SEC) * ONE_HOUR_SEC;
+};
+
+export const startOfDayMilliSec = (timestamp: number) => {
+  return Math.floor(timestamp / DAY_SEC_MSEC) * DAY_SEC_MSEC;
+};
 
 export const generateHourlyTimestamps = (
   startUnixTimestamp: number,
   endUnixTimestamp: number,
 ) => {
-  const startOfHourTimestampUnix = startOfHourUnix(startUnixTimestamp);
-  const endOfHourTimestampUnix = startOfHourUnix(endUnixTimestamp);
+  const startOfHourTimestampUnix = startOfHourSec(startUnixTimestamp);
+  const endOfHourTimestampUnix = startOfHourSec(endUnixTimestamp);
   const hoursInBetween = Math.floor(
     (endOfHourTimestampUnix - startOfHourTimestampUnix) / ONE_HOUR_SEC,
   );

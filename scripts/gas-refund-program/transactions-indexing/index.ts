@@ -1,4 +1,4 @@
-import { fetchDailyPSPChainCurrencyRate } from '../psp-chaincurrency-pricing';
+import { fetchDailyPSPChainCurrencyRate } from '../token-pricing/psp-chaincurrency-pricing';
 import { computeSuccessfulSwapsTxFeesRefund as computeGasRefundSuccessSwaps } from './successful-swap-tx-indexing';
 
 const logger = global.LOGGER('GRP:computeGasRefundAllTxs');
