@@ -3,7 +3,7 @@ import { EpochInfo } from '../../src/lib/epoch-info';
 import * as _ from 'lodash';
 
 export const ONE_HOUR_SEC = 60 * 60;
-const DAY_SEC = 1000 * 60 * 60 * 24;
+const DAY_SEC_MSEC = 1000 * 60 * 60 * 24;
 
 interface SliceCallsInput<T, U> {
   inputArray: T[];
@@ -61,7 +61,7 @@ export const startOfHourSec = (unixTimestamp: number) => {
 };
 
 export const startOfDayMilliSec = (timestamp: number) => {
-  return Math.floor(timestamp / DAY_SEC) * DAY_SEC;
+  return Math.floor(timestamp / DAY_SEC_MSEC) * DAY_SEC_MSEC;
 };
 
 export const generateHourlyTimestamps = (
