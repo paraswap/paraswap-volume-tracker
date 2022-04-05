@@ -6,7 +6,7 @@ import {
 } from '../../../src/lib/constants';
 import { HistoricalPrice } from '../types';
 import { coingeckoClient } from '../data-providers-clients';
-import { startOfDay } from 'date-fns';
+import { startOfDayUTC } from '../utils';
 
 export const PSP_COINGECKO_COIN_ID = 'paraswap';
 
@@ -48,7 +48,7 @@ function sampleDailyAvgPrices(prices: CoingeckoPriceHistory): HistoricalPrice {
   >((acc, [timestamp, rate]) => {
     if (!rate) return acc;
 
-    const startOfDaySec = startOfDay(timestamp).getTime();
+    const startOfDaySec = startOfDayUTC(timestamp);
 
     const { accRate, count } = acc[startOfDaySec] || { accRate: 0, count: 0 };
 

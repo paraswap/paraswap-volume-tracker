@@ -14,7 +14,7 @@ import { getTransactionGasUsed } from '../staking/covalent';
 import { getPSPStakesHourlyWithinInterval } from '../staking';
 import * as _ from 'lodash';
 import { constructSameDayPrice } from '../token-pricing/psp-chaincurrency-pricing';
-import { ONE_HOUR_SEC, startOfHourUnix } from '../utils';
+import { ONE_HOUR_SEC, startOfHourUnixUTC } from '../utils';
 
 // empirically set to maximise on processing time without penalising memory and fetching constraigns
 // @FIXME: fix swaps subgraph pagination to always stay on safest spot
@@ -128,8 +128,8 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     accumulatedTxFeesByAddress = swapsWithGasUsed.reduce<TxFeesByAddress>(
       (acc, swap) => {
         const address = swap.txOrigin;
-        const startOfHourUnixTms = startOfHourUnix(+swap.timestamp);
-        const startOfNextHourUnixTms = startOfHourUnix(
+        const startOfHourUnixTms = startOfHourUnixUTC(+swap.timestamp);
+        const startOfNextHourUnixTms = startOfHourUnixUTC(
           +swap.timestamp + ONE_HOUR_SEC,
         );
 

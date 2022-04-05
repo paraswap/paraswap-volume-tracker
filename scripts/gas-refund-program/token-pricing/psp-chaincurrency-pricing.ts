@@ -1,5 +1,4 @@
 import { assert } from 'ts-essentials';
-import { startOfDay } from 'date-fns';
 import { HistoricalPrice } from '../types';
 import * as pMemoize from 'p-memoize';
 import * as QuickLRU from 'quick-lru';
@@ -8,11 +7,12 @@ import {
   fetchAvgDailyPrice,
   PSP_COINGECKO_COIN_ID,
 } from './coingecko';
+import { startOfDayUTC } from '../utils';
 
 const logger = global.LOGGER('GRP:PSP-CHAIN-CURRENCY-PRICING');
 
 const fetchAvgDailyPriceCached = pMemoize(fetchAvgDailyPrice, {
-  cacheKey: (...args) => JSON.stringify(args),
+  cacheKey: args => JSON.stringify(args[0]),
   cache: new QuickLRU({
     maxSize: 5, // cache all supported chain prices + PSP
   }),
@@ -65,7 +65,7 @@ export const constructSameDayPrice = (prices: HistoricalPrice) => {
   }, {});
 
   return function findSameDayPrice(unixtime: number) {
-    const startOfDayTimestamp = startOfDay(unixtime * 1000).getTime();
+    const startOfDayTimestamp = startOfDayUTC(unixtime * 1000);
     return pricesByDate[startOfDayTimestamp];
   };
 };

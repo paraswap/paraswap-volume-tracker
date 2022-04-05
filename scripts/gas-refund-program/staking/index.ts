@@ -5,7 +5,7 @@ import { CHAIN_ID_MAINNET } from '../../../src/lib/constants';
 import { GRP_MIN_STAKE } from '../../../src/lib/gas-refund';
 import { StakedPSPByAddress } from '../types';
 import { getSPSPStakes } from './spsp-stakes';
-import { generateHourlyTimestamps, startOfHourUnix } from '../utils';
+import { generateHourlyTimestamps } from '../utils';
 import * as pMemoize from 'p-memoize';
 import * as QuickLRU from 'quick-lru';
 import * as pLimit from 'p-limit';
@@ -57,10 +57,7 @@ export const getPSPStakesHourlyWithinInterval = async (
     await Promise.all(
       hourlyUnixTimestamps.map(
         async unixTimestamp =>
-          [
-            unixTimestamp,
-            await getAllPSPStakesCached(startOfHourUnix(unixTimestamp)),
-          ] as const,
+          [unixTimestamp, await getAllPSPStakesCached(unixTimestamp)] as const,
       ),
     ),
   );
