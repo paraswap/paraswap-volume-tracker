@@ -14,7 +14,7 @@ export const coingeckoClient = constructHttpClient({
 export const covalentClient = constructHttpClient({
   axiosConfig: {
     baseURL: 'https://api.covalenthq.com/v1',
-    timeout: 5_000,
+    timeout: 30_000,
   },
   rateLimitOptions: {
     maxRPS: 15,

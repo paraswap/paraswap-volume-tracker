@@ -8,10 +8,10 @@ import { Provider } from '../../../src/lib/provider';
 import { getTokenHolders } from './covalent';
 import * as MultiCallerABI from '../../../src/lib/abi/multicaller.abi.json';
 import * as SPSPABI from '../../../src/lib/abi/spsp.abi.json';
-
 import { Contract } from 'ethers';
 import { Interface } from '@ethersproject/abi';
 import { StakedPSPByAddress } from '../types';
+import * as pLimit from 'p-limit';
 
 interface GetStakersForPoolsInput {
   pools: string[];
@@ -108,6 +108,8 @@ export async function getSPSPToPSPRatesByPool({
   return pspRatesByPool;
 }
 
+const spspMulticallLimit = pLimit(5);
+
 export async function getSPSPStakes({
   blockNumber,
 }: {
@@ -120,8 +122,10 @@ export async function getSPSPStakes({
     .map(p => p.address);
 
   const [stakersByPool, spspToPSPRateByPool] = await Promise.all([
-    getStakersForPools({ pools: SPSPs, chainId, blockNumber }),
-    getSPSPToPSPRatesByPool({ pools: SPSPs, chainId, blockNumber }),
+    getStakersForPools({ pools: SPSPs, chainId, blockNumber }), // concurrency guarded by http req rate limiting
+    spspMulticallLimit(() =>
+      getSPSPToPSPRatesByPool({ pools: SPSPs, chainId, blockNumber }),
+    ),
   ]);
 
   if (!spspToPSPRateByPool) return null;
