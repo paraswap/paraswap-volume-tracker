@@ -1,7 +1,6 @@
 import { assert } from 'ts-essentials';
 import { HistoricalPrice, TxFeesByAddress } from '../types';
 import { BigNumber } from 'bignumber.js';
-import { constructSameDayPrice } from '../psp-chaincurrency-pricing';
 import {
   readPendingEpochData,
   writePendingEpochData,
@@ -15,6 +14,7 @@ import { getTransactionGasUsed } from '../staking/covalent';
 import { getPSPStakesHourlyWithinInterval } from '../staking';
 import * as _ from 'lodash';
 import { startOfHourUnix } from '../utils';
+import { constructSameDayPrice } from '../token-pricing/psp-chaincurrency-pricing';
 
 // empirically set to maximise on processing time without penalising memory and fetching constraigns
 // @FIXME: fix swaps subgraph pagination to always stay on safest spot
