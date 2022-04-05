@@ -31,12 +31,12 @@ export async function fetchDailyPSPChainCurrencyRate({
     fetchAvgDailyPriceCached({
       startTimestamp,
       endTimestamp,
-      coinId: PSP_COINGECKO_COIN_ID,
+      coinId: CHAIN_TO_COIN_ID[chainId],
     }),
     fetchAvgDailyPriceCached({
       startTimestamp,
       endTimestamp,
-      coinId: CHAIN_TO_COIN_ID[chainId],
+      coinId: PSP_COINGECKO_COIN_ID,
     }),
   ]);
 
