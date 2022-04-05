@@ -1,8 +1,6 @@
-import { startOfHour, startOfDay } from 'date-fns';
 import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
 import { EpochInfo } from '../../src/lib/epoch-info';
 import * as _ from 'lodash';
-import { zonedTimeToUtc } from 'date-fns-tz';
 
 export const ONE_HOUR_SEC = 60 * 60;
 
@@ -57,22 +55,23 @@ export async function resolveEpochCalcTimeInterval(epoch: number): Promise<{
   };
 }
 
-export const startOfHourUnixUTC = (unixTimestamp: number) => {
-  return (
-    zonedTimeToUtc(startOfHour(unixTimestamp * 1000), 'UTC').getTime() / 1000
-  );
+const DAY_SEC = 60 * 60 * 24;
+const HOUR_MSEC = 1000 * 60 * 60;
+
+export const startOfHourSec = (unixTimestamp: number) => {
+  return Math.floor(unixTimestamp / DAY_SEC) * DAY_SEC;
 };
 
-export const startOfDayUTC = (timestamp: number) => {
-  return zonedTimeToUtc(startOfDay(timestamp), 'UTC').getTime();
+export const startOfDayMilliSec = (timestamp: number) => {
+  return Math.floor(timestamp / HOUR_MSEC) * HOUR_MSEC;
 };
 
 export const generateHourlyTimestamps = (
   startUnixTimestamp: number,
   endUnixTimestamp: number,
 ) => {
-  const startOfHourTimestampUnix = startOfHourUnixUTC(startUnixTimestamp);
-  const endOfHourTimestampUnix = startOfHourUnixUTC(endUnixTimestamp);
+  const startOfHourTimestampUnix = startOfHourSec(startUnixTimestamp);
+  const endOfHourTimestampUnix = startOfHourSec(endUnixTimestamp);
   const hoursInBetween = Math.floor(
     (endOfHourTimestampUnix - startOfHourTimestampUnix) / ONE_HOUR_SEC,
   );

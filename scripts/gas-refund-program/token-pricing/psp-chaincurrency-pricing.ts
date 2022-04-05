@@ -7,7 +7,7 @@ import {
   fetchAvgDailyPrice,
   PSP_COINGECKO_COIN_ID,
 } from './coingecko';
-import { startOfDayUTC } from '../utils';
+import { startOfDayMilliSec } from '../utils';
 
 const logger = global.LOGGER('GRP:PSP-CHAIN-CURRENCY-PRICING');
 
@@ -65,7 +65,7 @@ export const constructSameDayPrice = (prices: HistoricalPrice) => {
   }, {});
 
   return function findSameDayPrice(unixtime: number) {
-    const startOfDayTimestamp = startOfDayUTC(unixtime * 1000);
+    const startOfDayTimestamp = startOfDayMilliSec(unixtime * 1000);
     return pricesByDate[startOfDayTimestamp];
   };
 };
