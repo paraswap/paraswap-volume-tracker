@@ -3,6 +3,8 @@ import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
 import { EpochInfo } from '../../src/lib/epoch-info';
 import * as _ from 'lodash';
 
+export const ONE_HOUR_SEC = 60 * 60;
+
 interface SliceCallsInput<T, U> {
   inputArray: T[];
   execute: (inputSlice: T[], sliceIndex: number) => U;
@@ -64,10 +66,10 @@ export const generateHourlyTimestamps = (
   const startOfHourTimestampUnix = startOfHourUnix(startUnixTimestamp);
   const endOfHourTimestampUnix = startOfHourUnix(endUnixTimestamp);
   const hoursInBetween = Math.floor(
-    (endOfHourTimestampUnix - startOfHourTimestampUnix) / 3600,
+    (endOfHourTimestampUnix - startOfHourTimestampUnix) / ONE_HOUR_SEC,
   );
   const hourlyTimestamps = _.range(0, hoursInBetween + 1).map(
-    i => startOfHourTimestampUnix + i * 3600,
+    i => startOfHourTimestampUnix + i * ONE_HOUR_SEC,
   );
 
   return hourlyTimestamps;
