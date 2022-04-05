@@ -96,5 +96,5 @@ interface SwapData {
   txOrigin: string;
   txGasPrice: string;
   blockNumber: number;
-  timestamp: number;
+  timestamp: string;
 }

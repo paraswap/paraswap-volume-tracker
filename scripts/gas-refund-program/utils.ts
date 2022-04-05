@@ -1,5 +1,9 @@
 import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
 import { EpochInfo } from '../../src/lib/epoch-info';
+import * as _ from 'lodash';
+
+export const ONE_HOUR_SEC = 60 * 60;
+const DAY_SEC_MSEC = 1000 * 60 * 60 * 24;
 
 interface SliceCallsInput<T, U> {
   inputArray: T[];
@@ -51,3 +55,27 @@ export async function resolveEpochCalcTimeInterval(epoch: number): Promise<{
     isEpochEnded: nowUnixTime > epochEndTime + OFFSET_CALC_TIME,
   };
 }
+
+export const startOfHourSec = (unixTimestamp: number) => {
+  return Math.floor(unixTimestamp / ONE_HOUR_SEC) * ONE_HOUR_SEC;
+};
+
+export const startOfDayMilliSec = (timestamp: number) => {
+  return Math.floor(timestamp / DAY_SEC_MSEC) * DAY_SEC_MSEC;
+};
+
+export const generateHourlyTimestamps = (
+  startUnixTimestamp: number,
+  endUnixTimestamp: number,
+) => {
+  const startOfHourTimestampUnix = startOfHourSec(startUnixTimestamp);
+  const endOfHourTimestampUnix = startOfHourSec(endUnixTimestamp);
+  const hoursInBetween = Math.floor(
+    (endOfHourTimestampUnix - startOfHourTimestampUnix) / ONE_HOUR_SEC,
+  );
+  const hourlyTimestamps = _.range(0, hoursInBetween + 1).map(
+    i => startOfHourTimestampUnix + i * ONE_HOUR_SEC,
+  );
+
+  return hourlyTimestamps;
+};
