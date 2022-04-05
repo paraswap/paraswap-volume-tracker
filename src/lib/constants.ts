@@ -3,6 +3,14 @@ export const CHAIN_ID_ROPSTEN = 3;
 export const CHAIN_ID_BINANCE = 56;
 export const CHAIN_ID_POLYGON = 137;
 export const CHAIN_ID_AVALANCHE = 43114;
+export const CHAIN_ID_FANTOM = 250;
+
+export const PSP_ADDRESS: { [chainId: number]: string } = {
+  [CHAIN_ID_MAINNET]: '0xcafe001067cdef266afb7eb5a286dcfd277f3de5',
+  [CHAIN_ID_BINANCE]: '0xcafe001067cdef266afb7eb5a286dcfd277f3de5',
+  [CHAIN_ID_FANTOM]: '0xcafe001067cdef266afb7eb5a286dcfd277f3de5',
+  [CHAIN_ID_POLYGON]: '0x42d61d766b85431666b39b89c43011f24451bff6',
+};
 
 export const STAKING_CHAIN_IDS = [CHAIN_ID_MAINNET, CHAIN_ID_ROPSTEN];
 export const STAKING_CHAIN_IDS_SET = new Set([
@@ -20,6 +28,7 @@ export const Web3Provider: { [network: number]: string } = {
   [CHAIN_ID_ROPSTEN]: process.env.HTTP_PROVIDER_3 || '',
   [CHAIN_ID_BINANCE]: process.env.HTTP_PROVIDER_56 || '',
   [CHAIN_ID_POLYGON]: process.env.HTTP_PROVIDER_137 || '',
+  [CHAIN_ID_FANTOM]: process.env.HTTP_PROVIDER_250 || '',
   [CHAIN_ID_AVALANCHE]: process.env.HTTP_PROVIDER_43114 || '',
 };
 
@@ -58,6 +67,7 @@ export const MULTICALL_ADDRESS: any = {
   [CHAIN_ID_ROPSTEN]: '0x293405FE3aDefDB94A8A1Ed50873a15C6Cc83BC5',
   [CHAIN_ID_BINANCE]: '0xdc6e2b14260f972ad4e5a31c68294fba7e720701',
   [CHAIN_ID_POLYGON]: '0xdC6E2b14260F972ad4e5a31c68294Fba7E720701',
+  [CHAIN_ID_FANTOM]: '0xdC6E2b14260F972ad4e5a31c68294Fba7E720701',
 };
 
 export const DEFAULT_CHAIN_ID = parseInt(process.env.DEFAULT_CHAIN_ID || '1');

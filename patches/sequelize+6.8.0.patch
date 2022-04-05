@@ -1,0 +1,13 @@
+diff --git a/node_modules/sequelize/lib/model.js b/node_modules/sequelize/lib/model.js
+index effca70..182d7d0 100644
+--- a/node_modules/sequelize/lib/model.js
++++ b/node_modules/sequelize/lib/model.js
+@@ -2708,7 +2708,7 @@ class Model {
+ 
+           for (const i of model._indexes) {
+             if (i.unique && !i.where) { // Don't infer partial indexes
+-              upsertKeys.push(...i.fields);
++              upsertKeys.push(...i.fields.map(f => typeof f === 'string' ? f : typeof f?.name === 'string' ? f.name : f));
+             }
+           }
+ 

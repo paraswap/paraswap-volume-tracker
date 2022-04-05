@@ -1,6 +1,5 @@
 import { retry } from 'ts-retry-promise';
 import { Contract } from '@ethersproject/contracts';
-import { id } from '@ethersproject/hash';
 import * as RewardDistributionAbi from './abi/reward-distribution.abi.json';
 import {
   CHAIN_ID_ROPSTEN,
@@ -49,7 +48,7 @@ type EpochDetailsI = {
   [epoch: number]: EpochDetailsInfo;
 };
 
-const EpochPollingTime = 1 * 60 * 1000; // 1min 
+const EpochPollingTime = 1 * 60 * 1000; // 1min
 
 export class EpochInfo {
   epochDetails: EpochDetailsI = {};
@@ -58,7 +57,7 @@ export class EpochInfo {
   private blockInfo: BlockInfo;
   private rewardDistribution: Contract;
 
-  constructor(protected network: number) {
+  constructor(protected network: number, lazy: boolean = false) {
     this.blockInfo = BlockInfo.getInstance(this.network);
     const provider = Provider.getJsonRpcProvider(this.network);
     this.rewardDistribution = new Contract(
@@ -66,8 +65,12 @@ export class EpochInfo {
       RewardDistributionAbi,
       provider,
     );
-    const getEpochInfo = () => retry(() => this.getEpochDetails(), { retries: 5 });
-    
+
+    if (lazy) return;
+
+    const getEpochInfo = () =>
+      retry(() => this.getEpochDetails(), { retries: 5 });
+
     getEpochInfo().catch(e => {
       logger.error(`Exit on epoch info update error: ${e.message}`);
       process.exit(1);
@@ -78,9 +81,9 @@ export class EpochInfo {
 
   static instances: { [network: number]: EpochInfo } = {};
 
-  static getInstance(network: number): EpochInfo {
+  static getInstance(network: number, lazy: boolean = false): EpochInfo {
     if (!this.instances[network])
-      this.instances[network] = new EpochInfo(network);
+      this.instances[network] = new EpochInfo(network, lazy);
     return this.instances[network];
   }
 
@@ -89,7 +92,7 @@ export class EpochInfo {
       const [currentEpoch] =
         await this.rewardDistribution.functions.currentEpoch();
       if (this.currentEpoch && this.currentEpoch >= currentEpoch.toNumber())
-        return; 
+        return;
       for (let i = 0; i < currentEpoch.toNumber(); i++) {
         const epochHistory =
           await this.rewardDistribution.functions.epochHistory(i);
