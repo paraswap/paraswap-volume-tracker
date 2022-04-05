@@ -27,7 +27,7 @@ export class GasRefundDistribution extends Model<GasRefundDistributionData> {
   epoch: number;
 
   @compositeIndex
-  @Column(DataType.SMALLINT)
+  @Column(DataType.INTEGER)
   chainId: number;
 
   @Column(DataType.STRING)

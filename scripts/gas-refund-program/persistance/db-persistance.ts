@@ -37,11 +37,25 @@ async function fetchVeryLastBlockNumProcessed({
   chainId: number;
   epoch: number;
 }): Promise<number> {
-  const lastBlockNum = await GasRefundParticipation.max('lastBlockNum', {
+  const lastBlock = await GasRefundParticipation.max('lastBlock', {
     where: { chainId, epoch },
   });
 
-  return lastBlockNum as number;
+  return lastBlock as number;
+}
+
+async function fetchVeryLastTimestampProcessed({
+  chainId,
+  epoch,
+}: {
+  chainId: number;
+  epoch: number;
+}): Promise<number> {
+  const lastTimestamp = await GasRefundParticipation.max('lastTimestamp', {
+    where: { chainId, epoch },
+  });
+
+  return lastTimestamp as number;
 }
 
 export const readPendingEpochData = async ({
@@ -53,7 +67,7 @@ export const readPendingEpochData = async ({
 }): Promise<[TxFeesByAddress, number]> => {
   return Promise.all([
     fetchPendingEpochData({ chainId, epoch }),
-    fetchVeryLastBlockNumProcessed({ chainId, epoch }),
+    fetchVeryLastTimestampProcessed({ chainId, epoch }),
   ]);
 };
 
@@ -65,7 +79,13 @@ export const writePendingEpochData = async (
       'accumulatedGasUsedPSP',
       'accumulatedGasUsed',
       'accumulatedGasUsedChainCurrency',
-      'lastBlockNum',
+      'firstBlock',
+      'lastBlock',
+      'firstTimestamp',
+      'lastTimestamp',
+      'firstTx',
+      'lastTx',
+      'numTx',
       'isCompleted',
       'totalStakeAmountPSP',
       'refundedAmountPSP',
@@ -80,9 +100,10 @@ export const merkleRootExists = async ({
   chainId: number;
   epoch: number;
 }): Promise<boolean> => {
-  const existingGasRefundDistributionEntry = await GasRefundDistribution.findOne({
-    where: { chainId, epoch },
-  });
+  const existingGasRefundDistributionEntry =
+    await GasRefundDistribution.findOne({
+      where: { chainId, epoch },
+    });
 
   return !!existingGasRefundDistributionEntry;
 };

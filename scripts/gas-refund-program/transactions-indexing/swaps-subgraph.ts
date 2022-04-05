@@ -5,9 +5,11 @@ import {
   CHAIN_ID_MAINNET,
   CHAIN_ID_POLYGON,
 } from '../../../src/lib/constants';
-import { Utils } from '../../../src/lib/utils';
+import { thegraphClient } from '../data-providers-clients';
 import { sliceCalls } from '../utils';
+import { assert } from 'ts-essentials';
 
+// Note: txGasUsed from thegraph is unsafe as it's actually txGasLimit https://github.com/graphprotocol/graph-node/issues/2619
 const SwapsQuery = `
 query ($number_gte: BigInt, $number_lt: BigInt, $txOrgins: [Bytes!]!) {
 	swaps(
@@ -15,14 +17,13 @@ query ($number_gte: BigInt, $number_lt: BigInt, $txOrgins: [Bytes!]!) {
 		orderBy: blockNumber
 		orderDirection: asc
 		where: {
-			blockNumber_gte: $number_gte
-			blockNumber_lt: $number_lt
+			timestamp_gte: $number_gte
+			timestamp_lt: $number_lt
 			txOrigin_in: $txOrgins
 		}
 	) {
     txHash
 		txOrigin
-		txGasUsed
 		txGasPrice
 		blockNumber
     timestamp
@@ -43,16 +44,16 @@ const SubgraphURLs: { [network: number]: string } = {
 };
 
 interface GetSwapsForAccountsInput {
-  startBlock: number;
-  endBlock: number;
+  startTimestamp: number;
+  endTimestamp: number;
   accounts: string[];
   chainId: number;
 }
 
 // get filtered by accounts swaps from the graphql endpoint
 export async function getSwapsForAccounts({
-  startBlock,
-  endBlock,
+  startTimestamp,
+  endTimestamp,
   accounts,
   chainId,
 }: GetSwapsForAccountsInput): Promise<SwapData[]> {
@@ -61,18 +62,21 @@ export async function getSwapsForAccounts({
   // @TODO set up pagination, but seems alright for now
   const execute = async (accounts: string[]): Promise<SwapData[]> => {
     const variables = {
-      number_gte: startBlock,
-      number_lt: endBlock,
+      number_gte: startTimestamp,
+      number_lt: endTimestamp,
       txOrgins: accounts,
     };
 
-    const { data } = await Utils._post<SwapsGQLRespose>(
-      subgraphURL,
-      { query: SwapsQuery, variables },
-      5000,
-    );
+    const { data } = await thegraphClient.post<SwapsGQLRespose>(subgraphURL, {
+      query: SwapsQuery,
+      variables,
+    });
 
-    return data.data.swaps;
+    const swaps = data.data.swaps;
+
+    assert(swaps.length !== 1000, 'unsafe fix pagination');
+
+    return swaps;
   };
 
   // array of sliced results, without slicing breaks with Payload too large (too many `initiators`)
@@ -90,8 +94,7 @@ interface SwapsGQLRespose {
 interface SwapData {
   txHash: string;
   txOrigin: string;
-  txGasUsed: string;
   txGasPrice: string;
   blockNumber: number;
-  timestamp: number;
+  timestamp: string;
 }

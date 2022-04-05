@@ -38,28 +38,47 @@ export class GasRefundParticipation extends Model<EpochGasRefundData> {
   address: string;
 
   @compositeIndex
-  @Column(DataType.SMALLINT)
+  @Column(DataType.INTEGER)
   chainId: number;
 
   @Column(DataType.BOOLEAN)
   isCompleted: boolean;
 
+  @Column(DataType.INTEGER)
+  firstBlock: number; // @debug
+
   @Index
   @Column(DataType.INTEGER)
-  lastBlockNum: number;
+  lastBlock: number;
+
+  @Column(DataType.INTEGER)
+  firstTimestamp: number; // @debug
+
+  @Index
+  @Column(DataType.INTEGER)
+  lastTimestamp: number;
+
+  @Column(DataType_KECCAK256_HASHED_VALUE)
+  firstTx: string; // @debug
+
+  @Column(DataType_KECCAK256_HASHED_VALUE)
+  lastTx: string; // @debug
+
+  @Column(DataType.SMALLINT)
+  numTx: number; // @debug
 
   @Column(DataType.BIGINT)
-  accumulatedGasUsed: string;
+  accumulatedGasUsed: string; // @debug
 
   @Column(DataType.DECIMAL)
-  accumulatedGasUsedChainCurrency: string;
+  accumulatedGasUsedChainCurrency: string; // @debug
 
   @Column(DataType.DECIMAL)
   accumulatedGasUsedPSP: string;
 
   @AllowNull(true)
   @Column(DataType.DECIMAL)
-  totalStakeAmountPSP: string;
+  totalStakeAmountPSP: string; // @debug
 
   @AllowNull(true)
   @Column(DataType.DECIMAL)

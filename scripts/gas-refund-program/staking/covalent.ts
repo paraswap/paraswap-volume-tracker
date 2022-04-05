@@ -1,5 +1,6 @@
+import { assert } from 'ts-essentials';
 import { URLSearchParams } from 'url';
-import { Utils } from '../../../src/lib/utils';
+import { covalentClient } from '../data-providers-clients';
 
 const COVALENT_API_KEY = process.env.COVALENT_API_KEY || 'ckey_docs'; // public, is rate-limited
 
@@ -24,13 +25,41 @@ export async function getTokenHolders({
     'page-size': pageSize?.toString(),
   });
 
-  const url = `https://api.covalenthq.com/v1/${chainId}/tokens/${token}/token_holders/?key=${COVALENT_API_KEY}${
+  const url = `/${chainId}/tokens/${token}/token_holders/?key=${COVALENT_API_KEY}${
     queryString ? '&' + queryString : ''
   }`;
 
-  const { data } = await Utils._get<TokensHoldersResponse>(url, 2000); // times out otherwise
+  const { data } = await covalentClient.get<TokensHoldersResponse>(url);
 
   return data.data;
+}
+
+interface TransactionQueryOptions {
+  chainId: number;
+  txHash: string;
+}
+
+interface TransactionResponse {
+  data: {
+    items: [
+      {
+        gas_spent: number;
+      },
+    ];
+  };
+}
+
+export async function getTransactionGasUsed({
+  chainId,
+  txHash,
+}: TransactionQueryOptions): Promise<number> {
+  const url = `/${chainId}/transaction_v2/${txHash}/?key=${COVALENT_API_KEY}`;
+
+  const { data } = await covalentClient.get<TransactionResponse>(url);
+
+  assert(data.data.items.length === 1, 'Expected exactly one transaction');
+
+  return data.data.items[0].gas_spent;
 }
 
 interface TokensHoldersResponse {

@@ -1,8 +1,6 @@
 import { assert } from 'ts-essentials';
-import { BlockInfo } from '../../../src/lib/block-info';
-import { HistoricalPrice, TxFeesByAddress, StakedPSPByAddress } from '../types';
+import { HistoricalPrice, TxFeesByAddress } from '../types';
 import { BigNumber } from 'bignumber.js';
-import { constructSameDayPrice } from '../psp-chaincurrency-pricing';
 import {
   readPendingEpochData,
   writePendingEpochData,
@@ -12,8 +10,15 @@ import {
   getRefundPercent,
   PendingEpochGasRefundData,
 } from '../../../src/lib/gas-refund';
+import { getTransactionGasUsed } from '../staking/covalent';
+import { getPSPStakesHourlyWithinInterval } from '../staking';
+import * as _ from 'lodash';
+import { constructSameDayPrice } from '../token-pricing/psp-chaincurrency-pricing';
+import { ONE_HOUR_SEC, startOfHourSec } from '../utils';
 
-const PARTITION_SIZE = 1000; // depends on thegraph capacity and memory
+// empirically set to maximise on processing time without penalising memory and fetching constraigns
+// @FIXME: fix swaps subgraph pagination to always stay on safest spot
+const SLICE_DURATION = 24 * ONE_HOUR_SEC;
 
 export async function computeSuccessfulSwapsTxFeesRefund({
   chainId,
@@ -21,138 +26,210 @@ export async function computeSuccessfulSwapsTxFeesRefund({
   endTimestamp,
   pspNativeCurrencyDailyRate,
   epoch,
-  stakes,
 }: {
   chainId: number;
   startTimestamp: number;
   endTimestamp: number;
   pspNativeCurrencyDailyRate: HistoricalPrice;
   epoch: number;
-  stakes: StakedPSPByAddress;
 }): Promise<void> {
   const logger = global.LOGGER(
     `GRP:TRANSACTION_FEES_INDEXING: epoch=${epoch}, chainId=${chainId}`,
   );
 
-  const blockInfo = BlockInfo.getInstance(chainId);
-  const [epochStartBlock, epochEndBlock] = await Promise.all([
-    blockInfo.getBlockAfterTimeStamp(startTimestamp),
-    blockInfo.getBlockAfterTimeStamp(endTimestamp),
-  ]);
   const findSameDayPrice = constructSameDayPrice(pspNativeCurrencyDailyRate);
-  const stakersAddress = Object.keys(stakes);
-
-  assert(
-    epochStartBlock,
-    `no start block found for chain ${chainId} for timestamp ${startTimestamp}`,
-  );
-  assert(
-    epochEndBlock,
-    `no start block found for chain ${chainId} for timestamp ${endTimestamp}`,
-  );
 
   logger.info(
-    `swapTracker start indexing between ${epochStartBlock} and ${epochEndBlock}`,
+    `swapTracker start indexing between ${startTimestamp} and ${endTimestamp}`,
   );
 
-  let [accumulatedTxFeesByAddress, veryLastBlockNumProcessed] =
+  let [accumulatedTxFeesByAddress, veryLastTimestampProcessed] =
     await readPendingEpochData({
       chainId,
       epoch,
     });
 
-  const startBlock = Math.max(epochStartBlock, veryLastBlockNumProcessed + 1);
-
-  logger.info(`start processing at block ${startBlock}`);
+  const _startTimestamp = Math.max(
+    startTimestamp,
+    veryLastTimestampProcessed + 1,
+  );
 
   for (
-    let _startBlock = startBlock;
-    _startBlock < epochEndBlock;
-    _startBlock += PARTITION_SIZE
+    let _startTimestampSlice = _startTimestamp;
+    _startTimestampSlice < endTimestamp;
+    _startTimestampSlice += SLICE_DURATION
   ) {
-    const _endBlock = Math.min(_startBlock + PARTITION_SIZE, epochEndBlock);
-
-    logger.info(
-      `start indexing partition between ${_startBlock} and ${_endBlock}`,
+    const _endTimestampSlice = Math.min(
+      _startTimestampSlice + SLICE_DURATION,
+      endTimestamp,
     );
 
+    logger.info(
+      `fetching stakers between ${_startTimestamp} and ${_endTimestampSlice}...`,
+    );
+    const stakesByHour = await getPSPStakesHourlyWithinInterval(
+      _startTimestampSlice,
+      _endTimestampSlice + ONE_HOUR_SEC, // over fetch stakes to allow for stakes resolving max(stakesStartOfHour, stakesEndOfHour)
+    );
+
+    assert(stakesByHour, 'stakesByHour should be defined');
+
+    const stakersAddress = _.uniq(
+      Object.values(stakesByHour).flatMap(stakesByAddress =>
+        Object.keys(stakesByAddress || {}),
+      ),
+    );
+
+    if (!stakersAddress || !stakersAddress.length) {
+      logger.warn(
+        `no stakers found between ${_startTimestampSlice} and ${_endTimestampSlice}...`,
+      );
+      continue;
+    }
+
+    logger.info(
+      `fetched ${stakersAddress.length} stakers in total between ${_startTimestampSlice} and ${_endTimestampSlice}`,
+    );
+
+    logger.info(
+      `fetching swaps between ${_startTimestampSlice} and ${_endTimestampSlice}...`,
+    );
+
+    // alternatively can slice requests over different sub intervals matching different stakers subset but we'd be refetching same data
     const swaps = await getSwapsForAccounts({
-      startBlock: _startBlock,
-      endBlock: _endBlock,
+      startTimestamp: _startTimestampSlice,
+      endTimestamp: _endTimestampSlice,
       accounts: stakersAddress,
       chainId,
     });
 
     logger.info(
-      `fetched ${swaps.length} swaps withing startBlock ${_startBlock} and endBlock ${_endBlock}`,
+      `fetched ${swaps.length} swaps between ${_startTimestampSlice} and ${_endTimestampSlice}`,
     );
 
-    accumulatedTxFeesByAddress = swaps.reduce<TxFeesByAddress>((acc, swap) => {
-      const address = swap.txOrigin;
+    logger.info(
+      `fetching gas used between ${_startTimestampSlice} and ${_endTimestampSlice}...`,
+    );
 
-      const swapperAcc = acc[address];
+    const swapsWithGasUsed = await Promise.all(
+      swaps.map(async swap => ({
+        ...swap,
+        txGasUsed: await getTransactionGasUsed({
+          chainId,
+          txHash: swap.txHash,
+        }),
+      })),
+    );
 
-      const pspRateSameDay = findSameDayPrice(swap.timestamp);
+    logger.info(
+      `fetched gas used between ${_startTimestampSlice} and ${_endTimestampSlice}`,
+    );
 
-      if (!pspRateSameDay) {
-        logger.warn(
-          `Fail to find price for same day ${
-            swap.timestamp
-          } and rates=${JSON.stringify(
-            pspNativeCurrencyDailyRate.flatMap(p => p.timestamp),
-          )}`,
+    accumulatedTxFeesByAddress = swapsWithGasUsed.reduce<TxFeesByAddress>(
+      (acc, swap) => {
+        const address = swap.txOrigin;
+        const startOfHourUnixTms = startOfHourSec(+swap.timestamp);
+        const startOfNextHourUnixTms = startOfHourSec(
+          +swap.timestamp + ONE_HOUR_SEC,
         );
 
+        const stakesStartOfHour = stakesByHour[startOfHourUnixTms];
+        const stakesStartOfNextHour = stakesByHour[startOfNextHourUnixTms];
+
+        assert(
+          stakesStartOfHour,
+          'stakes at beginning of hour should be defined',
+        );
+        assert(
+          stakesStartOfNextHour,
+          'stakes at beginning of next hour should be defined',
+        );
+
+        const swapperAcc = acc[address];
+
+        const swapperStake = BigNumber.max(
+          stakesStartOfHour[address] || 0,
+          stakesStartOfNextHour[address] || 0,
+        );
+
+        if (swapperStake.isZero()) {
+          // as we fetcher swaps for all stakers all hourly splitted intervals we sometimes fell into this case
+          logger.warn(`could not retrieve any stake for staker ${address}`);
+          return acc;
+        }
+
+        const pspRateSameDay = findSameDayPrice(+swap.timestamp);
+
+        if (!pspRateSameDay) {
+          logger.warn(
+            `Fail to find price for same day ${
+              swap.timestamp
+            } and rates=${JSON.stringify(
+              pspNativeCurrencyDailyRate.flatMap(p => p.timestamp),
+            )}`,
+          );
+
+          return acc;
+        }
+
+        const currGasUsed = new BigNumber(swap.txGasUsed);
+        const accumulatedGasUsed = currGasUsed.plus(
+          swapperAcc?.accumulatedGasUsed || 0,
+        );
+
+        const currGasUsedChainCur = currGasUsed.multipliedBy(
+          swap.txGasPrice.toString(),
+        ); // in wei
+
+        const accumulatedGasUsedChainCurrency = currGasUsedChainCur.plus(
+          swapperAcc?.accumulatedGasUsedChainCurrency || 0,
+        );
+
+        const currGasFeePSP = currGasUsedChainCur.dividedBy(pspRateSameDay);
+
+        const accumulatedGasUsedPSP = currGasFeePSP.plus(
+          swapperAcc?.accumulatedGasUsedPSP || 0,
+        );
+
+        const totalStakeAmountPSP = swapperStake.toFixed(0); // @todo irrelevant?
+        const refundPercent = getRefundPercent(totalStakeAmountPSP);
+        assert(
+          refundPercent,
+          `Logic Error: failed to find refund percent for ${address}`,
+        );
+        const currRefundedAmountPSP = currGasFeePSP.multipliedBy(refundPercent);
+
+        const accRefundedAmountPSP = currRefundedAmountPSP.plus(
+          swapperAcc?.refundedAmountPSP || 0,
+        );
+
+        const pendingGasRefundDatum: PendingEpochGasRefundData = {
+          epoch,
+          address,
+          chainId,
+          accumulatedGasUsedPSP: accumulatedGasUsedPSP.toFixed(0),
+          accumulatedGasUsed: accumulatedGasUsed.toFixed(0),
+          accumulatedGasUsedChainCurrency:
+            accumulatedGasUsedChainCurrency.toFixed(0),
+          firstBlock: swapperAcc?.lastBlock || swap.blockNumber,
+          lastBlock: swap.blockNumber,
+          totalStakeAmountPSP,
+          refundedAmountPSP: accRefundedAmountPSP.toFixed(0),
+          firstTx: swapperAcc?.firstTx || swap.txHash,
+          lastTx: swap.txHash,
+          firstTimestamp: swapperAcc?.firstTimestamp || +swap.timestamp,
+          lastTimestamp: +swap.timestamp,
+          numTx: (swapperAcc?.numTx || 0) + 1,
+          isCompleted: false,
+          updated: true,
+        };
+
+        acc[address] = pendingGasRefundDatum;
+
         return acc;
-      }
-
-      const currGasUsed = new BigNumber(swap.txGasUsed.toString());
-      const accGasUsed = currGasUsed.plus(swapperAcc?.accumulatedGasUsed || 0);
-
-      const currGasUsedChainCur = currGasUsed.multipliedBy(
-        swap.txGasPrice.toString(),
-      ); // in wei
-
-      const accGasUsedChainCur = currGasUsedChainCur.plus(
-        swapperAcc?.accumulatedGasUsedChainCurrency || 0,
-      );
-
-      const currGasFeePSP = currGasUsedChainCur.dividedBy(pspRateSameDay);
-
-      const accGasFeePSP = currGasFeePSP.plus(
-        swapperAcc?.accumulatedGasUsedPSP || 0,
-      );
-
-      const totalStakeAmountPSP = stakes[address];
-      const refundPercent = getRefundPercent(totalStakeAmountPSP);
-      assert(
-        refundPercent,
-        `Logic Error: failed to find refund percent for ${address}`,
-      );
-      const currRefundedAmountPSP = currGasFeePSP.multipliedBy(refundPercent);
-
-      const accRefundedAmountPSP = currRefundedAmountPSP.plus(
-        swapperAcc?.refundedAmountPSP || 0,
-      );
-
-      const pendingGasRefundDatum: PendingEpochGasRefundData = {
-        epoch,
-        address,
-        chainId: chainId,
-        accumulatedGasUsedPSP: accGasFeePSP.toFixed(0),
-        accumulatedGasUsed: accGasUsed.toFixed(0),
-        accumulatedGasUsedChainCurrency: accGasUsedChainCur.toFixed(0),
-        lastBlockNum: swap.blockNumber,
-        isCompleted: false,
-        totalStakeAmountPSP,
-        refundedAmountPSP: accRefundedAmountPSP.toFixed(0),
-        updated: true,
-      };
-
-      acc[address] = pendingGasRefundDatum;
-
-      return acc;
-    }, accumulatedTxFeesByAddress);
+      },
+      accumulatedTxFeesByAddress,
+    );
 
     const updatedData = Object.values(accumulatedTxFeesByAddress).filter(
       v => v.updated,

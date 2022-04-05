@@ -31,10 +31,10 @@ interface MerkleRedeem extends Contract {
 
 const MerkleRedeemAddress: { [chainId: number]: string } = {
   // @TODO
-  [CHAIN_ID_MAINNET]: '0xfeb7e2d8584bef7bb21da0b70c148dabf1388031', 
-  [CHAIN_ID_POLYGON]: '0xa9303ce4c15a036d2df3438c98cc6c7e884b3d5d', 
-  [CHAIN_ID_FANTOM]: '0x07331334294cE1A78a140125ec8c816DB864887D',
-  [CHAIN_ID_BINANCE]: '0x0B7eE2c4e925d878811136c52b3fAda68e4e4629',
+  [CHAIN_ID_MAINNET]: '0xdf8692b95790e26a36d89b9963f073caa18ef444',
+  [CHAIN_ID_POLYGON]: '0x8144A5f1AF12fb966E6C3462B769E3a2109Ed658',
+  [CHAIN_ID_FANTOM]: '0xf65Aac676C9600AbF56C5580b960e00e67369780',
+  [CHAIN_ID_BINANCE]: '0xDB60678dA833d4AD29756BE04df7962038fa6c79',
 };
 
 type GasRefundClaim = Pick<
@@ -174,20 +174,10 @@ export class GasRefundApi {
     };
   }
 
-  async getAllEntriesForEpoch(epoch: number): Promise<GasRefundParticipation[]> {
+  async getAllEntriesForEpoch(
+    epoch: number,
+  ): Promise<GasRefundParticipation[]> {
     const grpData = await GasRefundParticipation.findAll({
-      attributes: [
-        'epoch',
-        'address',
-        'chainId',
-        'lastBlockNum',
-        'accumulatedGasUsed',
-        'accumulatedGasUsedChainCurrency',
-        'accumulatedGasUsedPSP',
-        'totalStakeAmountPSP',
-        'refundedAmountPSP',
-        'merkleProofs',
-      ],
       where: { epoch, chainId: this.network },
       raw: true,
     });
