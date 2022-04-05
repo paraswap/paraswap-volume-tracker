@@ -65,7 +65,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     );
 
     logger.info(
-      `start getting stakers between ${_startTimestamp} and ${_endTimestampSlice}`,
+      `fetching stakers between ${_startTimestamp} and ${_endTimestampSlice}...`,
     );
     const stakesByHour = await getPSPStakesHourlyWithinInterval(
       _startTimestampSlice,
@@ -80,13 +80,15 @@ export async function computeSuccessfulSwapsTxFeesRefund({
 
     if (!stakersAddress || !stakersAddress.length) {
       logger.warn(
-        `no stakers found between ${_startTimestampSlice} and ${_endTimestampSlice}`,
+        `no stakers found between ${_startTimestampSlice} and ${_endTimestampSlice}...`,
       );
       continue;
     }
 
+    logger.info(`fetched ${stakersAddress.length} stakers in total between ${_startTimestampSlice} and ${_endTimestampSlice}`);
+    
     logger.info(
-      `start indexing partition between ${_startTimestampSlice} and ${_endTimestampSlice}`,
+      `fetching swaps between ${_startTimestampSlice} and ${_endTimestampSlice}...`,
     );
 
     // alternatively can slice requests over different sub intervals matching different stakers subset but we'd be refetching same data
@@ -98,7 +100,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     });
 
     logger.info(
-      `fetched ${swaps.length} swaps withing _startTimestampSlice=${_startTimestampSlice} and _endTimestampSlice=${_endTimestampSlice}`,
+      `fetched ${swaps.length} swaps between ${_startTimestampSlice} and ${_endTimestampSlice}`,
     );
 
     const swapsWithGasUsed = await Promise.all(

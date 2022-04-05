@@ -29,7 +29,7 @@ export async function fetchPSPRatesAndComputeGasRefundForChain({
   endCalcTime: number;
 }) {
   if (await merkleRootExists({ chainId, epoch }))
-    return logger.info(
+    throw new Error(
       `merkle root for chainId=${chainId} epoch=${epoch} already exists`,
     );
 
