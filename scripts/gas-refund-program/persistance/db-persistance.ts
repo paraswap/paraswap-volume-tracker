@@ -30,7 +30,6 @@ export const fetchPendingGasRefundData = async ({
   return pendingEpochDataByAddress;
 };
 
-
 export async function fetchVeryLastTimestampProcessed({
   chainId,
   epoch,
@@ -38,11 +37,14 @@ export async function fetchVeryLastTimestampProcessed({
   chainId: number;
   epoch: number;
 }): Promise<number> {
-  const lastTimestamp = await GasRefundParticipation.max('lastTimestamp', {
+  const lastTimestamp = await GasRefundParticipation.max<
+    number,
+    GasRefundParticipation
+  >('lastTimestamp', {
     where: { chainId, epoch },
   });
 
-  return lastTimestamp as number;
+  return lastTimestamp;
 }
 
 export const writePendingEpochData = async (

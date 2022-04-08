@@ -19,7 +19,7 @@ import { ONE_HOUR_SEC, startOfHourSec } from '../utils';
 
 // empirically set to maximise on processing time without penalising memory and fetching constraigns
 // @FIXME: fix swaps subgraph pagination to always stay on safest spot
-const SLICE_DURATION = 24 * ONE_HOUR_SEC;
+const SLICE_DURATION = 6 * ONE_HOUR_SEC;
 
 export async function computeSuccessfulSwapsTxFeesRefund({
   chainId,
