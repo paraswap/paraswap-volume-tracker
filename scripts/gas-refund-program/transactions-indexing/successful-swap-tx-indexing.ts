@@ -44,7 +44,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     `swapTracker start indexing between ${startTimestamp} and ${endTimestamp}`,
   );
 
-  let [accPendingGasRefundByAddress, veryLastTimestampProcessed] =
+  const [accPendingGasRefundByAddress, veryLastTimestampProcessed] =
     await Promise.all([
       fetchPendingGasRefundData({ chainId, epoch }),
       fetchVeryLastTimestampProcessed({ chainId, epoch }),

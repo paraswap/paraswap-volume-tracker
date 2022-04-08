@@ -68,15 +68,12 @@ export class EpochInfo {
 
     if (lazy) return;
 
-    const getEpochInfo = () =>
-      retry(() => this.getEpochDetails(), { retries: 5 });
-
-    getEpochInfo().catch(e => {
+    this.getEpochInfo().catch(e => {
       logger.error(`Exit on epoch info update error: ${e.message}`);
       process.exit(1);
     });
 
-    setInterval(getEpochInfo, EpochPollingTime);
+    this.startEpochInfoPolling();
   }
 
   static instances: { [network: number]: EpochInfo } = {};
@@ -86,6 +83,11 @@ export class EpochInfo {
       this.instances[network] = new EpochInfo(network, lazy);
     return this.instances[network];
   }
+
+  getEpochInfo = () => retry(() => this.getEpochDetails(), { retries: 5 });
+
+  startEpochInfoPolling = () =>
+    setInterval(this.getEpochInfo, EpochPollingTime);
 
   async getEpochDetails() {
     try {

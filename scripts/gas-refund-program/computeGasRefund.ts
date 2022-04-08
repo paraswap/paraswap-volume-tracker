@@ -2,8 +2,6 @@ import '../../src/lib/log4js';
 import * as dotenv from 'dotenv';
 dotenv.config();
 import { computeGasRefundAllTxs } from './transactions-indexing';
-import Database from '../../src/database';
-
 import { merkleRootExists } from './persistance/db-persistance';
 
 import { assert } from 'ts-essentials';
@@ -11,40 +9,59 @@ import {
   GasRefundGenesisEpoch,
   GRP_SUPPORTED_CHAINS,
 } from '../../src/lib/gas-refund';
-import { resolveEpochCalcTimeInterval } from './utils';
+import { GasRefundParticipation } from '../../src/models/GasRefundParticipation';
+import { init, resolveEpochCalcTimeInterval } from './common';
+import { EpochInfo } from '../../src/lib/epoch-info';
+import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
 
 const logger = global.LOGGER('GRP');
 
 async function startComputingGasRefundAllChains() {
-  const epoch = Number(process.env.GRP_EPOCH) || GasRefundGenesisEpoch; // @TODO: automate
+  await init({ epochPooling: true });
 
-  assert(
-    epoch >= GasRefundGenesisEpoch,
-    'cannot compute refund data for epoch < genesis_epoch',
-  );
-
-  await Database.connectAndSync();
-
-  const { startCalcTime, endCalcTime } = await resolveEpochCalcTimeInterval(
-    epoch,
-  );
-
-  assert(startCalcTime, `could not resolve ${epoch}th epoch start time`);
-  assert(endCalcTime, `could not resolve ${epoch}th epoch end time`);
+  const epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET, true);
 
   return Promise.allSettled(
     GRP_SUPPORTED_CHAINS.map(async chainId => {
-      if (await merkleRootExists({ chainId, epoch }))
-        throw new Error(
-          `merkle root for chainId=${chainId} epoch=${epoch} already exists`,
-        );
-
-      return computeGasRefundAllTxs({
-        chainId,
-        epoch,
-        startTimestamp: startCalcTime,
-        endTimestamp: endCalcTime,
+      const lastEpochProcessed = await GasRefundParticipation.max<
+        number,
+        GasRefundParticipation
+      >('epoch', {
+        where: {
+          isCompleted: false,
+          chainId,
+        },
       });
+
+      const startEpoch = lastEpochProcessed || GasRefundGenesisEpoch;
+
+      assert(
+        startEpoch >= GasRefundGenesisEpoch,
+        'cannot compute refund data for epoch < genesis_epoch',
+      );
+
+      for (
+        let epoch = startEpoch;
+        epoch <= epochInfo.getCurrentEpoch();
+        epoch++
+      ) {
+        const { startCalcTime, endCalcTime } =
+          await resolveEpochCalcTimeInterval(epoch);
+
+        assert(startCalcTime, `could not resolve ${epoch}th epoch start time`);
+        assert(endCalcTime, `could not resolve ${epoch}th epoch end time`);
+        if (await merkleRootExists({ chainId, epoch }))
+          throw new Error(
+            `merkle root for chainId=${chainId} epoch=${epoch} already exists`,
+          );
+
+        await computeGasRefundAllTxs({
+          chainId,
+          epoch,
+          startTimestamp: startCalcTime,
+          endTimestamp: endCalcTime,
+        });
+      }
     }),
   );
 }
