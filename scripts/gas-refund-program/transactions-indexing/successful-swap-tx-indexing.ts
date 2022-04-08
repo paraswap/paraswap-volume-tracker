@@ -125,6 +125,8 @@ export async function computeSuccessfulSwapsTxFeesRefund({
       `fetched gas used between ${_startTimestampSlice} and ${_endTimestampSlice}`,
     );
 
+    const updatedPendingGasRefundData: TxFeesByAddress = {}
+
     accumulatedTxFeesByAddress = swapsWithGasUsed.reduce<TxFeesByAddress>(
       (acc, swap) => {
         const address = swap.txOrigin;
@@ -160,17 +162,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
 
         const pspRateSameDay = findSameDayPrice(+swap.timestamp);
 
-        if (!pspRateSameDay) {
-          logger.warn(
-            `Fail to find price for same day ${
-              swap.timestamp
-            } and rates=${JSON.stringify(
-              pspNativeCurrencyDailyRate.flatMap(p => p.timestamp),
-            )}`,
-          );
-
-          return acc;
-        }
+        assert(pspRateSameDay, `could not retrieve psp/chaincurrency same day rate for swap at ${swap.timestamp}`);
 
         const currGasUsed = new BigNumber(swap.txGasUsed);
         const accumulatedGasUsed = currGasUsed.plus(
@@ -221,21 +213,21 @@ export async function computeSuccessfulSwapsTxFeesRefund({
           lastTimestamp: +swap.timestamp,
           numTx: (swapperAcc?.numTx || 0) + 1,
           isCompleted: false,
-          updated: true,
         };
 
         acc[address] = pendingGasRefundDatum;
+        updatedPendingGasRefundData[address] = pendingGasRefundDatum;
 
         return acc;
       },
       accumulatedTxFeesByAddress,
     );
 
-    const updatedData = Object.values(accumulatedTxFeesByAddress).filter(
-      v => v.updated,
-    );
-    if (updatedData.length > 0) {
-      await writePendingEpochData(updatedData);
+    const updatedEpochData = Object.values(updatedPendingGasRefundData)
+
+    if (updatedEpochData.length > 0) {
+      logger.log(`updating ${updatedEpochData.length} pending gas refund data`);
+      await writePendingEpochData(updatedEpochData);
     }
   }
 
