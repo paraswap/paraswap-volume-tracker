@@ -141,7 +141,7 @@ export class GasRefundApi {
   async getCurrentEpochPendingRefundedAmount(address: string): Promise<string>{
     const epoch = await this.epochInfo.getCurrentEpoch();
     const grpData = await GasRefundParticipation.findAll({
-      attributes: ['epoch', 'address', 'refundedAmountPSP', 'merkleProofs'],
+      attributes: ['epoch', 'address', 'refundedAmountPSP'],
       where: { epoch, address, chainId: this.network, isCompleted: false },
       raw: true,
     });
