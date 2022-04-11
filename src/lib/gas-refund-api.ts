@@ -148,9 +148,9 @@ export class GasRefundApi {
 
     if(!grpData.length) return "0";
     
-    const claimableAmount = BigNumber.sum(...grpData.map(({refundedAmountPSP}) => refundedAmountPSP)).toString(10)
+    const refundedAmount = BigNumber.sum(...grpData.map(({refundedAmountPSP}) => refundedAmountPSP)).toString(10)
 
-    return claimableAmount;
+    return refundedAmount;
   }
 
   // get all ever constructed merkle data for addrress
