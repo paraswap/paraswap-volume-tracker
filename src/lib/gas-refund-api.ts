@@ -48,7 +48,9 @@ type BaseGasRefundClaimsResponse<T> = {
   claims: (Omit<GasRefundClaim, 'refundedAmountPSP'> & { amount: string })[];
 };
 type GasRefundClaimsResponseAcc = BaseGasRefundClaimsResponse<bigint>;
-type GasRefundClaimsResponse = BaseGasRefundClaimsResponse<string>;
+type GasRefundClaimsResponse = BaseGasRefundClaimsResponse<string> & {
+  pendingClaimable: string
+};
 
 export class GasRefundApi {
   epochInfo: EpochInfo;
@@ -138,7 +140,7 @@ export class GasRefundApi {
     return epochToClaimed;
   }
 
-  async getCurrentEpochPendingRefundedAmount(address: string): Promise<string>{
+  async _getCurrentEpochPendingRefundedAmount(address: string): Promise<string>{
     const epoch = await this.epochInfo.getCurrentEpoch();
     const grpData = await GasRefundParticipation.findAll({
       attributes: ['epoch', 'address', 'refundedAmountPSP'],
@@ -162,9 +164,10 @@ export class GasRefundApi {
     const startEpoch = GasRefundGenesisEpoch;
     const endEpoch = Math.max(lastEpoch, GasRefundGenesisEpoch);
 
-    const [merkleData, epochToClaimed] = await Promise.all([
+    const [merkleData, epochToClaimed, pendingClaimable] = await Promise.all([
       this._fetchMerkleData(address),
       this._getClaimStatus(address, startEpoch, endEpoch),
+      this._getCurrentEpochPendingRefundedAmount(address)
     ]);
 
     const { totalClaimable, claims } =
@@ -187,6 +190,7 @@ export class GasRefundApi {
     return {
       totalClaimable: totalClaimable.toString(),
       claims,
+      pendingClaimable 
     };
   }
 

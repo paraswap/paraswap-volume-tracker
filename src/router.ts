@@ -166,7 +166,7 @@ export default class Router {
     );
 
     router.get(
-      '/gas-refund/pending-refunded-amount/:network/:address',
+      '/gas-refund/user-data/:network/:address',
       async (req, res) => {
         const address = req.params.address.toLowerCase();
 
@@ -174,45 +174,21 @@ export default class Router {
           const network = Number(req.params.network);
           if (!GRP_SUPPORTED_CHAINS.includes(network))
             return res
-              .status(500)
+              .status(403)
               .send({ error: `Unsupported network: ${network}` });
           const gasRefundApi = GasRefundApi.getInstance(network);
-          const gasRefundData =
-            await gasRefundApi.getCurrentEpochPendingRefundedAmount(address);
+          const gasRefundDataAddress =
+            await gasRefundApi.getAllGasRefundDataForAddress(address);
 
-          return res.json({amount: gasRefundData});
+          return res.json(gasRefundDataAddress);
         } catch (e) {
           logger.error(req.path, e);
-          res.status(500).send({
-            error: `GasRefundError: could not retrieve current epoch data for ${address}`,
+          res.status(403).send({
+            error: `GasRefundError: could not retrieve merkle data for ${address}`,
           });
         }
-      }),
-
-      router.get(
-        '/gas-refund/all-merkle-data/:network/:address',
-        async (req, res) => {
-          const address = req.params.address.toLowerCase();
-
-          try {
-            const network = Number(req.params.network);
-            if (!GRP_SUPPORTED_CHAINS.includes(network))
-              return res
-                .status(403)
-                .send({ error: `Unsupported network: ${network}` });
-            const gasRefundApi = GasRefundApi.getInstance(network);
-            const gasRefundDataAddress =
-              await gasRefundApi.getAllGasRefundDataForAddress(address);
-
-            return res.json(gasRefundDataAddress);
-          } catch (e) {
-            logger.error(req.path, e);
-            res.status(403).send({
-              error: `GasRefundError: could not retrieve merkle data for ${address}`,
-            });
-          }
-        },
-      );
+      },
+    );
 
     // @TODO: remove
     router.get('/gas-refund/describe', async (req, res) => {
