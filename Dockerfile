@@ -20,4 +20,4 @@ RUN apk --no-cache add dumb-init && rm -rf /var/cache/apk/*
 WORKDIR /app
 COPY --from=yarn-prod /app ./
 EXPOSE 80
-CMD ["dumb-init", "node", "src/index.js"]
+CMD ["dumb-init", "node", "index.js"]

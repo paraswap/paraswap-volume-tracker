@@ -4,7 +4,7 @@ WORKDIR /app
 COPY ["package*.json", "tsconfig.json", "yarn.lock", "./"]
 RUN yarn install
 COPY . ./
-RUN yarn build
+RUN yarn build:grp
 
 # install production only dependencies
 FROM node:14-alpine as yarn-prod

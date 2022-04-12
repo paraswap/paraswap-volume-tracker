@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "NODE_ENV=development nodemon",
     "build": "NODE_ENV=production tsc",
+    "build:grp": "NODE_ENV=production tsc --project scripts/gas-refund-program/tsconfig.json",
     "start": "NODE_ENV=production && node ./dist",
     "store-airdrop-data": "NODE_ENV=development ts-node scripts/store-airdrop-data.ts",
     "gas-refund:dev:compute-gas-refund-save-db": "patch-package && NODE_ENV=development ts-node scripts/gas-refund-program/computeGasRefund",
