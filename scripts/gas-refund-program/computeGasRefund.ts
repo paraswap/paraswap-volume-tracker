@@ -84,8 +84,8 @@ async function startComputingGasRefundAllChains() {
 startComputingGasRefundAllChains()
   .then(ps => {
     const maybeOneRejected = ps.find(
-      p => p.status === 'rejected',
-    ) as PromiseRejectedResult;
+      (p): p is PromiseRejectedResult => p.status === 'rejected',
+    );
 
     if (maybeOneRejected) {
       throw maybeOneRejected.reason;
