@@ -4,14 +4,14 @@ import { EpochInfo } from '../../src/lib/epoch-info';
 import { ONE_HOUR_SEC } from './utils';
 
 type Params = {
-  epochPooling?: boolean;
+  epochPolling?: boolean;
 };
 
 export async function init(options?: Params) {
   await Database.connectAndSync();
   const epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET, true);
   await epochInfo.getEpochInfo();
-  if (options?.epochPooling) epochInfo.startEpochInfoPolling();
+  if (options?.epochPolling) epochInfo.startEpochInfoPolling();
 }
 
 const OFFSET_CALC_TIME = ONE_HOUR_SEC; // delay to ensure that all third parties providers are synced + algo needds to retrieve stakes before/after 1h

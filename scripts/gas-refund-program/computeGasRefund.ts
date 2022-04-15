@@ -17,7 +17,7 @@ import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
 const logger = global.LOGGER('GRP');
 
 async function startComputingGasRefundAllChains() {
-  await init({ epochPooling: true });
+  await init({ epochPolling: true });
 
   const epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET, true);
 
