@@ -25,17 +25,13 @@ async function startComputingGasRefundAllChains() {
 
   const epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET, true);
 
-  return Promise.allSettled(
-    GRP_SUPPORTED_CHAINS.map(async chainId => {
-      return Database.sequelize.transaction(async transaction => {
-        // acquire lock for chainId (row level only ?)
-        await GasRefundParticipation.findOne({
-          where: {
-            chainId,
-          },
-          lock: true,
-        });
+  return Database.sequelize.transaction(async () => {
+    await Database.sequelize.query(
+      `LOCK TABLE "${GasRefundParticipation.tableName}" IN ACCESS EXCLUSIVE MODE;`,
+    );
 
+    return Promise.allSettled(
+      GRP_SUPPORTED_CHAINS.map(async chainId => {
         const lastEpochProcessed = await GasRefundParticipation.max<
           number,
           GasRefundParticipation
@@ -78,9 +74,9 @@ async function startComputingGasRefundAllChains() {
             endTimestamp: endCalcTime,
           });
         }
-      });
-    }),
-  );
+      }),
+    );
+  });
 }
 
 startComputingGasRefundAllChains()
