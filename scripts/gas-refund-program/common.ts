@@ -5,10 +5,11 @@ import { ONE_HOUR_SEC } from './utils';
 
 type Params = {
   epochPolling?: boolean;
+  dbTransactionNamespace?: string;
 };
 
 export async function init(options?: Params) {
-  await Database.connectAndSync();
+  await Database.connectAndSync(options?.dbTransactionNamespace);
   const epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET, true);
   await epochInfo.getEpochInfo();
   if (options?.epochPolling) epochInfo.startEpochInfoPolling();
