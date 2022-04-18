@@ -30,7 +30,7 @@ async function startComputingGasRefundAllChains() {
       `LOCK TABLE "${GasRefundParticipation.tableName}" IN ACCESS EXCLUSIVE MODE;`,
     );
 
-    return Promise.allSettled(
+    return Promise.all(
       GRP_SUPPORTED_CHAINS.map(async chainId => {
         const lastEpochProcessed = await GasRefundParticipation.max<
           number,
@@ -83,15 +83,7 @@ async function startComputingGasRefundAllChains() {
 }
 
 startComputingGasRefundAllChains()
-  .then(ps => {
-    const maybeOneRejected = ps.find(
-      (p): p is PromiseRejectedResult => p.status === 'rejected',
-    );
-
-    if (maybeOneRejected) {
-      throw maybeOneRejected.reason;
-    }
-
+  .then(() => {
     process.exit(0);
   })
   .catch(err => {
