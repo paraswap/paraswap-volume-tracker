@@ -66,7 +66,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     );
 
     logger.info(
-      `fetching stakers between ${_startTimestamp} and ${_endTimestampSlice}...`,
+      `fetching stakers between ${_startTimestampSlice} and ${_endTimestampSlice}...`,
     );
     const stakesByHour = await getPSPStakesHourlyWithinInterval(
       _startTimestampSlice,
