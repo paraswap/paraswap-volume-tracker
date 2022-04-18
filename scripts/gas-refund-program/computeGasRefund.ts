@@ -62,10 +62,13 @@ async function startComputingGasRefundAllChains() {
             `could not resolve ${epoch}th epoch start time`,
           );
           assert(endCalcTime, `could not resolve ${epoch}th epoch end time`);
-          if (await merkleRootExists({ chainId, epoch }))
-            throw new Error(
-              `merkle root for chainId=${chainId} epoch=${epoch} already exists`,
+
+          if (await merkleRootExists({ chainId, epoch })) {
+            logger.info(
+              `merkle root for chainId=${chainId} epoch=${epoch} already exists, SKIP`,
             );
+            continue;
+          }
 
           await computeGasRefundAllTxs({
             chainId,
