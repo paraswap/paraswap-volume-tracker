@@ -16,7 +16,7 @@ Start local postgres:
 
 ## Run the scripts
 Run
-- `gas-refund:compute-gas-refund-save-db`: index transactions over one epoch and compute gas refund -> soon run forever ? cron task ?
+- `gas-refund:dev:compute-gas-refund-save-db`: index transactions over one epoch and compute gas refund -> soon run forever ? cron task ?
 
 Then
 - `gas-refund:compute-merkle-tree-save-file`: compute Merkle Trees for all supported chains and store in files -> this should run manually to help on inspecting data and ultimately update the contract with new Merkle Root and add funds by calling [seedAllocations()](https://github.com/balancer-labs/erc20-redeemable/blob/master/merkle/contracts/MerkleRedeem.sol#L124) [in futur can even trigger gnosis safe proposal]

@@ -31,7 +31,6 @@ export interface PendingEpochGasRefundData extends BaseGasRefundData {
   isCompleted: false;
   totalStakeAmountPSP: string;
   refundedAmountPSP: string;
-  updated?: boolean;
   firstTx: string;
   lastTx: string;
   numTx: number;

@@ -2,7 +2,6 @@ import '../../src/lib/log4js';
 import * as dotenv from 'dotenv';
 dotenv.config();
 import { computeMerkleData } from './refund/merkle-tree';
-import Database from '../../src/database';
 
 import {
   merkleRootExists,
@@ -15,8 +14,8 @@ import {
   GRP_SUPPORTED_CHAINS,
 } from '../../src/lib/gas-refund';
 import { GasRefundParticipation } from '../../src/models/GasRefundParticipation';
-import { resolveEpochCalcTimeInterval } from './utils';
 import { saveMerkleTreeInFile } from './persistance/file-persistance';
+import { init, resolveEpochCalcTimeInterval } from './common';
 
 const logger = global.LOGGER('GRP:COMPUTE_MERKLE_TREE');
 
@@ -56,14 +55,14 @@ export async function computeAndStoreMerkleTreeForChain({
 }
 
 async function startComputingMerkleTreesAllChains() {
+  await init();
+
   const epoch = Number(process.env.GRP_EPOCH) || GasRefundGenesisEpoch; // @TODO: automate
 
   assert(
     epoch >= GasRefundGenesisEpoch,
     'cannot compute grp merkle data for epoch < genesis_epoch',
   );
-
-  await Database.connectAndSync();
 
   const { isEpochEnded } = await resolveEpochCalcTimeInterval(epoch);
 

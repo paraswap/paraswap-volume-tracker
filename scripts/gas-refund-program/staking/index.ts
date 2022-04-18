@@ -21,7 +21,10 @@ const getAllPSPStakes = async (
     BlockInfo.getInstance(CHAIN_ID_MAINNET).getBlockAfterTimeStamp(timestamp),
   );
 
-  assert(blockNumber, 'blocknumber could be retrieved');
+  assert(
+    blockNumber,
+    `blocknumber could be retrieved for timestamp ${timestamp} (ethereum-blocks-subraph out of sync)`,
+  );
 
   const stakesByAddress = await getSPSPStakes({ blockNumber });
 
@@ -40,7 +43,7 @@ const getAllPSPStakes = async (
 
 const getAllPSPStakesCached = pMemoize(getAllPSPStakes, {
   cache: new QuickLRU({
-    maxSize: 30,
+    maxSize: 90,
   }),
 });
 

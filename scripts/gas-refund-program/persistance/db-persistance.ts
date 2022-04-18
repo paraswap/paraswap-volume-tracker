@@ -7,7 +7,7 @@ import { GasRefundDistribution } from '../../../src/models/GasRefundDistribution
 import { MerkleData, MerkleTreeData, TxFeesByAddress } from '../types';
 import { sliceCalls } from '../utils';
 
-const fetchPendingEpochData = async ({
+export const fetchPendingGasRefundData = async ({
   chainId,
   epoch,
 }: {
@@ -30,46 +30,22 @@ const fetchPendingEpochData = async ({
   return pendingEpochDataByAddress;
 };
 
-async function fetchVeryLastBlockNumProcessed({
+export async function fetchVeryLastTimestampProcessed({
   chainId,
   epoch,
 }: {
   chainId: number;
   epoch: number;
 }): Promise<number> {
-  const lastBlock = await GasRefundParticipation.max('lastBlock', {
+  const lastTimestamp = await GasRefundParticipation.max<
+    number,
+    GasRefundParticipation
+  >('lastTimestamp', {
     where: { chainId, epoch },
   });
 
-  return lastBlock as number;
+  return lastTimestamp;
 }
-
-async function fetchVeryLastTimestampProcessed({
-  chainId,
-  epoch,
-}: {
-  chainId: number;
-  epoch: number;
-}): Promise<number> {
-  const lastTimestamp = await GasRefundParticipation.max('lastTimestamp', {
-    where: { chainId, epoch },
-  });
-
-  return lastTimestamp as number;
-}
-
-export const readPendingEpochData = async ({
-  chainId,
-  epoch,
-}: {
-  chainId: number;
-  epoch: number;
-}): Promise<[TxFeesByAddress, number]> => {
-  return Promise.all([
-    fetchPendingEpochData({ chainId, epoch }),
-    fetchVeryLastTimestampProcessed({ chainId, epoch }),
-  ]);
-};
 
 export const writePendingEpochData = async (
   pendingEpochGasRefundData: PendingEpochGasRefundData[],

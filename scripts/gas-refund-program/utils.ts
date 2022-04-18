@@ -1,9 +1,7 @@
-import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
-import { EpochInfo } from '../../src/lib/epoch-info';
 import * as _ from 'lodash';
 
 export const ONE_HOUR_SEC = 60 * 60;
-const DAY_SEC_MSEC = 1000 * 60 * 60 * 24;
+const DAY_SEC_MSEC = 1000 * ONE_HOUR_SEC * 24;
 
 interface SliceCallsInput<T, U> {
   inputArray: T[];
@@ -30,30 +28,6 @@ export function sliceCalls<T, U>({
   }
 
   return results as [U, ...U[]];
-}
-
-const OFFSET_CALC_TIME = 5 * 60; // 5min delay to ensure that all third parties providers are synced
-
-export async function resolveEpochCalcTimeInterval(epoch: number): Promise<{
-  startCalcTime: number;
-  endCalcTime: number;
-  isEpochEnded: boolean;
-}> {
-  const epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET, true);
-  await epochInfo.getEpochDetails();
-  const [epochStartTime, epochDuration] = await Promise.all([
-    epochInfo.getEpochStartCalcTime(epoch),
-    epochInfo.getEpochDuration(),
-  ]);
-  const epochEndTime = epochStartTime + epochDuration; // safer than getEpochEndCalcTime as it fails for current epoch
-
-  const nowUnixTime = Math.round(Date.now() / 1000);
-
-  return {
-    startCalcTime: epochStartTime,
-    endCalcTime: Math.min(nowUnixTime - OFFSET_CALC_TIME, epochEndTime),
-    isEpochEnded: nowUnixTime > epochEndTime + OFFSET_CALC_TIME,
-  };
 }
 
 export const startOfHourSec = (unixTimestamp: number) => {

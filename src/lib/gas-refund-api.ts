@@ -13,6 +13,7 @@ import {
 import { EpochInfo } from './epoch-info';
 import { GasRefundGenesisEpoch } from './gas-refund';
 import { Provider } from './provider';
+import BigNumber from 'bignumber.js';
 
 const MerkleRedeemAbi = [
   'function seedAllocations(uint _week, bytes32 _merkleRoot, uint _totalAllocation)',
@@ -47,7 +48,9 @@ type BaseGasRefundClaimsResponse<T> = {
   claims: (Omit<GasRefundClaim, 'refundedAmountPSP'> & { amount: string })[];
 };
 type GasRefundClaimsResponseAcc = BaseGasRefundClaimsResponse<bigint>;
-type GasRefundClaimsResponse = BaseGasRefundClaimsResponse<string>;
+type GasRefundClaimsResponse = BaseGasRefundClaimsResponse<string> & {
+  pendingClaimable: string
+};
 
 export class GasRefundApi {
   epochInfo: EpochInfo;
@@ -137,6 +140,21 @@ export class GasRefundApi {
     return epochToClaimed;
   }
 
+  async _getCurrentEpochPendingRefundedAmount(address: string): Promise<string>{
+    const epoch = await this.epochInfo.getCurrentEpoch();
+    const grpData = await GasRefundParticipation.findAll({
+      attributes: ['epoch', 'address', 'refundedAmountPSP'],
+      where: { epoch, address, chainId: this.network, isCompleted: false },
+      raw: true,
+    });
+
+    if(!grpData.length) return "0";
+    
+    const refundedAmount = BigNumber.sum(...grpData.map(({refundedAmountPSP}) => refundedAmountPSP)).toString(10)
+
+    return refundedAmount;
+  }
+
   // get all ever constructed merkle data for addrress
   async getAllGasRefundDataForAddress(
     address: string,
@@ -146,9 +164,10 @@ export class GasRefundApi {
     const startEpoch = GasRefundGenesisEpoch;
     const endEpoch = Math.max(lastEpoch, GasRefundGenesisEpoch);
 
-    const [merkleData, epochToClaimed] = await Promise.all([
+    const [merkleData, epochToClaimed, pendingClaimable] = await Promise.all([
       this._fetchMerkleData(address),
       this._getClaimStatus(address, startEpoch, endEpoch),
+      this._getCurrentEpochPendingRefundedAmount(address)
     ]);
 
     const { totalClaimable, claims } =
@@ -171,6 +190,7 @@ export class GasRefundApi {
     return {
       totalClaimable: totalClaimable.toString(),
       claims,
+      pendingClaimable 
     };
   }
 
