@@ -1,5 +1,6 @@
 import { Client } from 'pg';
 import { Sequelize } from 'sequelize-typescript';
+import * as cls from 'cls-hooked';
 
 const logger = global.LOGGER();
 
@@ -14,7 +15,12 @@ const DATABASE_NAME = process.env.DATABASE_NAME || 'volume_tracker';
 export class Database {
   sequelize: Sequelize;
 
-  async connectAndSync() {
+  async connectAndSync(namespace?: string) {
+    if (namespace) {
+      const _namespace = cls.createNamespace(namespace);
+      Sequelize.useCLS(_namespace);
+    }
+
     // create a volume-tracker DB if it doesn't exist already
     const connectionStringParts = DATABASE_URL.split('/');
     const connectionStringDBName =

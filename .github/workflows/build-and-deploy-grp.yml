@@ -1,0 +1,45 @@
+name: Build and deploy Gas Refund Program
+
+env:
+  service_name: gas-refund-program
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy-grp:
+    name: Build and deploy gas refund program
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Composite Actions Repository
+        uses: actions/checkout@v2
+        with:
+          repository: paraswap/paraswap-github-actions
+          ref: master
+          token: ${{ secrets.PARASWAP_GITHUB_ACTIONS_PAT }}
+          path: .github/paraswap-github-actions
+
+      - name: Build and deploy service using composite action
+        uses: ./.github/paraswap-github-actions/build-and-deploy-service
+        with:
+          service_name: ${{ env.service_name }}
+          repository_sha: ${{ github.sha}}
+          event_name: ${{ github.event_name }}
+          authentication_token: ${{ secrets.AUTHENTICATION_KEY }}
+          authorization_token: ${{ secrets.AUTHORIZATION_KEY }}
+          data_center: ${{ secrets.DATA_CENTER }}
+          dockerfile_location: Dockerfile.grp
+
+      # We re-checkout composite actions repository due to a known bug that if composite action does its own checkout, it deletes any previous checkouts
+      # thus, the post action fails on not finding the composite action we checked-out. See: https://github.com/actions/runner/issues/1300
+      - name: ReCheckout Composite Actions Repository
+        uses: actions/checkout@v2
+        with:
+          repository: paraswap/paraswap-github-actions
+          ref: master
+          token: ${{ secrets.PARASWAP_GITHUB_ACTIONS_PAT }}
+          path: .github/paraswap-github-actions
