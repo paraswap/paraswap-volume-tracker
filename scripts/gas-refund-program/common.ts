@@ -15,7 +15,7 @@ export async function init(options?: Params) {
   if (options?.epochPolling) epochInfo.startEpochInfoPolling();
 }
 
-const OFFSET_CALC_TIME = ONE_HOUR_SEC; // delay to ensure that all third parties providers are synced + algo needds to retrieve stakes before/after 1h
+const OFFSET_CALC_TIME = 10 * 60; // delay to ensure that all third parties providers are synced
 
 export async function resolveEpochCalcTimeInterval(epoch: number): Promise<{
   startCalcTime: number;

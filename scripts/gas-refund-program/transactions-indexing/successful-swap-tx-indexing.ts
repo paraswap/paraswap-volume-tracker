@@ -68,9 +68,11 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     logger.info(
       `fetching stakers between ${_startTimestampSlice} and ${_endTimestampSlice}...`,
     );
+    // over fetch stakes to allow for stakes resolving max(stakesStartOfHour, stakesEndOfHour)
+    // @TEMP: should not overflow current date time -> will transition to fetching single stake per timestamp
     const stakesByHour = await getPSPStakesHourlyWithinInterval(
       _startTimestampSlice,
-      _endTimestampSlice + ONE_HOUR_SEC, // over fetch stakes to allow for stakes resolving max(stakesStartOfHour, stakesEndOfHour)
+      Math.min(endTimestamp, _endTimestampSlice + ONE_HOUR_SEC),
     );
 
     assert(stakesByHour, 'stakesByHour should be defined');
@@ -136,7 +138,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
       );
 
       const stakesStartOfHour = stakesByHour[startOfHourUnixTms];
-      const stakesStartOfNextHour = stakesByHour[startOfNextHourUnixTms];
+      const stakesStartOfNextHour = stakesByHour[startOfNextHourUnixTms] || {};
 
       assert(
         stakesStartOfHour,
