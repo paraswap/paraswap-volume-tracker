@@ -6,7 +6,7 @@ import {
   fetchVeryLastTimestampProcessed,
   writePendingEpochData,
 } from '../persistance/db-persistance';
-import { getSwapsForAccounts } from './swaps-subgraph';
+import { getSwapsForAccounts, getSwapsPerNetwork } from './swaps-subgraph';
 import {
   getRefundPercent,
   PendingEpochGasRefundData,
@@ -55,6 +55,13 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     veryLastTimestampProcessed + 1,
   );
 
+  // get all txs for the epoch,
+  const covalentTXs = await getSwapsPerNetwork({
+    startTimestamp: _startTimestamp,
+    endTimestamp,
+    chainId
+  })
+
   for (
     let _startTimestampSlice = _startTimestamp;
     _startTimestampSlice < endTimestamp;
@@ -97,12 +104,17 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     );
 
     // alternatively can slice requests over different sub intervals matching different stakers subset but we'd be refetching same data
+    // todo: this will be replaced with covalent tx data
     const swaps = await getSwapsForAccounts({
       startTimestamp: _startTimestampSlice,
       endTimestamp: _endTimestampSlice,
       accounts: stakersAddress,
       chainId,
     });
+
+    const txsOfStakers = covalentTXs.filter(({txOrigin}) => stakersAddress.includes(txOrigin))
+
+    // todo: go through all transactions (lifting off gas used) and getting stakes at each time - eg `fetchStakesPerUser?`
 
     logger.info(
       `fetched ${swaps.length} swaps between ${_startTimestampSlice} and ${_endTimestampSlice}`,
