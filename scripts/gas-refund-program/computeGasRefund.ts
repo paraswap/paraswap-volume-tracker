@@ -13,6 +13,7 @@ import { GasRefundParticipation } from '../../src/models/GasRefundParticipation'
 import { init, resolveEpochCalcTimeInterval } from './common';
 import { EpochInfo } from '../../src/lib/epoch-info';
 import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
+import { acquireLock, releaseLock } from '../../src/lib/lock-utils';
 import Database from '../../src/database';
 
 const logger = global.LOGGER('GRP');
@@ -26,12 +27,12 @@ async function startComputingGasRefundAllChains() {
   const epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET, true);
 
   return Database.sequelize.transaction(async () => {
-    await Database.sequelize.query(
-      `LOCK TABLE "${GasRefundParticipation.tableName}" IN ACCESS EXCLUSIVE MODE;`,
-    );
-
     return Promise.all(
       GRP_SUPPORTED_CHAINS.map(async chainId => {
+        const lockId = `GasRefundParticipation_${chainId}`;
+
+        await acquireLock(lockId); // next process simply hangs on inserting if lock already acquired
+
         const lastEpochProcessed = await GasRefundParticipation.max<
           number,
           GasRefundParticipation
@@ -77,6 +78,8 @@ async function startComputingGasRefundAllChains() {
             endTimestamp: endCalcTime,
           });
         }
+
+        await releaseLock(lockId);
       }),
     );
   });
