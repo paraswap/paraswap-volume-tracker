@@ -12,6 +12,8 @@ import { Contract } from 'ethers';
 import { Interface } from '@ethersproject/abi';
 import { StakedPSPByAddress } from '../types';
 import * as pLimit from 'p-limit';
+import * as pMemoize from 'p-memoize';
+import * as QuickLRU from 'quick-lru';
 
 interface GetStakersForPoolsInput {
   pools: string[];
@@ -71,7 +73,7 @@ const ONE_UNIT = (10 ** 18).toString();
 
 type PSPRateByPool = { [poolAddess: string]: number };
 
-export async function getSPSPToPSPRatesByPool({
+async function getSPSPToPSPRatesByPool({
   pools,
   chainId,
   blockNumber,
@@ -110,6 +112,13 @@ export async function getSPSPToPSPRatesByPool({
 
 const spspMulticallLimit = pLimit(5);
 
+const getSPSPToPSPRatesByPoolCached = pMemoize(getSPSPToPSPRatesByPool, {
+  cacheKey: args => `${args[0].chainId}_${args[0].blockNumber}`,
+  cache: new QuickLRU({
+    maxSize: 500, // cache up to 500 block numbers
+  }),
+});
+
 export async function getSPSPStakes({
   blockNumber,
 }: {
@@ -122,9 +131,17 @@ export async function getSPSPStakes({
     .map(p => p.address);
 
   const [stakersByPool, spspToPSPRateByPool] = await Promise.all([
-    getStakersForPools({ pools: SPSPs, chainId, blockNumber }), // concurrency guarded by http req rate limiting
+    getStakersForPools({
+      pools: SPSPs,
+      chainId,
+      blockNumber,
+    }),
     spspMulticallLimit(() =>
-      getSPSPToPSPRatesByPool({ pools: SPSPs, chainId, blockNumber }),
+      getSPSPToPSPRatesByPoolCached({
+        pools: SPSPs,
+        chainId,
+        blockNumber,
+      }),
     ),
   ]);
 
