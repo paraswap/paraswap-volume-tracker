@@ -55,6 +55,7 @@ export const writePendingEpochData = async (
       'accumulatedGasUsedPSP',
       'accumulatedGasUsed',
       'accumulatedGasUsedChainCurrency',
+      'accumulatedGasUsedUSD',
       'firstBlock',
       'lastBlock',
       'firstTimestamp',
@@ -65,6 +66,7 @@ export const writePendingEpochData = async (
       'isCompleted',
       'totalStakeAmountPSP',
       'refundedAmountPSP',
+      'refundedAmountUSD',
     ],
   });
 };

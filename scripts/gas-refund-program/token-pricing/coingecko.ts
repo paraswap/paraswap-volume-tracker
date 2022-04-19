@@ -60,11 +60,11 @@ function sampleDailyAvgPrices(prices: CoingeckoPriceHistory): HistoricalPrice {
     return acc;
   }, {});
 
-  const dailyAvgPrice = Object.entries(accDailyPrices).map(
-    ([timestamp, { accRate, count }]) => ({
-      timestamp: +timestamp,
-      rate: accRate / count,
-    }),
+  const dailyAvgPrice = Object.fromEntries(
+    Object.entries(accDailyPrices).map(([timestamp, { accRate, count }]) => [
+      timestamp,
+      accRate / count,
+    ]),
   );
 
   return dailyAvgPrice;

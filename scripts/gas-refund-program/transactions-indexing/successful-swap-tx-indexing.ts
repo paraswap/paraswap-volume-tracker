@@ -14,8 +14,8 @@ import {
 import { getTransactionGasUsed } from '../staking/covalent';
 import { getPSPStakesHourlyWithinInterval } from '../staking';
 import * as _ from 'lodash';
-import { constructSameDayPrice } from '../token-pricing/psp-chaincurrency-pricing';
 import { ONE_HOUR_SEC, startOfHourSec } from '../utils';
+import { FindSameDayPrice } from '../token-pricing/psp-chaincurrency-pricing';
 
 // empirically set to maximise on processing time without penalising memory and fetching constraigns
 // @FIXME: fix swaps subgraph pagination to always stay on safest spot
@@ -25,20 +25,18 @@ export async function computeSuccessfulSwapsTxFeesRefund({
   chainId,
   startTimestamp,
   endTimestamp,
-  pspNativeCurrencyDailyRate,
   epoch,
+  findSameDayPrice,
 }: {
   chainId: number;
   startTimestamp: number;
   endTimestamp: number;
-  pspNativeCurrencyDailyRate: HistoricalPrice;
   epoch: number;
+  findSameDayPrice: FindSameDayPrice;
 }): Promise<void> {
   const logger = global.LOGGER(
     `GRP:TRANSACTION_FEES_INDEXING: epoch=${epoch}, chainId=${chainId}`,
   );
-
-  const findSameDayPrice = constructSameDayPrice(pspNativeCurrencyDailyRate);
 
   logger.info(
     `swapTracker start indexing between ${startTimestamp} and ${endTimestamp}`,
@@ -162,10 +160,10 @@ export async function computeSuccessfulSwapsTxFeesRefund({
         return;
       }
 
-      const pspRateSameDay = findSameDayPrice(+swap.timestamp);
+      const currencyRate = findSameDayPrice(+swap.timestamp);
 
       assert(
-        pspRateSameDay,
+        currencyRate,
         `could not retrieve psp/chaincurrency same day rate for swap at ${swap.timestamp}`,
       );
 
@@ -182,7 +180,16 @@ export async function computeSuccessfulSwapsTxFeesRefund({
         swapperAcc?.accumulatedGasUsedChainCurrency || 0,
       );
 
-      const currGasFeePSP = currGasUsedChainCur.dividedBy(pspRateSameDay);
+      const currGasUsedUSD = currGasUsedChainCur
+        .multipliedBy(currencyRate.chainPrice)
+        .dividedBy(10 ** 18); // chaincurrency always encoded in 18decimals
+
+      const accumulatedGasUsedUSD = currGasUsedUSD.plus(
+        swapperAcc?.accumulatedGasUsedUSD || 0,
+      );
+      const currGasFeePSP = currGasUsedChainCur.dividedBy(
+        currencyRate.pspToChainCurRate,
+      );
 
       const accumulatedGasUsedPSP = currGasFeePSP.plus(
         swapperAcc?.accumulatedGasUsedPSP || 0,
@@ -200,18 +207,28 @@ export async function computeSuccessfulSwapsTxFeesRefund({
         swapperAcc?.refundedAmountPSP || 0,
       );
 
+      const currRefundedAmountUSD = currRefundedAmountPSP
+        .multipliedBy(currencyRate.pspPrice)
+        .dividedBy(10 ** 18); // psp decimals always encoded in 18decimals
+
+      const refundedAmountUSD = currRefundedAmountUSD.plus(
+        swapperAcc?.refundedAmountUSD || 0,
+      );
+
       const pendingGasRefundDatum: PendingEpochGasRefundData = {
         epoch,
         address,
         chainId,
         accumulatedGasUsedPSP: accumulatedGasUsedPSP.toFixed(0),
         accumulatedGasUsed: accumulatedGasUsed.toFixed(0),
+        accumulatedGasUsedUSD: accumulatedGasUsedUSD.toFixed(0),
         accumulatedGasUsedChainCurrency:
           accumulatedGasUsedChainCurrency.toFixed(0),
         firstBlock: swapperAcc?.lastBlock || swap.blockNumber,
         lastBlock: swap.blockNumber,
         totalStakeAmountPSP,
         refundedAmountPSP: accRefundedAmountPSP.toFixed(0),
+        refundedAmountUSD: refundedAmountUSD.toFixed(),
         firstTx: swapperAcc?.firstTx || swap.txHash,
         lastTx: swap.txHash,
         firstTimestamp: swapperAcc?.firstTimestamp || +swap.timestamp,

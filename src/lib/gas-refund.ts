@@ -21,9 +21,10 @@ interface BaseGasRefundData {
   chainId: number;
 }
 export interface PendingEpochGasRefundData extends BaseGasRefundData {
-  accumulatedGasUsedPSP: string;
   accumulatedGasUsed: string;
+  accumulatedGasUsedPSP: string;
   accumulatedGasUsedChainCurrency: string;
+  accumulatedGasUsedUSD: string;
   firstBlock: number;
   lastBlock: number;
   firstTimestamp: number;
@@ -31,6 +32,7 @@ export interface PendingEpochGasRefundData extends BaseGasRefundData {
   isCompleted: false;
   totalStakeAmountPSP: string;
   refundedAmountPSP: string;
+  refundedAmountUSD: string;
   firstTx: string;
   lastTx: string;
   numTx: number;

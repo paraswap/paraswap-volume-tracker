@@ -18,6 +18,15 @@ const fetchAvgDailyPriceCached = pMemoize(fetchAvgDailyPrice, {
   }),
 });
 
+type PricesAtTimestamp = {
+  pspToChainCurRate: number;
+  chainPrice: number;
+  pspPrice: number;
+};
+type PricesByTimestamp = {
+  [timestamp: string]: PricesAtTimestamp;
+};
+
 export async function fetchDailyPSPChainCurrencyRate({
   chainId,
   startTimestamp,
@@ -26,7 +35,7 @@ export async function fetchDailyPSPChainCurrencyRate({
   chainId: number;
   startTimestamp: number;
   endTimestamp: number;
-}): Promise<HistoricalPrice> {
+}): Promise<PricesByTimestamp> {
   const [dailyAvgChainCurPrice, dailyAvgPspPrice] = await Promise.all([
     fetchAvgDailyPriceCached({
       startTimestamp,
@@ -40,32 +49,37 @@ export async function fetchDailyPSPChainCurrencyRate({
     }),
   ]);
 
-  assert(dailyAvgChainCurPrice.length > 0, 'could not find any rate');
+  const kdailyAvgChainCurPrice = Object.keys(dailyAvgChainCurPrice).length;
+  const kdailyAvgPspPrice = Object.keys(dailyAvgPspPrice).length;
+  assert(kdailyAvgChainCurPrice > 0, 'could not find any rate');
   assert(
-    dailyAvgChainCurPrice.length === dailyAvgPspPrice.length,
-    `Invalid price length got: ${dailyAvgChainCurPrice.length} and ${dailyAvgPspPrice.length}`,
+    kdailyAvgChainCurPrice === kdailyAvgPspPrice,
+    `Invalid price length got: ${kdailyAvgChainCurPrice} and ${kdailyAvgPspPrice}`,
   );
+  logger.info(`Successfully retrieved ${kdailyAvgChainCurPrice} prices`);
 
-  logger.info(`Successfully retrieved ${dailyAvgChainCurPrice.length} prices`);
+  const combinedPrices = Object.keys(
+    dailyAvgChainCurPrice,
+  ).reduce<PricesByTimestamp>((acc, timestamp) => {
+    const pspPrice = dailyAvgPspPrice[timestamp];
+    const chainPrice = dailyAvgChainCurPrice[timestamp];
+    const pspToChainCurRate = pspPrice / chainPrice;
 
-  const dailyAvgPSPToChainCurPrice = dailyAvgChainCurPrice.map(
-    (chainCurPrice, i) => ({
-      timestamp: chainCurPrice.timestamp,
-      rate: dailyAvgPspPrice[i].rate / chainCurPrice.rate,
-    }),
-  );
+    acc[timestamp] = { pspToChainCurRate, chainPrice, pspPrice };
 
-  return dailyAvgPSPToChainCurPrice;
-}
-
-export const constructSameDayPrice = (prices: HistoricalPrice) => {
-  const pricesByDate = prices.reduce<Record<string, number>>((acc, curr) => {
-    acc[curr.timestamp] = curr.rate;
     return acc;
   }, {});
 
+  return combinedPrices;
+}
+
+export type FindSameDayPrice = (unixtime: number) => PricesAtTimestamp;
+
+export const constructSameDayPrice = (
+  prices: PricesByTimestamp,
+): FindSameDayPrice => {
   return function findSameDayPrice(unixtime: number) {
     const startOfDayTimestamp = startOfDayMilliSec(unixtime * 1000);
-    return pricesByDate[startOfDayTimestamp];
+    return prices[startOfDayTimestamp];
   };
 };

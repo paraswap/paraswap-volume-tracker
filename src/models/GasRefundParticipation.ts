@@ -74,15 +74,19 @@ export class GasRefundParticipation extends Model<EpochGasRefundData> {
   accumulatedGasUsedChainCurrency: string; // @debug
 
   @Column(DataType.DECIMAL)
-  accumulatedGasUsedPSP: string;
+  accumulatedGasUsedPSP: string; // @debug
 
-  @AllowNull(true)
+  @Column(DataType.DECIMAL)
+  accumulatedGasUsedUSD: string; // @debug
+
   @Column(DataType.DECIMAL)
   totalStakeAmountPSP: string; // @debug
 
-  @AllowNull(true)
   @Column(DataType.DECIMAL)
   refundedAmountPSP: string;
+
+  @Column(DataType.DECIMAL)
+  refundedAmountUSD: string;
 
   @AllowNull(true)
   @Column({
