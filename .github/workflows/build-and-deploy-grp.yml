@@ -27,6 +27,7 @@ jobs:
         uses: ./.github/paraswap-github-actions/build-and-deploy-service
         with:
           service_name: ${{ env.service_name }}
+          deploy_service: false
           repository_sha: ${{ github.sha}}
           event_name: ${{ github.event_name }}
           authentication_token: ${{ secrets.AUTHENTICATION_KEY }}
