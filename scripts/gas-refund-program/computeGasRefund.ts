@@ -19,7 +19,7 @@ import { EpochInfo } from '../../src/lib/epoch-info';
 import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
 import { acquireLock, releaseLock } from '../../src/lib/lock-utils';
 import Database from '../../src/database';
-import { constructGRPSystemGuardian, GRPSystemState } from './system-guardian';
+import GRPSystemGuardian from './system-guardian';
 
 const logger = global.LOGGER('GRP');
 
@@ -32,20 +32,8 @@ async function startComputingGasRefundAllChains() {
   const epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET, true);
 
   return Database.sequelize.transaction(async () => {
-    const [totalPSPRefunded, totalRefundedAmountUSDByAddress] =
-      await Promise.all([
-        fetchTotalRefundedPSP(),
-        fetchTotalRefundedAmountUSDByAddress(),
-      ]);
-
-    const systemState: GRPSystemState = {
-      totalPSPRefunded,
-      totalRefundedAmountUSDByAddress,
-    };
-
-    const systemGuardian = constructGRPSystemGuardian(systemState);
-
-    systemGuardian.assertMaxPSPGlobalBudgetNotReached();
+    await GRPSystemGuardian.loadStateFromDB();
+    GRPSystemGuardian.assertMaxPSPGlobalBudgetNotReached();
 
     return Promise.all(
       GRP_SUPPORTED_CHAINS.map(async chainId => {
@@ -75,13 +63,13 @@ async function startComputingGasRefundAllChains() {
           epoch <= epochInfo.getCurrentEpoch();
           epoch++
         ) {
-          if (systemGuardian.isMaxPSPGlobalBudgetSpent()) {
+          if (GRPSystemGuardian.isMaxPSPGlobalBudgetSpent()) {
             logger.warn(
               `max psp global budget spent, preventing further processing & storing`,
             );
             break;
           }
-          
+
           const { startCalcTime, endCalcTime } =
             await resolveEpochCalcTimeInterval(epoch);
 
@@ -103,7 +91,6 @@ async function startComputingGasRefundAllChains() {
             epoch,
             startTimestamp: startCalcTime,
             endTimestamp: endCalcTime,
-            systemGuardian,
           });
         }
 

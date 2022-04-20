@@ -1,4 +1,3 @@
-import { GRPSystemStateGuard } from '../system-guardian';
 import {
   constructSameDayPrice,
   fetchDailyPSPChainCurrencyRate,
@@ -13,13 +12,11 @@ export async function computeGasRefundAllTxs({
   startTimestamp,
   endTimestamp,
   epoch,
-  systemGuardian,
 }: {
   chainId: number;
   startTimestamp: number;
   endTimestamp: number;
   epoch: number;
-  systemGuardian: GRPSystemStateGuard;
 }) {
   // retrieve daily psp/native currency rate for (startCalcTime, endCalcTime)
   logger.info(
@@ -43,7 +40,6 @@ export async function computeGasRefundAllTxs({
     startTimestamp,
     endTimestamp,
     epoch,
-    systemGuardian,
     findSameDayPrice,
   });
 }
