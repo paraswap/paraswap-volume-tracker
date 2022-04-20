@@ -46,6 +46,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     `swapTracker start indexing between ${startTimestamp} and ${endTimestamp}`,
   );
 
+  // todo: remove `accPendingGasRefundByAddressCOVALENT` and `fetchPendingGasRefundDataCovalent({ chainId, epoch })` after testing/comparing data
   const [accPendingGasRefundByAddress, accPendingGasRefundByAddressCOVALENT, veryLastTimestampProcessed] =
     await Promise.all([
       fetchPendingGasRefundData({ chainId, epoch }),
@@ -68,9 +69,9 @@ export async function computeSuccessfulSwapsTxFeesRefund({
   const covalentTXs = Test.readStoredCovalentTXs(chainId, epoch, startTimestamp, endTimestamp)
 
   for (
-    let _startTimestampSlice = _startTimestamp, i = 0;
-    _startTimestampSlice < endTimestamp && i < 100000000000;
-    _startTimestampSlice += SLICE_DURATION, i++
+    let _startTimestampSlice = _startTimestamp;
+    _startTimestampSlice < endTimestamp;
+    _startTimestampSlice += SLICE_DURATION
   ) {
     const _endTimestampSlice = Math.min(
       _startTimestampSlice + SLICE_DURATION,
@@ -246,7 +247,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
       updatedPendingGasRefundDataByAddress[address] = pendingGasRefundDatum;
     });
 
-    // todo: swapover to this code once happy and scrap above
+    // todo: swapover to this code once happy, replacing above `swapsWithGasUsed.forEach` block
     filteredTXs.forEach(covalentSwap => {
       const address = covalentSwap.txOrigin;
       const startOfHourUnixTms = startOfHourSec(+covalentSwap.timestamp);

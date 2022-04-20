@@ -31,6 +31,7 @@ export const fetchPendingGasRefundData = async ({
   return pendingEpochDataByAddress;
 };
 
+// todo: remove this temp function - used while testing/comparing new data
 export const fetchPendingGasRefundDataCovalent = async ({
   chainId,
   epoch,
@@ -73,6 +74,7 @@ export async function fetchVeryLastTimestampProcessed({
 
 export const writePendingEpochData = async (
   pendingEpochGasRefundData: PendingEpochGasRefundData[],
+  // todo: remove after changing over to covalent - have just one data source
   pendingEpochGasRefundDataCovalent: PendingEpochGasRefundData[],
 ) => {
   await GasRefundParticipation.bulkCreate(pendingEpochGasRefundData, {
@@ -93,6 +95,7 @@ export const writePendingEpochData = async (
     ],
   });
 
+  // todo: remove after changing over to covalent - have just one data source
   await GasRefundParticipationCovalent.bulkCreate(pendingEpochGasRefundDataCovalent, {
     updateOnDuplicate: [
       'accumulatedGasUsedPSP',
