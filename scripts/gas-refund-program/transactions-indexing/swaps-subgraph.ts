@@ -91,7 +91,7 @@ interface SwapsGQLRespose {
   data: { swaps: SwapData[] };
 }
 
-interface SwapData {
+export interface SwapData {
   txHash: string;
   txOrigin: string;
   txGasPrice: string;
@@ -99,13 +99,15 @@ interface SwapData {
   timestamp: string;
 }
 
+export interface CovalentSwap extends SwapData { txGasUsed: string; }
+
 type GetSwapsForNetwork = Omit<GetSwapsForAccountsInput, 'accounts'>
 
 namespace Covalent {
 
   export interface Transaction {
     from_address: string
-    to_address: string
+    to_address?: string
     tx_hash: string
     block_height: number;
     block_signed_at: string;
@@ -139,24 +141,22 @@ export async function getSwapsPerNetwork({
   startTimestamp,
   endTimestamp,
   chainId,
-}: GetSwapsForNetwork): Promise<SwapData[]> {
+}: GetSwapsForNetwork): Promise<CovalentSwap[]> {
 
   const AUGUSTUS = '0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57'
 
-  const covalentAddressToSwap = (txCov: Covalent.Transaction): SwapData => ({
+  const covalentAddressToSwap = (txCov: Covalent.Transaction): CovalentSwap => ({
     txHash: txCov.tx_hash,
     txOrigin: txCov.from_address,
-    txGasPrice: txCov.gas_spent.toString(),
-    // todo: should be string to match subgraph data, but type is numeric
+    txGasPrice: txCov.gas_price.toString(),
+    txGasUsed: txCov.gas_spent.toString(),
     blockNumber: txCov.block_height,
-    // convert time to unixtime - seconds
+    // convert time to unixtime (seconds)
     timestamp: (new Date(txCov.block_signed_at).getTime() / 1000).toString(),
   })
 
   // filter out smart contract wallets
-  const filterTXs = (txCov: Covalent.Transaction): boolean => {
-    return txCov.to_address.toLowerCase() === AUGUSTUS.toLowerCase()
-  }
+  const filterTXs = (txCov: Covalent.Transaction): boolean =>txCov.to_address?.toLowerCase() === AUGUSTUS.toLowerCase()
 
   // todo: add safety margin to both start/end and de-dup later
   const { COVALENT_API_KEY } = process.env
@@ -179,13 +179,13 @@ export async function getSwapsPerNetwork({
   }
 
 
-  let items: SwapData[] = []
+  let items: CovalentSwap[] = []
   let hasMore = true
   let page = 1
   let calls = 0
   var timeAllStart = new Date();
 
-  // todo: better would be to first call the end point with page-size=0 just to get the total number of items, and then construct many request promises and run concurrently - currently this isn't possible due to a flaw in the covalent api
+  // todo: better would be to first call the end point with page-size=0 just to get the total number of items, and then construct many request promises and run concurrently - currently this isn't possible (as `total_count` is null) in the covalent api but scheduled
 
   while (hasMore) {
     const route = path(page)
@@ -199,14 +199,16 @@ export async function getSwapsPerNetwork({
 
     items = [...items, ...receivedItems.filter(filterTXs).map(covalentAddressToSwap)]
 
+
+    // todo: remove
     calls++
     const timeRequestEnd = new Date();
     const secondsForRequest: number = (+timeRequestEnd - +timeRequestStart) / 1000;
-
     console.log({calls, route, secondsForRequest})
   }
   const timeAllEnd = new Date();
   const millisecondsElapsed: number = +timeAllEnd - +timeAllStart;
+  // todo: remove
   console.log(`time to get all requests`, millisecondsElapsed / 1000)
 
   return items

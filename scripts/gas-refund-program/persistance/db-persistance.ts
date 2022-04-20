@@ -3,6 +3,7 @@ import {
   PendingEpochGasRefundData,
 } from '../../../src/lib/gas-refund';
 import { GasRefundParticipation } from '../../../src/models/GasRefundParticipation';
+import { GasRefundParticipationCovalent } from '../../../src/models/GasRefundParticipationCovalent';
 import { GasRefundDistribution } from '../../../src/models/GasRefundDistribution';
 import { MerkleData, MerkleTreeData, TxFeesByAddress } from '../types';
 import { sliceCalls } from '../utils';
@@ -15,6 +16,29 @@ export const fetchPendingGasRefundData = async ({
   epoch: number;
 }): Promise<TxFeesByAddress> => {
   const pendingEpochData = (await GasRefundParticipation.findAll({
+    where: { chainId, epoch },
+    raw: true,
+  })) as PendingEpochGasRefundData[];
+
+  const pendingEpochDataByAddress = pendingEpochData.reduce<TxFeesByAddress>(
+    (acc, curr) => {
+      acc[curr.address] = curr;
+      return acc;
+    },
+    {},
+  );
+
+  return pendingEpochDataByAddress;
+};
+
+export const fetchPendingGasRefundDataCovalent = async ({
+  chainId,
+  epoch,
+}: {
+  chainId: number;
+  epoch: number;
+}): Promise<TxFeesByAddress> => {
+  const pendingEpochData = (await GasRefundParticipationCovalent.findAll({
     where: { chainId, epoch },
     raw: true,
   })) as PendingEpochGasRefundData[];
@@ -49,8 +73,27 @@ export async function fetchVeryLastTimestampProcessed({
 
 export const writePendingEpochData = async (
   pendingEpochGasRefundData: PendingEpochGasRefundData[],
+  pendingEpochGasRefundDataCovalent: PendingEpochGasRefundData[],
 ) => {
   await GasRefundParticipation.bulkCreate(pendingEpochGasRefundData, {
+    updateOnDuplicate: [
+      'accumulatedGasUsedPSP',
+      'accumulatedGasUsed',
+      'accumulatedGasUsedChainCurrency',
+      'firstBlock',
+      'lastBlock',
+      'firstTimestamp',
+      'lastTimestamp',
+      'firstTx',
+      'lastTx',
+      'numTx',
+      'isCompleted',
+      'totalStakeAmountPSP',
+      'refundedAmountPSP',
+    ],
+  });
+
+  await GasRefundParticipationCovalent.bulkCreate(pendingEpochGasRefundDataCovalent, {
     updateOnDuplicate: [
       'accumulatedGasUsedPSP',
       'accumulatedGasUsed',

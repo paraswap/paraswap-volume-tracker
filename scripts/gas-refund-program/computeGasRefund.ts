@@ -30,8 +30,10 @@ async function startComputingGasRefundAllChains() {
       `LOCK TABLE "${GasRefundParticipation.tableName}" IN ACCESS EXCLUSIVE MODE;`,
     );
 
+    const chains = GRP_SUPPORTED_CHAINS.filter(chain => chain !== 250)
+
     return Promise.allSettled(
-      GRP_SUPPORTED_CHAINS.map(async chainId => {
+      chains.map(async chainId => {
         const lastEpochProcessed = await GasRefundParticipation.max<
           number,
           GasRefundParticipation
@@ -49,9 +51,15 @@ async function startComputingGasRefundAllChains() {
           'cannot compute refund data for epoch < genesis_epoch',
         );
 
+        // for (
+        //   let epoch = startEpoch;
+        //   epoch <= epochInfo.getCurrentEpoch();
+        //   epoch++
+        // ) {
+        // todo: Revert this - for now just test on one epoch
         for (
-          let epoch = startEpoch;
-          epoch <= epochInfo.getCurrentEpoch();
+          let epoch = 10;
+          epoch < 11;
           epoch++
         ) {
           const { startCalcTime, endCalcTime } =
