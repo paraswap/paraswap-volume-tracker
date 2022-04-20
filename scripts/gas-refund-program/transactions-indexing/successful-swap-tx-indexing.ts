@@ -1,5 +1,5 @@
 import { assert } from 'ts-essentials';
-import { HistoricalPrice, TxFeesByAddress } from '../types';
+import { TxFeesByAddress } from '../types';
 import { BigNumber } from 'bignumber.js';
 import {
   fetchPendingGasRefundData,
@@ -16,6 +16,7 @@ import { getPSPStakesHourlyWithinInterval } from '../staking';
 import * as _ from 'lodash';
 import { ONE_HOUR_SEC, startOfHourSec } from '../utils';
 import { FindSameDayPrice } from '../token-pricing/psp-chaincurrency-pricing';
+import { GRPSystemStateGuard } from '../system-guardian';
 
 // empirically set to maximise on processing time without penalising memory and fetching constraigns
 // @FIXME: fix swaps subgraph pagination to always stay on safest spot
@@ -26,12 +27,14 @@ export async function computeSuccessfulSwapsTxFeesRefund({
   startTimestamp,
   endTimestamp,
   epoch,
+  systemGuardian,
   findSameDayPrice,
 }: {
   chainId: number;
   startTimestamp: number;
   endTimestamp: number;
   epoch: number;
+  systemGuardian: GRPSystemStateGuard;
   findSameDayPrice: FindSameDayPrice;
 }): Promise<void> {
   const logger = global.LOGGER(
@@ -58,6 +61,13 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     _startTimestampSlice < endTimestamp;
     _startTimestampSlice += SLICE_DURATION
   ) {
+    if (systemGuardian.isMaxPSPGlobalBudgetSpent()) {
+      logger.warn(
+        `max psp global budget spent, preventing further processing & storing`,
+      );
+      break;
+    }
+
     const _endTimestampSlice = Math.min(
       _startTimestampSlice + SLICE_DURATION,
       endTimestamp,
@@ -130,6 +140,12 @@ export async function computeSuccessfulSwapsTxFeesRefund({
 
     swapsWithGasUsed.forEach(swap => {
       const address = swap.txOrigin;
+
+      if (systemGuardian.isAccountUSDBudgetSpent(address)) {
+        logger.warn(`Max budget already spent for ${address}`);
+        return;
+      }
+
       const startOfHourUnixTms = startOfHourSec(+swap.timestamp);
       const startOfNextHourUnixTms = startOfHourSec(
         +swap.timestamp + ONE_HOUR_SEC,
@@ -197,11 +213,15 @@ export async function computeSuccessfulSwapsTxFeesRefund({
 
       const totalStakeAmountPSP = swapperStake.toFixed(0); // @todo irrelevant?
       const refundPercent = getRefundPercent(totalStakeAmountPSP);
+
       assert(
         refundPercent,
         `Logic Error: failed to find refund percent for ${address}`,
       );
+
       const currRefundedAmountPSP = currGasFeePSP.multipliedBy(refundPercent);
+
+      systemGuardian.increaseTotalPSPRefunded(currRefundedAmountPSP);
 
       const accRefundedAmountPSP = currRefundedAmountPSP.plus(
         swapperAcc?.refundedAmountPSP || 0,
@@ -210,6 +230,8 @@ export async function computeSuccessfulSwapsTxFeesRefund({
       const currRefundedAmountUSD = currRefundedAmountPSP
         .multipliedBy(currencyRate.pspPrice)
         .dividedBy(10 ** 18); // psp decimals always encoded in 18decimals
+
+      systemGuardian.increaseTotalAmountRefundedUSDForAccount(address, currRefundedAmountUSD)
 
       const refundedAmountUSD = currRefundedAmountUSD.plus(
         swapperAcc?.refundedAmountUSD || 0,

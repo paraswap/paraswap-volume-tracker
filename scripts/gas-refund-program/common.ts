@@ -1,7 +1,6 @@
 import Database from '../../src/database';
 import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
 import { EpochInfo } from '../../src/lib/epoch-info';
-import { ONE_HOUR_SEC } from './utils';
 
 type Params = {
   epochPolling?: boolean;
