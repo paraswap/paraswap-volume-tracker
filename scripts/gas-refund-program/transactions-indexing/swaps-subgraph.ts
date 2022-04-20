@@ -158,13 +158,13 @@ export async function getSwapsPerNetwork({
   // filter out smart contract wallets
   const filterTXs = (txCov: Covalent.Transaction): boolean =>txCov.to_address?.toLowerCase() === AUGUSTUS.toLowerCase()
 
-  // todo: add safety margin to both start/end and de-dup later
+
   const { COVALENT_API_KEY } = process.env
   const path = (page: number) => {
-
-    // these query params should be calculated for each request (since time sensitive)
-    const startSecondsAgo = Math.floor((new Date().getTime()) / 1000) - startTimestamp
-    const duration = endTimestamp - startTimestamp
+    // safety margin to counter possible edge case of relative - not absolute - range bounds
+    const safeMarginForRequestLimits = 10
+    const startSecondsAgo = Math.floor((new Date().getTime()) / 1000) - startTimestamp + safeMarginForRequestLimits
+    const duration = (endTimestamp - startTimestamp) + safeMarginForRequestLimits
     /**
      * NOTE: for this to work, we must only query historic data.
      * if start limit + duration is not less than now, we'll get
@@ -178,18 +178,15 @@ export async function getSwapsPerNetwork({
     return `/${chainId}/address/${AUGUSTUS}/transactions_v2/?key=${COVALENT_API_KEY}&no-logs=true&page-number=${page}&page-size=1000&block-signed-at-limit=${startSecondsAgo}&block-signed-at-span=${duration}`
   }
 
-
-  let items: CovalentSwap[] = []
+  // todo: better would be to first call the end point with page-size=0 just to get the total number of items, and then construct many request promises and run concurrently - currently this isn't possible (as `total_count` is null) in the covalent api but scheduled
   let hasMore = true
   let page = 1
-  let calls = 0
-  var timeAllStart = new Date();
-
-  // todo: better would be to first call the end point with page-size=0 just to get the total number of items, and then construct many request promises and run concurrently - currently this isn't possible (as `total_count` is null) in the covalent api but scheduled
+  let items: CovalentSwap[] = []
 
   while (hasMore) {
+    // request query params should be calculated for each request (since time relative)
     const route = path(page)
-    var timeRequestStart = new Date();
+
     const { data } = await covalentClient.get(route)
 
     const { data: { pagination: { has_more }, items: receivedItems }} = data
@@ -198,18 +195,10 @@ export async function getSwapsPerNetwork({
     page++
 
     items = [...items, ...receivedItems.filter(filterTXs).map(covalentAddressToSwap)]
-
-
-    // todo: remove
-    calls++
-    const timeRequestEnd = new Date();
-    const secondsForRequest: number = (+timeRequestEnd - +timeRequestStart) / 1000;
-    console.log({calls, route, secondsForRequest})
   }
-  const timeAllEnd = new Date();
-  const millisecondsElapsed: number = +timeAllEnd - +timeAllStart;
-  // todo: remove
-  console.log(`time to get all requests`, millisecondsElapsed / 1000)
+
 
   return items
+    // ensure we only return those within the specified range and not those included in the safety margin
+    .filter(tx => +tx.timestamp >= startTimestamp && +tx.timestamp <= endTimestamp)
 }
