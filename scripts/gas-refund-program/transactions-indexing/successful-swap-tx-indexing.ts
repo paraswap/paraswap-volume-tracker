@@ -16,7 +16,7 @@ import { getPSPStakesHourlyWithinInterval } from '../staking';
 import * as _ from 'lodash';
 import { ONE_HOUR_SEC, startOfHourSec } from '../utils';
 import { FindSameDayPrice } from '../token-pricing/psp-chaincurrency-pricing';
-import GRPSystemGuardian from '../system-guardian';
+import GRPSystemGuardian, { MAX_USD_ADDRESS_BUDGET } from '../system-guardian';
 
 // empirically set to maximise on processing time without penalising memory and fetching constraigns
 // @FIXME: fix swaps subgraph pagination to always stay on safest spot
@@ -217,21 +217,40 @@ export async function computeSuccessfulSwapsTxFeesRefund({
         `Logic Error: failed to find refund percent for ${address}`,
       );
 
-      const currRefundedAmountPSP = currGasFeePSP.multipliedBy(refundPercent);
+      let currRefundedAmountPSP = currGasFeePSP.multipliedBy(refundPercent);
+
+      let currRefundedAmountUSD = currRefundedAmountPSP
+        .multipliedBy(currencyRate.pspPrice)
+        .dividedBy(10 ** 18); // psp decimals always encoded in 18decimals
+
+      if (
+        GRPSystemGuardian.totalRefundedAmountUSD(address)
+          .plus(currRefundedAmountUSD)
+          .isGreaterThanOrEqualTo(MAX_USD_ADDRESS_BUDGET)
+      ) {
+        currRefundedAmountUSD = MAX_USD_ADDRESS_BUDGET.minus(
+          GRPSystemGuardian.totalRefundedAmountUSD(address),
+        );
+
+        assert(
+          currRefundedAmountUSD.isGreaterThanOrEqualTo(0),
+          'Logic Error: quantity cannot be negative, this would mean we priorly refunded more than max',
+        );
+
+        currRefundedAmountPSP = currRefundedAmountUSD
+          .dividedBy(currencyRate.pspPrice)
+          .multipliedBy(10 ** 18);
+      }
+
+      GRPSystemGuardian.increaseTotalAmountRefundedUSDForAccount(
+        address,
+        currRefundedAmountUSD,
+      );
 
       GRPSystemGuardian.increaseTotalPSPRefunded(currRefundedAmountPSP);
 
       const accRefundedAmountPSP = currRefundedAmountPSP.plus(
         swapperAcc?.refundedAmountPSP || 0,
-      );
-
-      const currRefundedAmountUSD = currRefundedAmountPSP
-        .multipliedBy(currencyRate.pspPrice)
-        .dividedBy(10 ** 18); // psp decimals always encoded in 18decimals
-
-      GRPSystemGuardian.increaseTotalAmountRefundedUSDForAccount(
-        address,
-        currRefundedAmountUSD,
       );
 
       const refundedAmountUSD = currRefundedAmountUSD.plus(

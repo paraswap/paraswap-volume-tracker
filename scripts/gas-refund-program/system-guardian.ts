@@ -4,6 +4,7 @@ import {
   fetchTotalRefundedAmountUSDByAddress,
   fetchTotalRefundedPSP,
 } from './persistance/db-persistance';
+import { ZERO_BN } from './utils';
 
 export const MAX_PSP_GLOBAL_BUDGET = new BigNumber(30_000_000).multipliedBy(
   10 ** 18,
@@ -31,35 +32,44 @@ class GRPSystemGuardian {
     };
   }
 
+  totalRefundedAmountUSD(account: string) {
+    return this.systemState.totalRefundedAmountUSDByAddress[account] || ZERO_BN;
+  }
+
   isMaxPSPGlobalBudgetSpent() {
-    return this.systemState.totalPSPRefunded.isGreaterThan(
+    return this.systemState.totalPSPRefunded.isGreaterThanOrEqualTo(
       MAX_PSP_GLOBAL_BUDGET,
     );
   }
 
   isAccountUSDBudgetSpent(account: string) {
-    return this.systemState.totalRefundedAmountUSDByAddress[
-      account
-    ].isGreaterThan(MAX_USD_ADDRESS_BUDGET);
+    return this.totalRefundedAmountUSD(account).isGreaterThanOrEqualTo(
+      MAX_USD_ADDRESS_BUDGET,
+    );
   }
 
   assertMaxPSPGlobalBudgetNotReached() {
     assert(!this.isMaxPSPGlobalBudgetSpent(), 'Max PSP global budget spent');
   }
 
+  assertMaxUSDAccountBudgetNotReached(account: string) {
+    assert(
+      !this.isAccountUSDBudgetSpent(account),
+      'Max USD budget spent for account',
+    );
+  }
+
   increaseTotalAmountRefundedUSDForAccount(
     account: string,
     usdAmount: BigNumber,
   ) {
-    this.systemState.totalRefundedAmountUSDByAddress[account] = (
-      this.systemState.totalRefundedAmountUSDByAddress[account] ||
-      new BigNumber(0)
-    ).plus(usdAmount);
+    this.systemState.totalRefundedAmountUSDByAddress[account] =
+      this.totalRefundedAmountUSD(account).plus(usdAmount);
   }
 
   increaseTotalPSPRefunded(amount: BigNumber) {
     this.systemState.totalPSPRefunded = (
-      this.systemState.totalPSPRefunded || new BigNumber(0)
+      this.systemState.totalPSPRefunded || ZERO_BN
     ).plus(amount);
   }
 }

@@ -2,11 +2,7 @@ import '../../src/lib/log4js';
 import * as dotenv from 'dotenv';
 dotenv.config();
 import { computeGasRefundAllTxs } from './transactions-indexing';
-import {
-  fetchTotalRefundedAmountUSDByAddress,
-  fetchTotalRefundedPSP,
-  merkleRootExists,
-} from './persistance/db-persistance';
+import { merkleRootExists } from './persistance/db-persistance';
 
 import { assert } from 'ts-essentials';
 import {
