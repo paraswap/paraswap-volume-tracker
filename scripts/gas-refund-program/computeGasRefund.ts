@@ -30,10 +30,8 @@ async function startComputingGasRefundAllChains() {
       `LOCK TABLE "${GasRefundParticipation.tableName}" IN ACCESS EXCLUSIVE MODE;`,
     );
 
-    const chains = GRP_SUPPORTED_CHAINS.filter(chain => chain !== 250)
-
     return Promise.allSettled(
-      chains.map(async chainId => {
+      GRP_SUPPORTED_CHAINS.map(async chainId => {
         const lastEpochProcessed = await GasRefundParticipation.max<
           number,
           GasRefundParticipation
