@@ -52,16 +52,9 @@ const test = async () => {
     startTimestamp: 1649073600,
     endTimestamp: 1650283200,
   }
-  console.log(process.env.COVALENT_API_KEY)
-  const swaps = await Swaps.getSwapsPerNetwork(swapRetrievalParams)
-  console.log('swap count', swaps.length)
 
-  fs.writeFileSync('covalent-swaps_BSC_10.json', JSON.stringify(swaps))
-
-  // ftm has an issue on covalent just now
-  const chains = GRP.GRP_SUPPORTED_CHAINS.filter(chain => chain !== 250)
   // get test data for each chain and store it in a seed dir for use elsewhere
-  chains.forEach(async chainId => {
+  GRP.GRP_SUPPORTED_CHAINS.filter(chain => chain !== 137).forEach(async chainId => {
     const { startTimestamp, endTimestamp } =swapRetrievalParams
     const swaps = await Swaps.getSwapsPerNetwork({
       startTimestamp,
