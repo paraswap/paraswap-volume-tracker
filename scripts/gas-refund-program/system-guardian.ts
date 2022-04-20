@@ -16,6 +16,10 @@ export type GRPSystemState = {
   totalRefundedAmountUSDByAddress: { [address: string]: BigNumber };
 };
 
+/* Gas Refund System Guardian is meant to implement proposal limitations; initially local limit of 30k$ per address and global limit of 30M PSP
+ * This loads the current state of the system from database and resolve whether any limits are violated
+ * some optimistic in memory updates are inferred to avoid querying database too often
+ */
 class GRPSystemGuardian {
   systemState: GRPSystemState;
 
@@ -50,13 +54,6 @@ class GRPSystemGuardian {
 
   assertMaxPSPGlobalBudgetNotReached() {
     assert(!this.isMaxPSPGlobalBudgetSpent(), 'Max PSP global budget spent');
-  }
-
-  assertMaxUSDAccountBudgetNotReached(account: string) {
-    assert(
-      !this.isAccountUSDBudgetSpent(account),
-      'Max USD budget spent for account',
-    );
   }
 
   increaseTotalAmountRefundedUSDForAccount(
