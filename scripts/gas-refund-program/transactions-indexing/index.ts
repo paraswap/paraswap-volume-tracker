@@ -1,5 +1,5 @@
 import {
-  constructSameDayPrice,
+  constructPriceResolver,
   fetchDailyPSPChainCurrencyRate,
 } from '../token-pricing/psp-chaincurrency-pricing';
 import { computeSuccessfulSwapsTxFeesRefund as computeGasRefundSuccessSwaps } from './successful-swap-tx-indexing';
@@ -24,11 +24,14 @@ export async function computeGasRefundAllTxs({
   );
   const pspNativeCurrencyDailyRate = await fetchDailyPSPChainCurrencyRate({
     chainId,
-    startTimestamp,
-    endTimestamp,
+    startTimestamp: startTimestamp - 24 * 60 * 60, // overfetch to allow for last 24h avg
+    endTimestamp: endTimestamp,
   });
 
-  const findSameDayPrice = constructSameDayPrice(pspNativeCurrencyDailyRate);
+  const resolvePrice = constructPriceResolver(
+    pspNativeCurrencyDailyRate,
+    epoch < 11 ? 'sameDay' : 'last24h', // for backward compatibility
+  );
 
   // retrieve all tx beetween (start_epoch_timestamp, end_epoch_timestamp) +  compute progressively mapping(chainId => address => mapping(timestamp => accGasUsedPSP)) // address: txOrigin, timestamp: start of the day
   logger.info(
@@ -40,6 +43,6 @@ export async function computeGasRefundAllTxs({
     startTimestamp,
     endTimestamp,
     epoch,
-    findSameDayPrice,
+    resolvePrice,
   });
 }

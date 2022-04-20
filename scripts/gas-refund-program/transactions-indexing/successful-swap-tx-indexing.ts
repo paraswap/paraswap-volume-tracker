@@ -15,7 +15,7 @@ import { getTransactionGasUsed } from '../staking/covalent';
 import { getPSPStakesHourlyWithinInterval } from '../staking';
 import * as _ from 'lodash';
 import { ONE_HOUR_SEC, startOfHourSec } from '../utils';
-import { FindSameDayPrice } from '../token-pricing/psp-chaincurrency-pricing';
+import { PriceResolverFn } from '../token-pricing/psp-chaincurrency-pricing';
 import GRPSystemGuardian, { MAX_USD_ADDRESS_BUDGET } from '../system-guardian';
 
 // empirically set to maximise on processing time without penalising memory and fetching constraigns
@@ -27,13 +27,13 @@ export async function computeSuccessfulSwapsTxFeesRefund({
   startTimestamp,
   endTimestamp,
   epoch,
-  findSameDayPrice,
+  resolvePrice,
 }: {
   chainId: number;
   startTimestamp: number;
   endTimestamp: number;
   epoch: number;
-  findSameDayPrice: FindSameDayPrice;
+  resolvePrice: PriceResolverFn;
 }): Promise<void> {
   const logger = global.LOGGER(
     `GRP:TRANSACTION_FEES_INDEXING: epoch=${epoch}, chainId=${chainId}`,
@@ -174,7 +174,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
         return;
       }
 
-      const currencyRate = findSameDayPrice(+swap.timestamp);
+      const currencyRate = resolvePrice(+swap.timestamp);
 
       assert(
         currencyRate,
