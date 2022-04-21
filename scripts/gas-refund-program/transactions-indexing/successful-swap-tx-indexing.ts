@@ -233,7 +233,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
       if (
         GRPSystemGuardian.totalRefundedAmountUSD(address)
           .plus(currRefundedAmountUSD)
-          .isGreaterThanOrEqualTo(MAX_USD_ADDRESS_BUDGET)
+          .isGreaterThan(MAX_USD_ADDRESS_BUDGET)
       ) {
         currRefundedAmountUSD = MAX_USD_ADDRESS_BUDGET.minus(
           GRPSystemGuardian.totalRefundedAmountUSD(address),
