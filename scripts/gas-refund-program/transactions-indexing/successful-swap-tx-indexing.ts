@@ -137,6 +137,13 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     const updatedPendingGasRefundDataByAddress: TxFeesByAddress = {};
 
     swapsWithGasUsed.forEach(swap => {
+      if (GRPSystemGuardian.isMaxPSPGlobalBudgetSpent()) {
+        logger.warn(
+          `max psp global budget spent, preventing further processing & storing`,
+        );
+        return;
+      }
+
       const address = swap.txOrigin;
 
       if (GRPSystemGuardian.isAccountUSDBudgetSpent(address)) {
