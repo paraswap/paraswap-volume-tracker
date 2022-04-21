@@ -9,7 +9,6 @@ import {
   sampleDailyAvgPricesStartOfDay,
 } from './coingecko';
 import { startOfDayMilliSec } from '../utils';
-import memoize from 'lodash/memoize';
 
 const fetchHistoricalPriceCoingeckoCached = pMemoize(
   fetchHistoricalPriceCoingecko,
@@ -94,7 +93,7 @@ const constructSameDayPriceResolver = (
 const constructLast24hAvgPriceResolver = (
   prices: HistoricalTokenUsdPrices,
 ): PriceResolverFn => {
-  return memoize(function resolveLast24hAvgPrice(unixTime: number) {
+  return function resolveLast24hAvgPrice(unixTime: number) {
     const avgChainCurrencyPrice = computeDailyAvgLast24h(
       prices.chainCurrencyHistoricalPrices,
       unixTime * 1000,
@@ -109,7 +108,7 @@ const constructLast24hAvgPriceResolver = (
       chainPrice: avgChainCurrencyPrice,
       pspPrice: avgPSPPrice,
     };
-  });
+  };
 };
 
 export const constructPriceResolver = (
