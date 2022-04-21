@@ -1,3 +1,4 @@
+import BigNumber from 'bignumber.js';
 import { assert } from 'ts-essentials';
 import { URLSearchParams } from 'url';
 import { covalentClient } from '../data-providers-clients';
@@ -32,6 +33,50 @@ export async function getTokenHolders({
   const { data } = await covalentClient.get<TokensHoldersResponse>(url);
 
   return data.data;
+}
+
+interface TokenBalanceOptions {
+  token: string;
+  chainId: number;
+  address: string;
+  blockHeight: string;
+}
+
+interface TokenBalanceData {
+  items: [{ balance: string }] | [];
+}
+
+export async function getTokenBalance({
+  token,
+  address,
+  chainId,
+  blockHeight,
+}: TokenBalanceOptions): Promise<BigNumber> {
+  const queryString = makeQueryStr({
+    'block-height': blockHeight,
+    match: JSON.stringify({ address }),
+  });
+
+  const url = `/${chainId}/tokens/${token}/token_holders/?key=${COVALENT_API_KEY}${
+    queryString ? '&' + queryString : ''
+  }`;
+
+  const { data } = await covalentClient.get<{
+    data: TokenBalanceData;
+    error: boolean;
+  }>(url);
+
+  if (data.error)
+    throw new Error(
+      `Failed to fetch token balance for ${JSON.stringify({
+        token,
+        address,
+        chainId,
+        blockHeight,
+      })}`,
+    );
+
+  return new BigNumber(data.data.items[0]?.balance || '0');
 }
 
 interface TransactionQueryOptions {

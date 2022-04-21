@@ -17,6 +17,7 @@ import * as _ from 'lodash';
 import { ONE_HOUR_SEC, startOfHourSec } from '../utils';
 import { PriceResolverFn } from '../token-pricing/psp-chaincurrency-pricing';
 import GRPSystemGuardian, { MAX_USD_ADDRESS_BUDGET } from '../system-guardian';
+import { fetchSafetyModuleStakes } from '../staking/safety-module-stakes';
 
 // empirically set to maximise on processing time without penalising memory and fetching constraigns
 // @FIXME: fix swaps subgraph pagination to always stay on safest spot
@@ -136,152 +137,161 @@ export async function computeSuccessfulSwapsTxFeesRefund({
 
     const updatedPendingGasRefundDataByAddress: TxFeesByAddress = {};
 
-    swapsWithGasUsed.forEach(swap => {
-      const address = swap.txOrigin;
+    await Promise.all(
+      swapsWithGasUsed.map(async swap => {
+        const address = swap.txOrigin;
+        const safetyModuleStakes = await fetchSafetyModuleStakes({
+          account: address,
+          blockNumber: swap.blockNumber,
+        });
 
-      if (GRPSystemGuardian.isAccountUSDBudgetSpent(address)) {
-        logger.warn(`Max budget already spent for ${address}`);
-        return;
-      }
+        if (GRPSystemGuardian.isAccountUSDBudgetSpent(address)) {
+          logger.warn(`Max budget already spent for ${address}`);
+          return;
+        }
 
-      const startOfHourUnixTms = startOfHourSec(+swap.timestamp);
-      const startOfNextHourUnixTms = startOfHourSec(
-        +swap.timestamp + ONE_HOUR_SEC,
-      );
-
-      const stakesStartOfHour = stakesByHour[startOfHourUnixTms];
-      const stakesStartOfNextHour = stakesByHour[startOfNextHourUnixTms] || {};
-
-      assert(
-        stakesStartOfHour,
-        'stakes at beginning of hour should be defined',
-      );
-      assert(
-        stakesStartOfNextHour,
-        'stakes at beginning of next hour should be defined',
-      );
-
-      const swapperAcc = accPendingGasRefundByAddress[address];
-
-      const swapperStake = BigNumber.max(
-        stakesStartOfHour[address] || 0,
-        stakesStartOfNextHour[address] || 0,
-      );
-
-      if (swapperStake.isZero()) {
-        // as we fetcher swaps for all stakers all hourly splitted intervals we sometimes fell into this case
-        logger.warn(`could not retrieve any stake for staker ${address}`);
-        return;
-      }
-
-      const currencyRate = resolvePrice(+swap.timestamp);
-
-      assert(
-        currencyRate,
-        `could not retrieve psp/chaincurrency same day rate for swap at ${swap.timestamp}`,
-      );
-
-      const currGasUsed = new BigNumber(swap.txGasUsed);
-      const accumulatedGasUsed = currGasUsed.plus(
-        swapperAcc?.accumulatedGasUsed || 0,
-      );
-
-      const currGasUsedChainCur = currGasUsed.multipliedBy(
-        swap.txGasPrice.toString(),
-      ); // in wei
-
-      const accumulatedGasUsedChainCurrency = currGasUsedChainCur.plus(
-        swapperAcc?.accumulatedGasUsedChainCurrency || 0,
-      );
-
-      const currGasUsedUSD = currGasUsedChainCur
-        .multipliedBy(currencyRate.chainPrice)
-        .dividedBy(10 ** 18); // chaincurrency always encoded in 18decimals
-
-      const accumulatedGasUsedUSD = currGasUsedUSD.plus(
-        swapperAcc?.accumulatedGasUsedUSD || 0,
-      );
-      const currGasFeePSP = currGasUsedChainCur.dividedBy(
-        currencyRate.pspToChainCurRate,
-      );
-
-      const accumulatedGasUsedPSP = currGasFeePSP.plus(
-        swapperAcc?.accumulatedGasUsedPSP || 0,
-      );
-
-      const totalStakeAmountPSP = swapperStake.toFixed(0); // @todo irrelevant?
-      const refundPercent = getRefundPercent(totalStakeAmountPSP);
-
-      assert(
-        refundPercent,
-        `Logic Error: failed to find refund percent for ${address}`,
-      );
-
-      let currRefundedAmountPSP = currGasFeePSP.multipliedBy(refundPercent);
-
-      let currRefundedAmountUSD = currRefundedAmountPSP
-        .multipliedBy(currencyRate.pspPrice)
-        .dividedBy(10 ** 18); // psp decimals always encoded in 18decimals
-
-      if (
-        GRPSystemGuardian.totalRefundedAmountUSD(address)
-          .plus(currRefundedAmountUSD)
-          .isGreaterThanOrEqualTo(MAX_USD_ADDRESS_BUDGET)
-      ) {
-        currRefundedAmountUSD = MAX_USD_ADDRESS_BUDGET.minus(
-          GRPSystemGuardian.totalRefundedAmountUSD(address),
+        const startOfHourUnixTms = startOfHourSec(+swap.timestamp);
+        const startOfNextHourUnixTms = startOfHourSec(
+          +swap.timestamp + ONE_HOUR_SEC,
         );
+
+        const stakesStartOfHour = stakesByHour[startOfHourUnixTms];
+        const stakesStartOfNextHour =
+          stakesByHour[startOfNextHourUnixTms] || {};
 
         assert(
-          currRefundedAmountUSD.isGreaterThanOrEqualTo(0),
-          'Logic Error: quantity cannot be negative, this would mean we priorly refunded more than max',
+          stakesStartOfHour,
+          'stakes at beginning of hour should be defined',
+        );
+        assert(
+          stakesStartOfNextHour,
+          'stakes at beginning of next hour should be defined',
         );
 
-        currRefundedAmountPSP = currRefundedAmountUSD
-          .dividedBy(currencyRate.pspPrice)
-          .multipliedBy(10 ** 18);
-      }
+        const swapperAcc = accPendingGasRefundByAddress[address];
 
-      GRPSystemGuardian.increaseTotalAmountRefundedUSDForAccount(
-        address,
-        currRefundedAmountUSD,
-      );
+        const swapperStake = BigNumber.max(
+          stakesStartOfHour[address] || 0,
+          stakesStartOfNextHour[address] || 0,
+        );
 
-      GRPSystemGuardian.increaseTotalPSPRefunded(currRefundedAmountPSP);
+        if (swapperStake.isZero()) {
+          // as we fetcher swaps for all stakers all hourly splitted intervals we sometimes fell into this case
+          logger.warn(`could not retrieve any stake for staker ${address}`);
+          return;
+        }
 
-      const accRefundedAmountPSP = currRefundedAmountPSP.plus(
-        swapperAcc?.refundedAmountPSP || 0,
-      );
+        const currencyRate = resolvePrice(+swap.timestamp);
 
-      const refundedAmountUSD = currRefundedAmountUSD.plus(
-        swapperAcc?.refundedAmountUSD || 0,
-      );
+        assert(
+          currencyRate,
+          `could not retrieve psp/chaincurrency same day rate for swap at ${swap.timestamp}`,
+        );
 
-      const pendingGasRefundDatum: PendingEpochGasRefundData = {
-        epoch,
-        address,
-        chainId,
-        accumulatedGasUsedPSP: accumulatedGasUsedPSP.toFixed(0),
-        accumulatedGasUsed: accumulatedGasUsed.toFixed(0),
-        accumulatedGasUsedUSD: accumulatedGasUsedUSD.toFixed(0),
-        accumulatedGasUsedChainCurrency:
-          accumulatedGasUsedChainCurrency.toFixed(0),
-        firstBlock: swapperAcc?.lastBlock || swap.blockNumber,
-        lastBlock: swap.blockNumber,
-        totalStakeAmountPSP,
-        refundedAmountPSP: accRefundedAmountPSP.toFixed(0),
-        refundedAmountUSD: refundedAmountUSD.toFixed(),
-        firstTx: swapperAcc?.firstTx || swap.txHash,
-        lastTx: swap.txHash,
-        firstTimestamp: swapperAcc?.firstTimestamp || +swap.timestamp,
-        lastTimestamp: +swap.timestamp,
-        numTx: (swapperAcc?.numTx || 0) + 1,
-        isCompleted: false,
-      };
+        const currGasUsed = new BigNumber(swap.txGasUsed);
+        const accumulatedGasUsed = currGasUsed.plus(
+          swapperAcc?.accumulatedGasUsed || 0,
+        );
 
-      accPendingGasRefundByAddress[address] = pendingGasRefundDatum;
-      updatedPendingGasRefundDataByAddress[address] = pendingGasRefundDatum;
-    });
+        const currGasUsedChainCur = currGasUsed.multipliedBy(
+          swap.txGasPrice.toString(),
+        ); // in wei
+
+        const accumulatedGasUsedChainCurrency = currGasUsedChainCur.plus(
+          swapperAcc?.accumulatedGasUsedChainCurrency || 0,
+        );
+
+        const currGasUsedUSD = currGasUsedChainCur
+          .multipliedBy(currencyRate.chainPrice)
+          .dividedBy(10 ** 18); // chaincurrency always encoded in 18decimals
+
+        const accumulatedGasUsedUSD = currGasUsedUSD.plus(
+          swapperAcc?.accumulatedGasUsedUSD || 0,
+        );
+        const currGasFeePSP = currGasUsedChainCur.dividedBy(
+          currencyRate.pspToChainCurRate,
+        );
+
+        const accumulatedGasUsedPSP = currGasFeePSP.plus(
+          swapperAcc?.accumulatedGasUsedPSP || 0,
+        );
+
+        const totalStakeAmountPSP = swapperStake
+          .plus(safetyModuleStakes)
+          .toFixed(0); // @todo irrelevant?
+        const refundPercent = getRefundPercent(totalStakeAmountPSP);
+
+        assert(
+          refundPercent,
+          `Logic Error: failed to find refund percent for ${address}`,
+        );
+
+        let currRefundedAmountPSP = currGasFeePSP.multipliedBy(refundPercent);
+
+        let currRefundedAmountUSD = currRefundedAmountPSP
+          .multipliedBy(currencyRate.pspPrice)
+          .dividedBy(10 ** 18); // psp decimals always encoded in 18decimals
+
+        if (
+          GRPSystemGuardian.totalRefundedAmountUSD(address)
+            .plus(currRefundedAmountUSD)
+            .isGreaterThanOrEqualTo(MAX_USD_ADDRESS_BUDGET)
+        ) {
+          currRefundedAmountUSD = MAX_USD_ADDRESS_BUDGET.minus(
+            GRPSystemGuardian.totalRefundedAmountUSD(address),
+          );
+
+          assert(
+            currRefundedAmountUSD.isGreaterThanOrEqualTo(0),
+            'Logic Error: quantity cannot be negative, this would mean we priorly refunded more than max',
+          );
+
+          currRefundedAmountPSP = currRefundedAmountUSD
+            .dividedBy(currencyRate.pspPrice)
+            .multipliedBy(10 ** 18);
+        }
+
+        GRPSystemGuardian.increaseTotalAmountRefundedUSDForAccount(
+          address,
+          currRefundedAmountUSD,
+        );
+
+        GRPSystemGuardian.increaseTotalPSPRefunded(currRefundedAmountPSP);
+
+        const accRefundedAmountPSP = currRefundedAmountPSP.plus(
+          swapperAcc?.refundedAmountPSP || 0,
+        );
+
+        const refundedAmountUSD = currRefundedAmountUSD.plus(
+          swapperAcc?.refundedAmountUSD || 0,
+        );
+
+        const pendingGasRefundDatum: PendingEpochGasRefundData = {
+          epoch,
+          address,
+          chainId,
+          accumulatedGasUsedPSP: accumulatedGasUsedPSP.toFixed(0),
+          accumulatedGasUsed: accumulatedGasUsed.toFixed(0),
+          accumulatedGasUsedUSD: accumulatedGasUsedUSD.toFixed(0),
+          accumulatedGasUsedChainCurrency:
+            accumulatedGasUsedChainCurrency.toFixed(0),
+          firstBlock: swapperAcc?.lastBlock || swap.blockNumber,
+          lastBlock: swap.blockNumber,
+          totalStakeAmountPSP,
+          refundedAmountPSP: accRefundedAmountPSP.toFixed(0),
+          refundedAmountUSD: refundedAmountUSD.toFixed(),
+          firstTx: swapperAcc?.firstTx || swap.txHash,
+          lastTx: swap.txHash,
+          firstTimestamp: swapperAcc?.firstTimestamp || +swap.timestamp,
+          lastTimestamp: +swap.timestamp,
+          numTx: (swapperAcc?.numTx || 0) + 1,
+          isCompleted: false,
+        };
+
+        accPendingGasRefundByAddress[address] = pendingGasRefundDatum;
+        updatedPendingGasRefundDataByAddress[address] = pendingGasRefundDatum;
+      }),
+    );
 
     const updatedGasRefundDataList = Object.values(
       updatedPendingGasRefundDataByAddress,
