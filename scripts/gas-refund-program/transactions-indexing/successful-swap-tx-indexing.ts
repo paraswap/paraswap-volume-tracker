@@ -103,7 +103,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
 
         const swapperAcc = accPendingGasRefundByAddress[address];
 
-        if (swapperStake.isZero() || swapperStake.isLessThan(GRP_MIN_STAKE)) {
+        if (swapperStake.isLessThan(GRP_MIN_STAKE)) {
           return;
         }
 
