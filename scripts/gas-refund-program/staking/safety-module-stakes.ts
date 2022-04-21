@@ -3,7 +3,7 @@ import { assert } from 'ts-essentials';
 import { BigNumber as EthersBN, Contract } from 'ethers';
 import { CHAIN_ID_MAINNET, PSP_ADDRESS } from '../../../src/lib/constants';
 import { Provider } from '../../../src/lib/provider';
-import { ZERO_BN } from '../utils';
+import { rpcCallConcurrencyLimited, ZERO_BN } from '../utils';
 import { getTokenBalance } from './covalent';
 import { StakesFetcher } from './types';
 
@@ -28,6 +28,7 @@ const SafetyModuleContract = new Contract(
   Provider.getJsonRpcProvider(CHAIN_ID_MAINNET),
 ) as SafetyModuleContractClass;
 
+// Micro-opt: fetch via covalent to rely on fast/cheap chain infrastructure to reduce rpc consumption
 export const fetchSafetyModuleStakes: StakesFetcher = async ({
   account,
   blockNumber,
@@ -43,10 +44,12 @@ export const fetchSafetyModuleStakes: StakesFetcher = async ({
 
   if (tokenBalance.isZero()) return ZERO_BN;
 
-  const votePower = await SafetyModuleContract.getVotePower(
-    account,
-    SafetyModuleAdress,
-    PSP_ADDRESS[chainId],
+  const votePower = await rpcCallConcurrencyLimited(() =>
+    SafetyModuleContract.getVotePower(
+      account,
+      SafetyModuleAdress,
+      PSP_ADDRESS[chainId],
+    ),
   );
 
   assert(

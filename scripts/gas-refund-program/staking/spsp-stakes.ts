@@ -8,10 +8,10 @@ import { PoolConfigsMap } from '../../../src/lib/pool-info';
 import { Provider } from '../../../src/lib/provider';
 import * as MultiCallerABI from '../../../src/lib/abi/multicaller.abi.json';
 import * as SPSPABI from '../../../src/lib/abi/spsp.abi.json';
-import { ZERO_BN } from '../utils';
-import { getTokenBalance } from './covalent';
+import { rpcCallConcurrencyLimited, ZERO_BN } from '../utils';
 import { Contract } from 'ethers';
 import { StakesFetcher } from './types';
+import { getTokenBalance } from './covalent';
 
 const sPSPInterface = new Interface(SPSPABI);
 
@@ -63,9 +63,11 @@ export const fetchSPSStakes: StakesFetcher = async ({
     callData: sPSPInterface.encodeFunctionData('PSPBalance', [account]),
   }));
 
-  const rawResult = await multicallContract.functions.aggregate(multicallData, {
-    blockTag: blockNumber,
-  });
+  const rawResult = await rpcCallConcurrencyLimited(() =>
+    multicallContract.functions.aggregate(multicallData, {
+      blockTag: blockNumber,
+    }),
+  );
 
   const totalPSPBalance = sPSPSWithBalance.reduce<BigNumber>((acc, _, i) => {
     const pspBalance = sPSPInterface
