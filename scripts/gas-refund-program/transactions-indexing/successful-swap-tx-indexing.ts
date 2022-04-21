@@ -12,7 +12,7 @@ import {
   PendingEpochGasRefundData,
 } from '../../../src/lib/gas-refund';
 import { getTransactionGasUsed } from '../staking/covalent';
-import { getPSPStakesHourlyWithinInterval } from '../staking';
+import { fetchUserStakes, getPSPStakesHourlyWithinInterval } from '../staking';
 import * as _ from 'lodash';
 import { ONE_HOUR_SEC, startOfHourSec } from '../utils';
 import { PriceResolverFn } from '../token-pricing/psp-chaincurrency-pricing';
@@ -140,9 +140,9 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     await Promise.all(
       swapsWithGasUsed.map(async swap => {
         const address = swap.txOrigin;
-        const safetyModuleStakes = await fetchSafetyModuleStakes({
+        const userStakesAtTimestamp = await fetchUserStakes({
           account: address,
-          blockNumber: swap.blockNumber,
+          timestamp: +swap.timestamp,
         });
 
         if (GRPSystemGuardian.isAccountUSDBudgetSpent(address)) {
@@ -217,7 +217,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
         );
 
         const totalStakeAmountPSP = swapperStake
-          .plus(safetyModuleStakes)
+          .plus(userStakesAtTimestamp)
           .toFixed(0); // @todo irrelevant?
         const refundPercent = getRefundPercent(totalStakeAmountPSP);
 

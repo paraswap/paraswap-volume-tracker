@@ -9,6 +9,7 @@ import { generateHourlyTimestamps } from '../utils';
 import * as pMemoize from 'p-memoize';
 import * as QuickLRU from 'quick-lru';
 import * as pLimit from 'p-limit';
+import { fetchSafetyModuleStakes } from './safety-module-stakes';
 
 // prefering limiting calls to avoid touching blockInfo implem
 const blockInfoLimit = pLimit(1);
@@ -65,3 +66,27 @@ export const getPSPStakesHourlyWithinInterval = async (
     ),
   );
 };
+
+export async function fetchUserStakes({
+  account,
+  timestamp,
+}: {
+  account: string;
+  timestamp: number;
+}): Promise<BigNumber> {
+  const blockNumber = await blockInfoLimit(() =>
+    BlockInfo.getInstance(CHAIN_ID_MAINNET).getBlockAfterTimeStamp(timestamp),
+  );
+
+  assert(
+    blockNumber,
+    `blocknumber could be retrieved for timestamp ${timestamp} (ethereum-blocks-subraph out of sync)`,
+  );
+
+  const safetyModuleStakes = await fetchSafetyModuleStakes({
+    account,
+    blockNumber,
+  });
+
+  return safetyModuleStakes;
+}
