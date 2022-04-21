@@ -17,7 +17,7 @@ import { getPSPStakesHourlyWithinInterval } from '../staking';
 import * as _ from 'lodash';
 import { constructSameDayPrice } from '../token-pricing/psp-chaincurrency-pricing';
 import { ONE_HOUR_SEC, startOfHourSec } from '../utils';
-import * as Test from '../../../src/test'
+import * as Test from './temp-seed'
 
 // empirically set to maximise on processing time without penalising memory and fetching constraigns
 // @FIXME: fix swaps subgraph pagination to always stay on safest spot

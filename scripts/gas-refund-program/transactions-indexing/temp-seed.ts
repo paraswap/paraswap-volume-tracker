@@ -3,8 +3,8 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 import * as fs from 'fs'
 
-import * as Swaps from '../scripts/gas-refund-program/transactions-indexing/swaps-subgraph'
-import * as GRP from './lib/gas-refund'
+import * as Swaps from './swaps-subgraph'
+import * as GRP from '../../../src/lib/gas-refund'
 
 const testDataPath = (chainId: number, epoch: number, startTimestamp: number, endTimestamp: number): string => `seed-data/covalent_chain:${chainId}_epoch:${epoch}_${startTimestamp}-${endTimestamp}.json`
 
