@@ -62,6 +62,7 @@ export async function fetchDailyPSPChainCurrencyRate({
 
 export type PriceResolverFn = (unixtime: number) => PricesAtTimestamp;
 
+// Deprecated algo but still used for older epoch (<11)
 const constructSameDayPriceResolver = (
   prices: HistoricalTokenUsdPrices,
 ): PriceResolverFn => {
@@ -90,6 +91,7 @@ const constructSameDayPriceResolver = (
   };
 };
 
+// computes moving average prices for last 24h 
 const constructLast24hAvgPriceResolver = (
   prices: HistoricalTokenUsdPrices,
 ): PriceResolverFn => {
