@@ -6,6 +6,8 @@ import { GasRefundParticipation } from '../../../src/models/GasRefundParticipati
 import { GasRefundDistribution } from '../../../src/models/GasRefundDistribution';
 import { MerkleData, MerkleTreeData, TxFeesByAddress } from '../types';
 import { sliceCalls } from '../utils';
+import { Sequelize } from 'sequelize';
+import BigNumber from 'bignumber.js';
 
 export const fetchPendingGasRefundData = async ({
   chainId,
@@ -47,6 +49,42 @@ export async function fetchVeryLastTimestampProcessed({
   return lastTimestamp;
 }
 
+export async function fetchTotalRefundedPSP(): Promise<BigNumber> {
+  const totalPSPRefunded = await GasRefundParticipation.sum<
+    string,
+    GasRefundParticipation
+  >('refundedAmountPSP');
+
+  return new BigNumber(totalPSPRefunded);
+}
+
+export async function fetchTotalRefundedAmountUSDByAddress(): Promise<{
+  [address: string]: BigNumber;
+}> {
+  const totalRefundedAmountUSDAllAddresses =
+    (await GasRefundParticipation.findAll({
+      attributes: [
+        'address',
+        [
+          Sequelize.fn('SUM', Sequelize.col('refundedAmountUSD')),
+          'totalRefundedAmountUSD',
+        ],
+      ],
+      group: 'address',
+    })) as unknown as { address: string; totalRefundedAmountUSD: string }[];
+
+  const totalRefundedAmountUSDByAddress =
+    totalRefundedAmountUSDAllAddresses.reduce<{ [address: string]: BigNumber }>(
+      (acc, curr) => {
+        acc[curr.address] = new BigNumber(curr.totalRefundedAmountUSD);
+        return acc;
+      },
+      {},
+    );
+
+  return totalRefundedAmountUSDByAddress;
+}
+
 export const writePendingEpochData = async (
   pendingEpochGasRefundData: PendingEpochGasRefundData[],
 ) => {
@@ -55,6 +93,7 @@ export const writePendingEpochData = async (
       'accumulatedGasUsedPSP',
       'accumulatedGasUsed',
       'accumulatedGasUsedChainCurrency',
+      'accumulatedGasUsedUSD',
       'firstBlock',
       'lastBlock',
       'firstTimestamp',
@@ -65,6 +104,7 @@ export const writePendingEpochData = async (
       'isCompleted',
       'totalStakeAmountPSP',
       'refundedAmountPSP',
+      'refundedAmountUSD',
     ],
   });
 };

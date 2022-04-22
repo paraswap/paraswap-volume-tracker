@@ -1,7 +1,12 @@
-import { fetchDailyPSPChainCurrencyRate } from '../token-pricing/psp-chaincurrency-pricing';
+import {
+  constructPriceResolver,
+  fetchDailyPSPChainCurrencyRate,
+} from '../token-pricing/psp-chaincurrency-pricing';
 import { computeSuccessfulSwapsTxFeesRefund as computeGasRefundSuccessSwaps } from './successful-swap-tx-indexing';
 
 const logger = global.LOGGER('GRP:computeGasRefundAllTxs');
+
+const EPOCH_PRICING_ALGO_FLIP = 11;
 
 // @TODO: index more transactions (failed swap tx, staking tx)
 export async function computeGasRefundAllTxs({
@@ -21,9 +26,17 @@ export async function computeGasRefundAllTxs({
   );
   const pspNativeCurrencyDailyRate = await fetchDailyPSPChainCurrencyRate({
     chainId,
-    startTimestamp,
+    startTimestamp:
+      epoch < EPOCH_PRICING_ALGO_FLIP
+        ? startTimestamp
+        : startTimestamp - 24 * 60 * 60, // overfetch to allow for last 24h avg
     endTimestamp,
   });
+
+  const resolvePrice = constructPriceResolver(
+    pspNativeCurrencyDailyRate,
+    epoch < EPOCH_PRICING_ALGO_FLIP ? 'sameDay' : 'last24h', // for backward compatibility
+  );
 
   // retrieve all tx beetween (start_epoch_timestamp, end_epoch_timestamp) +  compute progressively mapping(chainId => address => mapping(timestamp => accGasUsedPSP)) // address: txOrigin, timestamp: start of the day
   logger.info(
@@ -34,7 +47,7 @@ export async function computeGasRefundAllTxs({
     chainId,
     startTimestamp,
     endTimestamp,
-    pspNativeCurrencyDailyRate,
     epoch,
+    resolvePrice,
   });
 }

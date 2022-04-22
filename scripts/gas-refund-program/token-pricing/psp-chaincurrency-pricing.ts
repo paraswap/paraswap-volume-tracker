@@ -1,22 +1,38 @@
-import { assert } from 'ts-essentials';
-import { HistoricalPrice } from '../types';
 import * as pMemoize from 'p-memoize';
 import * as QuickLRU from 'quick-lru';
 import {
   CHAIN_TO_COIN_ID,
-  fetchAvgDailyPrice,
+  CoingeckoPriceHistory,
+  computeDailyAvgLast24h,
+  fetchHistoricalPriceCoingecko,
   PSP_COINGECKO_COIN_ID,
+  sampleDailyAvgPricesStartOfDay,
 } from './coingecko';
 import { startOfDayMilliSec } from '../utils';
 
-const logger = global.LOGGER('GRP:PSP-CHAIN-CURRENCY-PRICING');
+const fetchHistoricalPriceCoingeckoCached = pMemoize(
+  fetchHistoricalPriceCoingecko,
+  {
+    cacheKey: args => JSON.stringify(args[0]),
+    cache: new QuickLRU({
+      maxSize: 5, // cache all supported chain prices + PSP
+    }),
+  },
+);
 
-const fetchAvgDailyPriceCached = pMemoize(fetchAvgDailyPrice, {
-  cacheKey: args => JSON.stringify(args[0]),
-  cache: new QuickLRU({
-    maxSize: 5, // cache all supported chain prices + PSP
-  }),
-});
+type PricesAtTimestamp = {
+  pspToChainCurRate: number;
+  chainPrice: number;
+  pspPrice: number;
+};
+type PricesByTimestamp = {
+  [timestamp: string]: PricesAtTimestamp;
+};
+
+type HistoricalTokenUsdPrices = {
+  chainCurrencyHistoricalPrices: CoingeckoPriceHistory;
+  pspHistoricalPrices: CoingeckoPriceHistory;
+};
 
 export async function fetchDailyPSPChainCurrencyRate({
   chainId,
@@ -26,46 +42,82 @@ export async function fetchDailyPSPChainCurrencyRate({
   chainId: number;
   startTimestamp: number;
   endTimestamp: number;
-}): Promise<HistoricalPrice> {
-  const [dailyAvgChainCurPrice, dailyAvgPspPrice] = await Promise.all([
-    fetchAvgDailyPriceCached({
-      startTimestamp,
-      endTimestamp,
-      coinId: CHAIN_TO_COIN_ID[chainId],
-    }),
-    fetchAvgDailyPriceCached({
-      startTimestamp,
-      endTimestamp,
-      coinId: PSP_COINGECKO_COIN_ID,
-    }),
-  ]);
+}): Promise<HistoricalTokenUsdPrices> {
+  const [chainCurrencyHistoricalPrices, pspHistoricalPrices] =
+    await Promise.all([
+      fetchHistoricalPriceCoingeckoCached({
+        startTimestamp,
+        endTimestamp,
+        coinId: CHAIN_TO_COIN_ID[chainId],
+      }),
+      fetchHistoricalPriceCoingeckoCached({
+        startTimestamp,
+        endTimestamp,
+        coinId: PSP_COINGECKO_COIN_ID,
+      }),
+    ]);
 
-  assert(dailyAvgChainCurPrice.length > 0, 'could not find any rate');
-  assert(
-    dailyAvgChainCurPrice.length === dailyAvgPspPrice.length,
-    `Invalid price length got: ${dailyAvgChainCurPrice.length} and ${dailyAvgPspPrice.length}`,
-  );
-
-  logger.info(`Successfully retrieved ${dailyAvgChainCurPrice.length} prices`);
-
-  const dailyAvgPSPToChainCurPrice = dailyAvgChainCurPrice.map(
-    (chainCurPrice, i) => ({
-      timestamp: chainCurPrice.timestamp,
-      rate: dailyAvgPspPrice[i].rate / chainCurPrice.rate,
-    }),
-  );
-
-  return dailyAvgPSPToChainCurPrice;
+  return { chainCurrencyHistoricalPrices, pspHistoricalPrices };
 }
 
-export const constructSameDayPrice = (prices: HistoricalPrice) => {
-  const pricesByDate = prices.reduce<Record<string, number>>((acc, curr) => {
-    acc[curr.timestamp] = curr.rate;
+export type PriceResolverFn = (unixtime: number) => PricesAtTimestamp;
+
+// Deprecated algo but still used for older epoch (<11)
+const constructSameDayPriceResolver = (
+  prices: HistoricalTokenUsdPrices,
+): PriceResolverFn => {
+  const dailyAvgChainCurPrice = sampleDailyAvgPricesStartOfDay(
+    prices.chainCurrencyHistoricalPrices,
+  );
+  const dailyAvgPspPrice = sampleDailyAvgPricesStartOfDay(
+    prices.pspHistoricalPrices,
+  );
+
+  const aggregatedPrices = Object.keys(
+    dailyAvgChainCurPrice,
+  ).reduce<PricesByTimestamp>((acc, timestamp) => {
+    const pspPrice = dailyAvgPspPrice[timestamp];
+    const chainPrice = dailyAvgChainCurPrice[timestamp];
+    const pspToChainCurRate = pspPrice / chainPrice;
+
+    acc[timestamp] = { pspToChainCurRate, chainPrice, pspPrice };
+
     return acc;
   }, {});
 
   return function findSameDayPrice(unixtime: number) {
     const startOfDayTimestamp = startOfDayMilliSec(unixtime * 1000);
-    return pricesByDate[startOfDayTimestamp];
+    return aggregatedPrices[startOfDayTimestamp];
   };
+};
+
+// computes moving average prices for last 24h 
+const constructLast24hAvgPriceResolver = (
+  prices: HistoricalTokenUsdPrices,
+): PriceResolverFn => {
+  return function resolveLast24hAvgPrice(unixTime: number) {
+    const avgChainCurrencyPrice = computeDailyAvgLast24h(
+      prices.chainCurrencyHistoricalPrices,
+      unixTime * 1000,
+    );
+    const avgPSPPrice = computeDailyAvgLast24h(
+      prices.pspHistoricalPrices,
+      unixTime * 1000,
+    );
+
+    return {
+      pspToChainCurRate: avgPSPPrice / avgChainCurrencyPrice,
+      chainPrice: avgChainCurrencyPrice,
+      pspPrice: avgPSPPrice,
+    };
+  };
+};
+
+export const constructPriceResolver = (
+  prices: HistoricalTokenUsdPrices,
+  mode: 'sameDay' | 'last24h',
+): PriceResolverFn => {
+  return mode === 'sameDay'
+    ? constructSameDayPriceResolver(prices)
+    : constructLast24hAvgPriceResolver(prices);
 };

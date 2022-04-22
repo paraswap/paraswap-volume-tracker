@@ -1,7 +1,10 @@
+import BigNumber from 'bignumber.js';
 import * as _ from 'lodash';
 
 export const ONE_HOUR_SEC = 60 * 60;
 const DAY_SEC_MSEC = 1000 * ONE_HOUR_SEC * 24;
+
+export const ZERO_BN = new BigNumber(0);
 
 interface SliceCallsInput<T, U> {
   inputArray: T[];
