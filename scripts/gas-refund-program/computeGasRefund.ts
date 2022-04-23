@@ -27,73 +27,70 @@ async function startComputingGasRefundAllChains() {
 
   const epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET, true);
 
-  return Database.sequelize.transaction(async () => {
-    await GRPSystemGuardian.loadStateFromDB();
-    GRPSystemGuardian.assertMaxPSPGlobalBudgetNotReached();
+  //return Database.sequelize.transaction(async () => {
+  await GRPSystemGuardian.loadStateFromDB();
+  GRPSystemGuardian.assertMaxPSPGlobalBudgetNotReached();
 
-    return Promise.all(
-      GRP_SUPPORTED_CHAINS.map(async chainId => {
-        const lockId = `GasRefundParticipation_${chainId}`;
+  return Promise.all(
+    GRP_SUPPORTED_CHAINS.map(async chainId => {
+      const lockId = `GasRefundParticipation_${chainId}`;
 
-        await acquireLock(lockId); // next process simply hangs on inserting if lock already acquired
+      await acquireLock(lockId); // next process simply hangs on inserting if lock already acquired
 
-        const lastEpochProcessed = await GasRefundParticipation.max<
-          number,
-          GasRefundParticipation
-        >('epoch', {
-          where: {
-            isCompleted: false,
-            chainId,
-          },
-        });
+      const lastEpochProcessed = await GasRefundParticipation.max<
+        number,
+        GasRefundParticipation
+      >('epoch', {
+        where: {
+          isCompleted: false,
+          chainId,
+        },
+      });
 
-        const startEpoch = lastEpochProcessed || GasRefundGenesisEpoch;
+      const startEpoch = lastEpochProcessed || GasRefundGenesisEpoch;
 
-        assert(
-          startEpoch >= GasRefundGenesisEpoch,
-          'cannot compute refund data for epoch < genesis_epoch',
-        );
+      assert(
+        startEpoch >= GasRefundGenesisEpoch,
+        'cannot compute refund data for epoch < genesis_epoch',
+      );
 
-        for (
-          let epoch = startEpoch;
-          epoch <= epochInfo.getCurrentEpoch();
-          epoch++
-        ) {
-          if (GRPSystemGuardian.isMaxPSPGlobalBudgetSpent()) {
-            logger.warn(
-              `max psp global budget spent, preventing further processing & storing`,
-            );
-            break;
-          }
-
-          const { startCalcTime, endCalcTime } =
-            await resolveEpochCalcTimeInterval(epoch);
-
-          assert(
-            startCalcTime,
-            `could not resolve ${epoch}th epoch start time`,
+      for (
+        let epoch = startEpoch;
+        epoch <= epochInfo.getCurrentEpoch();
+        epoch++
+      ) {
+        if (GRPSystemGuardian.isMaxPSPGlobalBudgetSpent()) {
+          logger.warn(
+            `max psp global budget spent, preventing further processing & storing`,
           );
-          assert(endCalcTime, `could not resolve ${epoch}th epoch end time`);
-
-          if (await merkleRootExists({ chainId, epoch })) {
-            logger.info(
-              `merkle root for chainId=${chainId} epoch=${epoch} already exists, SKIP`,
-            );
-            continue;
-          }
-
-          await computeGasRefundAllTxs({
-            chainId,
-            epoch,
-            startTimestamp: startCalcTime,
-            endTimestamp: endCalcTime,
-          });
+          break;
         }
 
-        await releaseLock(lockId);
-      }),
-    );
-  });
+        const { startCalcTime, endCalcTime } =
+          await resolveEpochCalcTimeInterval(epoch);
+
+        assert(startCalcTime, `could not resolve ${epoch}th epoch start time`);
+        assert(endCalcTime, `could not resolve ${epoch}th epoch end time`);
+
+        if (await merkleRootExists({ chainId, epoch })) {
+          logger.info(
+            `merkle root for chainId=${chainId} epoch=${epoch} already exists, SKIP`,
+          );
+          continue;
+        }
+
+        await computeGasRefundAllTxs({
+          chainId,
+          epoch,
+          startTimestamp: startCalcTime,
+          endTimestamp: endCalcTime,
+        });
+      }
+
+      await releaseLock(lockId);
+    }),
+  );
+  // });
 }
 
 startComputingGasRefundAllChains()

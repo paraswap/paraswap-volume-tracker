@@ -58,8 +58,10 @@ export async function getTransactionGasUsed({
   const { data } = await covalentClient.get<TransactionResponse>(url);
 
   assert(data.data.items.length === 1, 'Expected exactly one transaction');
+  const gasUsed = data.data.items[0].gas_spent;
+  assert(gasUsed > 0, 'Expected transaction to non zero gas_spent');
 
-  return data.data.items[0].gas_spent;
+  return gasUsed;
 }
 
 interface TokensHoldersResponse {
