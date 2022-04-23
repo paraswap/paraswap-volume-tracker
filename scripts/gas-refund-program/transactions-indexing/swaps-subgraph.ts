@@ -74,7 +74,7 @@ export async function getSwapsForAccounts({
 
     const swaps = data.data.swaps;
 
-    assert(swaps.length !== 1000, 'unsafe fix pagination');
+    assert(swaps.length !== 100, 'unsafe fix pagination');
 
     return swaps;
   };
