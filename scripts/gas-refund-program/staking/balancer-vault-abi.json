@@ -1,0 +1,95 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "poolId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "liquidityProvider",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "contract IERC20[]",
+        "name": "tokens",
+        "type": "address[]"
+      },
+      {
+        "indexed": false,
+        "internalType": "int256[]",
+        "name": "deltas",
+        "type": "int256[]"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256[]",
+        "name": "protocolFeeAmounts",
+        "type": "uint256[]"
+      }
+    ],
+    "name": "PoolBalanceChanged",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "poolId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "contract IERC20",
+        "name": "tokenIn",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "contract IERC20",
+        "name": "tokenOut",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amountIn",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amountOut",
+        "type": "uint256"
+      }
+    ],
+    "name": "Swap",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "poolId", "type": "bytes32" },
+      { "internalType": "contract IERC20", "name": "token", "type": "address" }
+    ],
+    "name": "getPoolTokenInfo",
+    "outputs": [
+      { "internalType": "uint256", "name": "cash", "type": "uint256" },
+      { "internalType": "uint256", "name": "managed", "type": "uint256" },
+      {
+        "internalType": "uint256",
+        "name": "lastChangeBlock",
+        "type": "uint256"
+      },
+      { "internalType": "address", "name": "assetManager", "type": "address" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

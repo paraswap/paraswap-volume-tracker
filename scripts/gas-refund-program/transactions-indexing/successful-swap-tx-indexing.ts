@@ -8,6 +8,7 @@ import {
 } from '../persistance/db-persistance';
 import { getSuccessfulSwaps } from './swaps-subgraph';
 import {
+  GasRefundSafetyModuleStartEpoch,
   getRefundPercent,
   PendingEpochGasRefundData,
 } from '../../../src/lib/gas-refund';
@@ -17,6 +18,7 @@ import * as _ from 'lodash';
 import { ONE_HOUR_SEC, startOfHourSec } from '../utils';
 import { PriceResolverFn } from '../token-pricing/psp-chaincurrency-pricing';
 import GRPSystemGuardian, { MAX_USD_ADDRESS_BUDGET } from '../system-guardian';
+import SafetyModuleStakesTracker from '../staking/safety-module-stakes';
 
 // empirically set to maximise on processing time without penalising memory and fetching constraigns
 // @FIXME: fix swaps subgraph pagination to always stay on safest spot
@@ -132,10 +134,24 @@ export async function computeSuccessfulSwapsTxFeesRefund({
           'stakes at beginning of next hour should be defined',
         );
 
-        const swapperStake = BigNumber.max(
+        const sPSPStake = BigNumber.max(
           stakesStartOfHour[address] || 0,
           stakesStartOfNextHour[address] || 0,
         );
+
+        let swapperStake: BigNumber;
+
+        if (epoch >= GasRefundSafetyModuleStartEpoch) {
+          const safetyModuleStake =
+            SafetyModuleStakesTracker.computeStakedPSPBalance(
+              address,
+              +swap.timestamp,
+            );
+
+          swapperStake = sPSPStake.plus(safetyModuleStake);
+        } else {
+          swapperStake = sPSPStake;
+        }
 
         if (swapperStake.isZero()) {
           return;

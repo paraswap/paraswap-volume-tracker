@@ -16,6 +16,7 @@ import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
 import { acquireLock, releaseLock } from '../../src/lib/lock-utils';
 import Database from '../../src/database';
 import GRPSystemGuardian from './system-guardian';
+import SafetyModuleStakesTracker from './staking/safety-module-stakes';
 
 const logger = global.LOGGER('GRP');
 
@@ -30,6 +31,11 @@ async function startComputingGasRefundAllChains() {
   //return Database.sequelize.transaction(async () => {
   await GRPSystemGuardian.loadStateFromDB();
   GRPSystemGuardian.assertMaxPSPGlobalBudgetNotReached();
+
+  const startBlock = 14434042; // @TODO: fetch last processed fully processed epoch from DB -> resolve endCalcTime -> resolve block
+  const endBlock = 14646515; // @TODO: resolve endCalcTime of last epoch (current) -> resolve block
+
+  await SafetyModuleStakesTracker.loadStakes(startBlock, endBlock);
 
   return Promise.all(
     GRP_SUPPORTED_CHAINS.map(async chainId => {
