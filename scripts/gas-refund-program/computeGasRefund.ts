@@ -24,7 +24,6 @@ const logger = global.LOGGER('GRP');
 
 async function startComputingGasRefundAllChains() {
   await init({
-    epochPolling: true,
     dbTransactionNamespace: 'gas-refund-computation',
   });
 
