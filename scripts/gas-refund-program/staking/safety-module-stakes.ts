@@ -1,5 +1,5 @@
 import BigNumber from 'bignumber.js';
-import { BigNumber as EthersBN, Contract, Event } from 'ethers';
+import { BigNumber as EthersBN, CallOverrides, Contract, Event } from 'ethers';
 import { assert } from 'ts-essentials';
 import { CHAIN_ID_MAINNET, PSP_ADDRESS } from '../../../src/lib/constants';
 import { Provider } from '../../../src/lib/provider';
@@ -18,7 +18,7 @@ const Balancer_80PSP_20WETH_address = Balancer_80PSP_20WETH_poolId.substring(
 );
 
 interface MinERC20 extends Contract {
-  totalSupply(): Promise<EthersBN>;
+  totalSupply(overrides?: CallOverrides): Promise<EthersBN>;
 }
 
 const StkPSPBPtAsERC20 = new Contract(
@@ -31,6 +31,7 @@ interface BVaultContract extends Contract {
   getPoolTokenInfo(
     poolId: string,
     token: string,
+    overrides?: CallOverrides,
   ): Promise<
     [
       cash: EthersBN,
@@ -120,10 +121,11 @@ class SafetyModuleStakesTracker {
   }
 
   async loadInitialState() {
+    const initBlock = this.startBlock - 1;
     await Promise.all([
-      this.fetchPSPBPtPoolState(),
-      this.fetchBPTotalSupply(),
-      this.fetchStkPSPBptStakers(),
+      this.fetchPSPBPtPoolState(initBlock),
+      this.fetchBPTotalSupply(initBlock),
+      this.fetchStkPSPBptStakers(initBlock),
     ]);
   }
 
@@ -136,26 +138,34 @@ class SafetyModuleStakesTracker {
     ]);
   }
 
-  async fetchPSPBPtPoolState() {
+  async fetchPSPBPtPoolState(initBlock: number) {
     const [pspBalance] = await bVaultContract.getPoolTokenInfo(
       Balancer_80PSP_20WETH_poolId,
       PSP_ADDRESS[CHAIN_ID_MAINNET],
+      {
+        blockTag: initBlock,
+      },
     );
     this.initState.bptPoolPSPBalance = new BigNumber(pspBalance.toString());
   }
 
-  async fetchBPTotalSupply() {
-    const totalSupply = await bptAsEERC20.totalSupply();
+  async fetchBPTotalSupply(initBlock: number) {
+    const totalSupply = await bptAsEERC20.totalSupply({ blockTag: initBlock });
     this.initState.bptPoolTotalSupply = new BigNumber(totalSupply.toString());
   }
 
-  async fetchStkPSPBptStakers() {
+  async fetchStkPSPBptStakers(initBlock: number) {
     const { items: stakes } = await getTokenHolders({
       token: SafetyModuleAddress,
       chainId: CHAIN_ID_MAINNET,
-      blockHeight: String(this.startBlock - 1),
+      blockHeight: String(initBlock),
       pageSize: 10000,
     });
+
+    assert(
+      stakes.length < 1000,
+      'more than 1000 stakers not safe, fix pagination',
+    );
 
     this.initState.stkPSPBptStakes = stakes.reduce<{
       [address: string]: BigNumber;
@@ -231,7 +241,7 @@ class SafetyModuleStakesTracker {
 
     const blockNumToTimestamp = await fetchBlockTimestampForEvents(events);
 
-    const bptPoolPSPBalanceChanges = events.map(e => {
+    const bptPoolPSPBalanceChanges = events.flatMap(e => {
       const timestamp = blockNumToTimestamp[e.blockNumber];
       assert(timestamp, 'block timestamp should be defined');
 
@@ -239,7 +249,7 @@ class SafetyModuleStakesTracker {
         e.event === 'PoolBalanceChanged',
         'can only be poolBalanceChanged event',
       );
-      const [, , tokens, amountsInOrOut] = e.args;
+      const [, , tokens, amountsInOrOut, paidProtocolSwapFeeAmounts] = e.args;
 
       assert(
         tokens[1].toLowerCase() === PSP_ADDRESS[CHAIN_ID_MAINNET].toLowerCase(),
@@ -248,10 +258,18 @@ class SafetyModuleStakesTracker {
 
       const pspAmountInOrOut = amountsInOrOut[1];
 
-      return {
-        timestamp,
-        changes: new BigNumber(pspAmountInOrOut.toString()), // onPoolJoin / onPoolExit amount is positive / negative
-      };
+      return [
+        {
+          timestamp,
+          changes: new BigNumber(pspAmountInOrOut.toString()), // onPoolJoin / onPoolExit amount is positive / negative
+        },
+        {
+          timestamp,
+          changes: new BigNumber(
+            paidProtocolSwapFeeAmounts[1].toString(),
+          ).multipliedBy(-1),
+        },
+      ];
     });
 
     this.differentialStates.bptPoolPSPBalance =
@@ -273,15 +291,15 @@ class SafetyModuleStakesTracker {
     const bptPoolPSPBalanceChanges = events.map(e => {
       const timestamp = blockNumToTimestamp[e.blockNumber];
       assert(timestamp, 'block timestamp should be defined');
-
       assert(e.event === 'Swap', 'can only be Swap Event event');
+
       const [, tokenIn, tokenOut, amountIn, amountOut] = e.args;
 
       const isPSPTokenIn =
-        tokenIn.toLowerCase() === PSP_ADDRESS[CHAIN_ID_MAINNET].toLowerCase() ||
-        tokenOut.toLowerCase();
+        tokenIn.toLowerCase() === PSP_ADDRESS[CHAIN_ID_MAINNET].toLowerCase();
       const isPSPTokenOut =
         tokenOut.toLowerCase() === PSP_ADDRESS[CHAIN_ID_MAINNET].toLowerCase();
+
       assert(
         isPSPTokenIn || isPSPTokenOut,
         'logic error PSP should be in token in or out',
@@ -356,6 +374,7 @@ class SafetyModuleStakesTracker {
       timestamp,
       this.initState.bptPoolPSPBalance,
       this.differentialStates.bptPoolPSPBalance,
+      false, // disable sorting as already done at compute time + collection could be huge
     );
     const totalSupply = _reduceTimeSeries(
       timestamp,
@@ -388,17 +407,17 @@ function _reduceTimeSeries(
   timestamp: number,
   initValue: BigNumber | undefined,
   series: TimeSeries | undefined,
+  shouldSort = true,
 ) {
   let sum = initValue || ZERO_BN;
 
-  if (!series) return sum;
+  if (!series || !series.length) return sum;
 
-  // on first visiting sorting will cost, on subsequent visits sorting should be fast
-  series.sort(timeseriesComparator);
+  // on first visit sorting will cost, on subsequent visits sorting should be fast
+  if (shouldSort) series.sort(timeseriesComparator);
 
   for (let i = 0; i < series.length; i++) {
-    if (timestamp < series[i].timestamp) continue;
-    if (timestamp > series[i].timestamp) break;
+    if (timestamp < series[i].timestamp) break;
 
     sum = sum.plus(series[i].changes);
   }
