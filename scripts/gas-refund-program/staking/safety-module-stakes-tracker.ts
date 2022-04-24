@@ -265,7 +265,7 @@ export default class SafetyModuleStakesTracker {
 
       this.differentialStates.stkPSPBptUsersBalances[from].push({
         timestamp,
-        value: amount,
+        value: amount.multipliedBy(-1),
       });
 
       if (!this.differentialStates.stkPSPBptUsersBalances[to])
@@ -273,7 +273,7 @@ export default class SafetyModuleStakesTracker {
 
       this.differentialStates.stkPSPBptUsersBalances[to].push({
         timestamp,
-        value: amount.multipliedBy(-1),
+        value: amount,
       });
     });
   }
