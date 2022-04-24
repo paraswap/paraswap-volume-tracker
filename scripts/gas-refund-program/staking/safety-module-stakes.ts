@@ -72,7 +72,8 @@ interface PoolBalanceChanged extends Event {
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-type TimeSeries = { timestamp: number; changes: BigNumber }[];
+type TimeSeriesItem = { timestamp: number; changes: BigNumber };
+type TimeSeries = TimeSeriesItem[];
 
 type InitState = {
   stkPSPBptStakes: { [address: string]: BigNumber };
@@ -219,7 +220,7 @@ class SafetyModuleStakesTracker {
 
     const blockNumToTimestamp = await fetchBlockTimestampForEvents(events);
 
-    events.forEach(e => {
+    const bptPoolPSPBalanceChanges = events.map(e => {
       const timestamp = blockNumToTimestamp[e.blockNumber];
       assert(timestamp, 'block timestamp should be defined');
 
@@ -236,11 +237,17 @@ class SafetyModuleStakesTracker {
 
       const pspAmountInOrOut = amountsInOrOut[1];
 
-      this.differentialStates.bptPoolPSPBalance.push({
+      return {
         timestamp,
         changes: new BigNumber(pspAmountInOrOut.toString()), // @FIXME: parse signed int256 for exit pool
-      });
+      };
     });
+
+    this.differentialStates.bptPoolPSPBalance =
+      this.differentialStates.bptPoolPSPBalance.concat(
+        bptPoolPSPBalanceChanges,
+      );
+    this.differentialStates.bptPoolPSPBalance.sort(timeseriesComparator);
   }
 
   async resolveBPTPoolSupplyChanges() {
@@ -261,7 +268,7 @@ class SafetyModuleStakesTracker {
 
     const blockNumToTimestamp = await fetchBlockTimestampForEvents(events);
 
-    events.forEach(e => {
+    const bptPoolTotalSupplyChanges = events.map(e => {
       const timestamp = blockNumToTimestamp[e.blockNumber];
       assert(timestamp, 'block timestamp should be defined');
       assert(e.event === 'Transfer', 'can only be Transfer event');
@@ -275,11 +282,17 @@ class SafetyModuleStakesTracker {
 
       const isMint = from === ZERO_ADDRESS;
 
-      this.differentialStates.bptPoolTotalSupply.push({
+      return {
         timestamp,
         changes: new BigNumber(amount.toString()).multipliedBy(isMint ? 1 : -1),
-      });
+      };
     });
+
+    this.differentialStates.bptPoolTotalSupply =
+      this.differentialStates.bptPoolTotalSupply.concat(
+        bptPoolTotalSupplyChanges,
+      );
+    this.differentialStates.bptPoolTotalSupply.sort(timeseriesComparator);
   }
 
   compute_BPT_to_PSP_Rate(timestamp: number) {
@@ -315,7 +328,6 @@ class SafetyModuleStakesTracker {
 }
 
 // microopt turn on memoisation / dynamic programing
-// assumes series is ordered by timestamp
 function _reduceTimeSeries(
   timestamp: number,
   initValue: BigNumber | undefined,
@@ -325,6 +337,9 @@ function _reduceTimeSeries(
 
   if (!series) return sum;
 
+  // on first visiting sorting will cost, on subsequent visits sorting should be fast
+  series.sort(timeseriesComparator);
+
   for (let i = 0; i < series.length; i++) {
     if (timestamp < series[i].timestamp) continue;
     if (timestamp > series[i].timestamp) break;
@@ -333,6 +348,11 @@ function _reduceTimeSeries(
   }
 
   return sum;
+}
+function timeseriesComparator(a: TimeSeriesItem, b: TimeSeriesItem) {
+  if (a.timestamp < b.timestamp) return -1;
+  if (a.timestamp > b.timestamp) return 1;
+  return 0;
 }
 
 export default new SafetyModuleStakesTracker();
