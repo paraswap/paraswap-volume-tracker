@@ -29,13 +29,12 @@ async function startComputingGasRefundAllChains() {
 
   const epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET, true);
 
-  //return Database.sequelize.transaction(async () => {
-  await GRPSystemGuardian.loadStateFromDB();
-  GRPSystemGuardian.assertMaxPSPGlobalBudgetNotReached();
-
-  await SafetyModuleStakesTracker.loadStakes();
-
   return Database.sequelize.transaction(async () => {
+    await GRPSystemGuardian.loadStateFromDB();
+    GRPSystemGuardian.assertMaxPSPGlobalBudgetNotReached();
+
+    await SafetyModuleStakesTracker.loadStakes();
+
     return Promise.all(
       GRP_SUPPORTED_CHAINS.map(async chainId => {
         const lockId = `GasRefundParticipation_${chainId}`;

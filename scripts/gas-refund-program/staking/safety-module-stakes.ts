@@ -6,10 +6,7 @@ import { Provider } from '../../../src/lib/provider';
 import * as ERC20ABI from '../../../src/lib/abi/erc20.abi.json';
 import * as BVaultABI from './balancer-vault-abi.json';
 import { getTokenHolders } from './covalent';
-import {
-  fetchBlockTimestampForEvents,
-  ZERO_BN,
-} from '../utils';
+import { fetchBlockTimestampForEvents, ZERO_BN } from '../utils';
 import { getLatestTransactionTimestamp } from '../persistance/db-persistance';
 import { EpochInfo } from '../../../src/lib/epoch-info';
 import { GasRefundSafetyModuleStartEpoch } from '../../../src/lib/gas-refund';
