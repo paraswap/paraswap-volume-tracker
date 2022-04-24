@@ -250,7 +250,7 @@ class SafetyModuleStakesTracker {
 
       return {
         timestamp,
-        changes: new BigNumber(pspAmountInOrOut.toString()), // @FIXME: parse signed int256 for exit pool
+        changes: new BigNumber(pspAmountInOrOut.toString()), // onPoolJoin / onPoolExit amount is positive / negative
       };
     });
 
