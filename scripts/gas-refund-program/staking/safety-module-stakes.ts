@@ -70,6 +70,17 @@ interface PoolBalanceChanged extends Event {
   ];
 }
 
+interface Swap extends Event {
+  event: 'Swap';
+  args: [
+    poolId: string,
+    tokenIn: string,
+    tokenOut: string,
+    amountInt: EthersBN,
+    amountOut: EthersBN,
+  ];
+}
+
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 type TimeSeriesItem = { timestamp: number; changes: BigNumber };
@@ -119,8 +130,9 @@ class SafetyModuleStakesTracker {
   async loadStateChanges() {
     return Promise.all([
       this.resolveStkPSPBptChanges(),
-      this.resolveBPTPoolPSPBalanceChanges(),
       this.resolveBPTPoolSupplyChanges(),
+      this.resolveBPTPoolPSPBalanceChangesFromLP(),
+      this.resolveBPTPoolPSPBalanceChangesFromSwaps(),
     ]);
   }
 
@@ -210,8 +222,7 @@ class SafetyModuleStakesTracker {
     });
   }
 
-  async resolveBPTPoolPSPBalanceChanges() {
-    // @TODO: listen to PoolBalanceChanged and Swaps events to resolve token state
+  async resolveBPTPoolPSPBalanceChangesFromLP() {
     const events = (await bVaultContract.queryFilter(
       bVaultContract.filters.PoolBalanceChanged(Balancer_80PSP_20WETH_poolId),
       this.startBlock,
@@ -240,6 +251,51 @@ class SafetyModuleStakesTracker {
       return {
         timestamp,
         changes: new BigNumber(pspAmountInOrOut.toString()), // @FIXME: parse signed int256 for exit pool
+      };
+    });
+
+    this.differentialStates.bptPoolPSPBalance =
+      this.differentialStates.bptPoolPSPBalance.concat(
+        bptPoolPSPBalanceChanges,
+      );
+    this.differentialStates.bptPoolPSPBalance.sort(timeseriesComparator);
+  }
+
+  async resolveBPTPoolPSPBalanceChangesFromSwaps() {
+    const events = (await bVaultContract.queryFilter(
+      bVaultContract.filters.Swap(Balancer_80PSP_20WETH_poolId),
+      this.startBlock,
+      this.endBlock,
+    )) as Swap[];
+
+    const blockNumToTimestamp = await fetchBlockTimestampForEvents(events);
+
+    const bptPoolPSPBalanceChanges = events.map(e => {
+      const timestamp = blockNumToTimestamp[e.blockNumber];
+      assert(timestamp, 'block timestamp should be defined');
+
+      assert(e.event === 'Swap', 'can only be Swap Event event');
+      const [, tokenIn, tokenOut, amountIn, amountOut] = e.args;
+
+      const isPSPTokenIn =
+        tokenIn.toLowerCase() === PSP_ADDRESS[CHAIN_ID_MAINNET].toLowerCase() ||
+        tokenOut.toLowerCase();
+      const isPSPTokenOut =
+        tokenOut.toLowerCase() === PSP_ADDRESS[CHAIN_ID_MAINNET].toLowerCase();
+      assert(
+        isPSPTokenIn || isPSPTokenOut,
+        'logic error PSP should be in token in or out',
+      );
+
+      if (isPSPTokenIn)
+        return {
+          timestamp,
+          changes: new BigNumber(amountIn.toString()),
+        };
+
+      return {
+        timestamp,
+        changes: new BigNumber(amountOut.toString()).multipliedBy(-1),
       };
     });
 
