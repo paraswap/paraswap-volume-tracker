@@ -33,7 +33,7 @@ async function startComputingGasRefundAllChains() {
     await GRPSystemGuardian.loadStateFromDB();
     GRPSystemGuardian.assertMaxPSPGlobalBudgetNotReached();
 
-    await SafetyModuleStakesTracker.loadStakes();
+    await SafetyModuleStakesTracker.getInstance().loadStakes();
 
     return Promise.all(
       GRP_SUPPORTED_CHAINS.map(async chainId => {

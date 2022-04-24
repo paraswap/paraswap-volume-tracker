@@ -104,7 +104,7 @@ type DiffState = {
   bptPoolTotalSupply: TimeSeries;
 };
 
-class SafetyModuleStakesTracker {
+export default class SafetyModuleStakesTracker {
   startBlock: number;
   endBlock: number;
   initState: InitState = {
@@ -117,6 +117,16 @@ class SafetyModuleStakesTracker {
     bptPoolPSPBalance: [],
     bptPoolTotalSupply: [],
   };
+
+  static instance: SafetyModuleStakesTracker;
+
+  static getInstance() {
+    if (!this.instance) {
+      this.instance = new SafetyModuleStakesTracker();
+    }
+
+    return this.instance;
+  }
 
   async loadStakes() {
     const blockInfo = BlockInfo.getInstance(CHAIN_ID_MAINNET);
@@ -457,5 +467,3 @@ function timeseriesComparator(a: TimeSeriesItem, b: TimeSeriesItem) {
   if (a.timestamp > b.timestamp) return 1;
   return 0;
 }
-
-export default new SafetyModuleStakesTracker();

@@ -143,7 +143,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
 
         if (epoch >= GasRefundSafetyModuleStartEpoch) {
           const safetyModuleStake =
-            SafetyModuleStakesTracker.computeStakedPSPBalance(
+            SafetyModuleStakesTracker.getInstance().computeStakedPSPBalance(
               address,
               +swap.timestamp,
             );
