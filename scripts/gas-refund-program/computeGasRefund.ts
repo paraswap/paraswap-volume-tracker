@@ -32,8 +32,16 @@ async function startComputingGasRefundAllChains() {
   await GRPSystemGuardian.loadStateFromDB();
   GRPSystemGuardian.assertMaxPSPGlobalBudgetNotReached();
 
-  const startBlock = 14434042; // @TODO: fetch last processed fully processed epoch from DB -> resolve endCalcTime -> resolve block
-  const endBlock = 14646515; // @TODO: resolve endCalcTime of last epoch (current) -> resolve block
+  /* @TODO: take lastTimestampProcessed = min(max_chain_1(lastTimestamp),...max_chain_n(lastTimestamp)) 
+  * -> do startTimestamp = max(lastTimestampProcessed, safetyModuleGenesisEpoch.timestamp) 
+  * -> do startBlock = findBlockForTimestamp(startTimestamp)
+  */
+  const startBlock = 14434042;
+  /* @TODO: take currentEpoch.timestamp
+  * -> do endTimestamp = Math.min(now, currentEpoch.timestamp)
+  * -> do endBlock = findBlockForTimestamp(endTimestamp)
+  */ 
+  const endBlock = 14647475;
 
   await SafetyModuleStakesTracker.loadStakes(startBlock, endBlock);
 
