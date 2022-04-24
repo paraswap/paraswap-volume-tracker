@@ -18,7 +18,7 @@ import * as _ from 'lodash';
 import { ONE_HOUR_SEC, startOfHourSec } from '../utils';
 import { PriceResolverFn } from '../token-pricing/psp-chaincurrency-pricing';
 import GRPSystemGuardian, { MAX_USD_ADDRESS_BUDGET } from '../system-guardian';
-import SafetyModuleStakesTracker from '../staking/safety-module-stakes';
+import SafetyModuleStakesTracker from '../staking/safety-module-stakes-tracker';
 
 // empirically set to maximise on processing time without penalising memory and fetching constraigns
 // @FIXME: fix swaps subgraph pagination to always stay on safest spot

@@ -18,7 +18,7 @@ import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
 import { acquireLock, releaseLock } from '../../src/lib/lock-utils';
 import Database from '../../src/database';
 import GRPSystemGuardian from './system-guardian';
-import SafetyModuleStakesTracker from './staking/safety-module-stakes';
+import SafetyModuleStakesTracker from './staking/safety-module-stakes-tracker';
 
 const logger = global.LOGGER('GRP');
 
