@@ -12,6 +12,11 @@ import { EpochInfo } from '../../../src/lib/epoch-info';
 import { GasRefundSafetyModuleStartEpoch } from '../../../src/lib/gas-refund';
 import { OFFSET_CALC_TIME } from '../common';
 import { BlockInfo } from '../../../src/lib/block-info';
+import {
+  reduceTimeSeries,
+  TimeSeries,
+  timeseriesComparator,
+} from '../timeseries';
 
 const SafetyModuleAddress = '0xc8dc2ec5f5e02be8b37a8444a1931f02374a17ab';
 const BalancerVaultAddress = '0xba12222222228d8ba445958a75a0704d566bf2c8';
@@ -20,7 +25,7 @@ const Balancer_80PSP_20WETH_poolId =
 const Balancer_80PSP_20WETH_address = Balancer_80PSP_20WETH_poolId.substring(
   0,
   42,
-);
+); // or 0xcb0e14e96f2cefa8550ad8e4aea344f211e5061d
 
 interface MinERC20 extends Contract {
   totalSupply(overrides?: CallOverrides): Promise<EthersBN>;
@@ -89,31 +94,28 @@ interface Swap extends Event {
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-type TimeSeriesItem = { timestamp: number; changes: BigNumber };
-type TimeSeries = TimeSeriesItem[];
-
 type InitState = {
-  stkPSPBptStakes: { [address: string]: BigNumber };
   bptPoolPSPBalance: BigNumber;
   bptPoolTotalSupply: BigNumber;
+  stkPSPBptUsersBalances: { [address: string]: BigNumber };
 };
 
 type DiffState = {
-  stkPSPBptStakes: { [address: string]: TimeSeries };
   bptPoolPSPBalance: TimeSeries;
   bptPoolTotalSupply: TimeSeries;
+  stkPSPBptUsersBalances: { [address: string]: TimeSeries };
 };
 
 export default class SafetyModuleStakesTracker {
   startBlock: number;
   endBlock: number;
   initState: InitState = {
-    stkPSPBptStakes: {},
+    stkPSPBptUsersBalances: {},
     bptPoolPSPBalance: ZERO_BN,
     bptPoolTotalSupply: ZERO_BN,
   };
   differentialStates: DiffState = {
-    stkPSPBptStakes: {},
+    stkPSPBptUsersBalances: {},
     bptPoolPSPBalance: [],
     bptPoolTotalSupply: [],
   };
@@ -128,7 +130,7 @@ export default class SafetyModuleStakesTracker {
     return this.instance;
   }
 
-  async loadStakes() {
+  async initProcessingInterval() {
     const blockInfo = BlockInfo.getInstance(CHAIN_ID_MAINNET);
     const epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET, true);
 
@@ -154,6 +156,12 @@ export default class SafetyModuleStakesTracker {
 
     this.startBlock = startBlock;
     this.endBlock = endBlock;
+  }
+
+  async loadStakes(initProcessingInterval = true) {
+    if (initProcessingInterval) {
+      await this.initProcessingInterval();
+    }
 
     await Promise.all([this.loadInitialState(), this.loadStateChanges()]);
   }
@@ -205,7 +213,7 @@ export default class SafetyModuleStakesTracker {
       'more than 1000 stakers not safe, fix pagination',
     );
 
-    this.initState.stkPSPBptStakes = stakes.reduce<{
+    this.initState.stkPSPBptUsersBalances = stakes.reduce<{
       [address: string]: BigNumber;
     }>((acc, curr) => {
       acc[curr.address.toLowerCase()] = new BigNumber(curr.balance);
@@ -241,31 +249,31 @@ export default class SafetyModuleStakesTracker {
 
         const _from = isMint ? to : from;
 
-        if (!this.differentialStates.stkPSPBptStakes[_from])
-          this.differentialStates.stkPSPBptStakes[_from] = [];
+        if (!this.differentialStates.stkPSPBptUsersBalances[_from])
+          this.differentialStates.stkPSPBptUsersBalances[_from] = [];
 
-        this.differentialStates.stkPSPBptStakes[_from].push({
+        this.differentialStates.stkPSPBptUsersBalances[_from].push({
           timestamp,
-          changes: amount.multipliedBy(isMint ? 1 : -1),
+          value: amount.multipliedBy(isMint ? 1 : -1),
         });
 
         return;
       }
 
-      if (!this.differentialStates.stkPSPBptStakes[from])
-        this.differentialStates.stkPSPBptStakes[from] = [];
+      if (!this.differentialStates.stkPSPBptUsersBalances[from])
+        this.differentialStates.stkPSPBptUsersBalances[from] = [];
 
-      this.differentialStates.stkPSPBptStakes[from].push({
+      this.differentialStates.stkPSPBptUsersBalances[from].push({
         timestamp,
-        changes: amount,
+        value: amount,
       });
 
-      if (!this.differentialStates.stkPSPBptStakes[to])
-        this.differentialStates.stkPSPBptStakes[to] = [];
+      if (!this.differentialStates.stkPSPBptUsersBalances[to])
+        this.differentialStates.stkPSPBptUsersBalances[to] = [];
 
-      this.differentialStates.stkPSPBptStakes[to].push({
+      this.differentialStates.stkPSPBptUsersBalances[to].push({
         timestamp,
-        changes: amount.multipliedBy(-1),
+        value: amount.multipliedBy(-1),
       });
     });
   }
@@ -299,11 +307,11 @@ export default class SafetyModuleStakesTracker {
       return [
         {
           timestamp,
-          changes: new BigNumber(pspAmountInOrOut.toString()), // onPoolJoin / onPoolExit amount is positive / negative
+          value: new BigNumber(pspAmountInOrOut.toString()), // onPoolJoin / onPoolExit amount is positive / negative
         },
         {
           timestamp,
-          changes: new BigNumber(
+          value: new BigNumber(
             paidProtocolSwapFeeAmounts[1].toString(),
           ).multipliedBy(-1),
         },
@@ -346,12 +354,12 @@ export default class SafetyModuleStakesTracker {
       if (isPSPTokenIn)
         return {
           timestamp,
-          changes: new BigNumber(amountIn.toString()),
+          value: new BigNumber(amountIn.toString()),
         };
 
       return {
         timestamp,
-        changes: new BigNumber(amountOut.toString()).multipliedBy(-1),
+        value: new BigNumber(amountOut.toString()).multipliedBy(-1),
       };
     });
 
@@ -396,7 +404,7 @@ export default class SafetyModuleStakesTracker {
 
       return {
         timestamp,
-        changes: new BigNumber(amount.toString()).multipliedBy(isMint ? 1 : -1),
+        value: new BigNumber(amount.toString()).multipliedBy(isMint ? 1 : -1),
       };
     });
 
@@ -408,13 +416,13 @@ export default class SafetyModuleStakesTracker {
   }
 
   compute_BPT_to_PSP_Rate(timestamp: number) {
-    const pspBalance = _reduceTimeSeries(
+    const pspBalance = reduceTimeSeries(
       timestamp,
       this.initState.bptPoolPSPBalance,
       this.differentialStates.bptPoolPSPBalance,
       false, // disable sorting as already done at compute time + collection could be huge
     );
-    const totalSupply = _reduceTimeSeries(
+    const totalSupply = reduceTimeSeries(
       timestamp,
       this.initState.bptPoolTotalSupply,
       this.differentialStates.bptPoolTotalSupply,
@@ -429,41 +437,13 @@ export default class SafetyModuleStakesTracker {
 
   computeStakedPSPBalance(_account: string, timestamp: number) {
     const account = _account.toLowerCase();
-    const stkPSPBPT = _reduceTimeSeries(
+    const stkPSPBPT = reduceTimeSeries(
       timestamp,
-      this.initState.stkPSPBptStakes[account],
-      this.differentialStates.stkPSPBptStakes[account],
+      this.initState.stkPSPBptUsersBalances[account],
+      this.differentialStates.stkPSPBptUsersBalances[account],
     );
     const stkPSP2PSPRate = this.compute_StkPSPBPT_to_PSP_Rate(timestamp);
 
     return stkPSPBPT.multipliedBy(stkPSP2PSPRate);
   }
-}
-
-// microopt turn on memoisation / dynamic programing
-function _reduceTimeSeries(
-  timestamp: number,
-  initValue: BigNumber | undefined,
-  series: TimeSeries | undefined,
-  shouldSort = true,
-) {
-  let sum = initValue || ZERO_BN;
-
-  if (!series || !series.length) return sum;
-
-  // on first visit sorting will cost, on subsequent visits sorting should be fast
-  if (shouldSort) series.sort(timeseriesComparator);
-
-  for (let i = 0; i < series.length; i++) {
-    if (timestamp < series[i].timestamp) break;
-
-    sum = sum.plus(series[i].changes);
-  }
-
-  return sum;
-}
-function timeseriesComparator(a: TimeSeriesItem, b: TimeSeriesItem) {
-  if (a.timestamp < b.timestamp) return -1;
-  if (a.timestamp > b.timestamp) return 1;
-  return 0;
 }
