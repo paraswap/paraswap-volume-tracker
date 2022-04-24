@@ -2,14 +2,16 @@ import '../../src/lib/log4js';
 import * as dotenv from 'dotenv';
 dotenv.config();
 import { computeGasRefundAllTxs } from './transactions-indexing';
-import { merkleRootExists } from './persistance/db-persistance';
+import {
+  getLatestEpochProcessed,
+  merkleRootExists,
+} from './persistance/db-persistance';
 
 import { assert } from 'ts-essentials';
 import {
   GasRefundGenesisEpoch,
   GRP_SUPPORTED_CHAINS,
 } from '../../src/lib/gas-refund';
-import { GasRefundParticipation } from '../../src/models/GasRefundParticipation';
 import { init, resolveEpochCalcTimeInterval } from './common';
 import { EpochInfo } from '../../src/lib/epoch-info';
 import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
@@ -32,18 +34,7 @@ async function startComputingGasRefundAllChains() {
   await GRPSystemGuardian.loadStateFromDB();
   GRPSystemGuardian.assertMaxPSPGlobalBudgetNotReached();
 
-  /* @TODO: take lastTimestampProcessed = min(max_chain_1(lastTimestamp),...max_chain_n(lastTimestamp))
-   * -> do startTimestamp = max(lastTimestampProcessed, safetyModuleGenesisEpoch.timestamp)
-   * -> do startBlock = findBlockForTimestamp(startTimestamp)
-   */
-  const startBlock = 14434042;
-  /* @TODO: take currentEpoch.timestamp
-   * -> do endTimestamp = Math.min(now, currentEpoch.timestamp)
-   * -> do endBlock = findBlockForTimestamp(endTimestamp)
-   */
-  const endBlock = 14647475;
-
-  await SafetyModuleStakesTracker.loadStakes(startBlock, endBlock);
+  await SafetyModuleStakesTracker.loadStakes();
 
   return Database.sequelize.transaction(async () => {
     return Promise.all(
@@ -52,15 +43,7 @@ async function startComputingGasRefundAllChains() {
 
         await acquireLock(lockId); // next process simply hangs on inserting if lock already acquired
 
-        const lastEpochProcessed = await GasRefundParticipation.max<
-          number,
-          GasRefundParticipation
-        >('epoch', {
-          where: {
-            isCompleted: false,
-            chainId,
-          },
-        });
+        const lastEpochProcessed = await getLatestEpochProcessed(chainId);
 
         const startEpoch = lastEpochProcessed || GasRefundGenesisEpoch;
 

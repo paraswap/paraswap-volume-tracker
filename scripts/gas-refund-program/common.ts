@@ -14,7 +14,7 @@ export async function init(options?: Params) {
   if (options?.epochPolling) epochInfo.startEpochInfoPolling();
 }
 
-const OFFSET_CALC_TIME = 5 * 60; // delay to ensure that all third parties providers are synced
+export const OFFSET_CALC_TIME = 5 * 60; // delay to ensure that all third parties providers are synced
 
 export async function resolveEpochCalcTimeInterval(epoch: number): Promise<{
   startCalcTime: number;

@@ -6,7 +6,15 @@ import { Provider } from '../../../src/lib/provider';
 import * as ERC20ABI from '../../../src/lib/abi/erc20.abi.json';
 import * as BVaultABI from './balancer-vault-abi.json';
 import { getTokenHolders } from './covalent';
-import { fetchBlockTimestampForEvents, ZERO_BN } from '../utils';
+import {
+  fetchBlockTimestampForEvents,
+  ZERO_BN,
+} from '../utils';
+import { getLatestTransactionTimestamp } from '../persistance/db-persistance';
+import { EpochInfo } from '../../../src/lib/epoch-info';
+import { GasRefundSafetyModuleStartEpoch } from '../../../src/lib/gas-refund';
+import { OFFSET_CALC_TIME } from '../common';
+import { BlockInfo } from '../../../src/lib/block-info';
 
 const SafetyModuleAddress = '0xc8dc2ec5f5e02be8b37a8444a1931f02374a17ab';
 const BalancerVaultAddress = '0xba12222222228d8ba445958a75a0704d566bf2c8';
@@ -113,7 +121,30 @@ class SafetyModuleStakesTracker {
     bptPoolTotalSupply: [],
   };
 
-  async loadStakes(startBlock: number, endBlock: number) {
+  async loadStakes() {
+    const blockInfo = BlockInfo.getInstance(CHAIN_ID_MAINNET);
+    const epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET, true);
+
+    const startTime =
+      (await getLatestTransactionTimestamp()) ||
+      (await epochInfo.getEpochStartCalcTime(GasRefundSafetyModuleStartEpoch));
+
+    const endTime = Math.round(Date.now() / 1000) - OFFSET_CALC_TIME;
+
+    const [startBlock, endBlock] = await Promise.all([
+      blockInfo.getBlockAfterTimeStamp(startTime),
+      blockInfo.getBlockAfterTimeStamp(endTime),
+    ]);
+
+    assert(
+      typeof startBlock === 'number' && startBlock > 0,
+      'startBlock should be a number greater than 0',
+    );
+    assert(
+      typeof endBlock === 'number' && endBlock > 0,
+      'startBlock should be a number greater than 0',
+    );
+
     this.startBlock = startBlock;
     this.endBlock = endBlock;
 
