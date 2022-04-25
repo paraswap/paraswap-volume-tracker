@@ -1,14 +1,30 @@
 import {
   CompletedEpochGasRefundData,
   PendingEpochGasRefundData,
+  GasRefundTransactionData,
+  GasRefundParticipantData
 } from '../../../src/lib/gas-refund';
 import { GasRefundParticipation } from '../../../src/models/GasRefundParticipation';
+import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
 import { GasRefundDistribution } from '../../../src/models/GasRefundDistribution';
 import { MerkleData, MerkleTreeData, TxFeesByAddress } from '../types';
 import { sliceCalls } from '../utils';
 import { Sequelize } from 'sequelize';
 import BigNumber from 'bignumber.js';
 
+
+export const fetchEpochAddressesProcessedCount = async ({chainId, epoch}: {
+  chainId: number;
+  epoch: number;
+}): Promise<number> => {
+
+  const count = await GasRefundTransaction.count({
+    distinct: true,
+    col: 'address',
+    where: { chainId, epoch }
+  });
+  return count
+}
 export const fetchPendingGasRefundData = async ({
   chainId,
   epoch,
@@ -16,10 +32,10 @@ export const fetchPendingGasRefundData = async ({
   chainId: number;
   epoch: number;
 }): Promise<TxFeesByAddress> => {
-  const pendingEpochData = (await GasRefundParticipation.findAll({
+  const pendingEpochData = (await GasRefundTransaction.findAll({
     where: { chainId, epoch },
     raw: true,
-  })) as PendingEpochGasRefundData[];
+  })) as GasRefundTransactionData[];
 
   const pendingEpochDataByAddress = pendingEpochData.reduce<TxFeesByAddress>(
     (acc, curr) => {
@@ -39,10 +55,10 @@ export async function fetchVeryLastTimestampProcessed({
   chainId: number;
   epoch: number;
 }): Promise<number> {
-  const lastTimestamp = await GasRefundParticipation.max<
+  const lastTimestamp = await GasRefundTransaction.max<
     number,
-    GasRefundParticipation
-  >('lastTimestamp', {
+    GasRefundTransaction
+  >('timestamp', {
     where: { chainId, epoch },
   });
 
@@ -50,9 +66,9 @@ export async function fetchVeryLastTimestampProcessed({
 }
 
 export async function fetchTotalRefundedPSP(): Promise<BigNumber> {
-  const totalPSPRefunded = await GasRefundParticipation.sum<
+  const totalPSPRefunded = await GasRefundTransaction.sum<
     string,
-    GasRefundParticipation
+    GasRefundTransaction
   >('refundedAmountPSP');
 
   return new BigNumber(totalPSPRefunded);
@@ -62,7 +78,7 @@ export async function fetchTotalRefundedAmountUSDByAddress(): Promise<{
   [address: string]: BigNumber;
 }> {
   const totalRefundedAmountUSDAllAddresses =
-    (await GasRefundParticipation.findAll({
+    (await GasRefundTransaction.findAll({
       attributes: [
         'address',
         [
@@ -86,27 +102,9 @@ export async function fetchTotalRefundedAmountUSDByAddress(): Promise<{
 }
 
 export const writePendingEpochData = async (
-  pendingEpochGasRefundData: PendingEpochGasRefundData[],
+  pendingEpochGasRefundData: GasRefundTransactionData[],
 ) => {
-  await GasRefundParticipation.bulkCreate(pendingEpochGasRefundData, {
-    updateOnDuplicate: [
-      'accumulatedGasUsedPSP',
-      'accumulatedGasUsed',
-      'accumulatedGasUsedChainCurrency',
-      'accumulatedGasUsedUSD',
-      'firstBlock',
-      'lastBlock',
-      'firstTimestamp',
-      'lastTimestamp',
-      'firstTx',
-      'lastTx',
-      'numTx',
-      'isCompleted',
-      'totalStakeAmountPSP',
-      'refundedAmountPSP',
-      'refundedAmountUSD',
-    ],
-  });
+  await GasRefundTransaction.bulkCreate(pendingEpochGasRefundData);
 };
 
 export const merkleRootExists = async ({
@@ -128,17 +126,19 @@ export const saveMerkleTreeInDB = async ({
   chainId,
   epoch,
   merkleTree,
+  addressRefundedAmountPSP,
 }: {
   epoch: number;
   chainId: number;
   merkleTree: MerkleTreeData;
+  addressRefundedAmountPSP: Record<string, string>;
 }): Promise<void> => {
   const {
     root: { totalAmount, merkleRoot },
     leaves,
   } = merkleTree;
 
-  const epochDataToUpdate: CompletedEpochGasRefundData[] = leaves.map(
+  const epochDataToUpdate: GasRefundParticipantData[] = leaves.map(
     (leaf: MerkleData) => ({
       epoch,
       address: leaf.address,
@@ -146,11 +146,12 @@ export const saveMerkleTreeInDB = async ({
 
       merkleProofs: leaf.merkleProofs,
       isCompleted: true,
+      refundedAmountPSP: addressRefundedAmountPSP[leaf.address],
     }),
   );
 
   const bulkUpdateParticipations = async (
-    participantsToUpdate: CompletedEpochGasRefundData[],
+    participantsToUpdate: GasRefundParticipantData[],
   ) => {
     await GasRefundParticipation.bulkCreate(participantsToUpdate, {
       updateOnDuplicate: ['merkleProofs', 'isCompleted'],

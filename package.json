@@ -16,7 +16,10 @@
     "gas-refund:prod:compute-gas-refund-save-db": "node scripts/gas-refund-program/computeGasRefund.js",
     "gas-refund:compute-merkle-tree-save-db": "patch-package && NODE_ENV=development ts-node scripts/gas-refund-program/computeMerkleTree",
     "gas-refund:compute-merkle-tree-save-file": "patch-package && SAVE_FILE=true SKIP_CHECKS=true NODE_ENV=development ts-node scripts/gas-refund-program/computeMerkleTree",
-    "test": "jest"
+    "test": "jest",
+    "debug-grp": "patch-package && NODE_ENV=development node --inspect=9230 -r ts-node/register scripts/gas-refund-program/computeGasRefund.ts",
+    "debug-test": "NODE_ENV=development node --inspect=9230 -r ts-node/register src/test.ts",
+    "debug-merkle": "patch-package && NODE_ENV=development node --inspect=9230 -r ts-node/register scripts/gas-refund-program/computeMerkleTree.ts"
   },
   "husky": {
     "hooks": {

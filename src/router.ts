@@ -4,7 +4,7 @@ import VolumeTracker from './lib/volume-tracker';
 import { MarketMakerAddresses } from './lib/volume-tracker';
 import { PoolInfo } from './lib/pool-info';
 import { Claim } from './models/Claim';
-import { DEFAULT_CHAIN_ID, STAKING_CHAIN_IDS_SET } from './lib/constants';
+import { DEFAULT_CHAIN_ID, STAKING_CHAIN_IDS_SET, CHAIN_ID_MAINNET } from './lib/constants';
 import { GasRefundApi } from './lib/gas-refund-api';
 import { EpochInfo } from './lib/epoch-info';
 import { GRP_SUPPORTED_CHAINS } from './lib/gas-refund';
@@ -148,7 +148,7 @@ export default class Router {
         try {
           const network = Number(req.params.network);
           const gasRefundApi = GasRefundApi.getInstance(network);
-          const epochInfo = EpochInfo.getInstance(network);
+          const epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET);
 
           const currentEpochNum = await epochInfo.getCurrentEpoch();
           const lastEpochNum = currentEpochNum - 1;

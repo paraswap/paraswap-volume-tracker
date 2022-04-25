@@ -63,6 +63,31 @@ type GasRefundLevelsDef = {
   refundPercent: number;
 };
 
+// toodo: remove/refactor with above/previous structures as some will be obsolete
+export interface GasRefundParticipantData {
+  epoch: number;
+  address: string
+  chainId: number;
+  merkleProofs: string[];
+  isCompleted: boolean;
+  refundedAmountPSP: string;
+}
+export interface GasRefundTransactionData {
+  epoch: number;
+  address: string
+  chainId: number;
+  hash: string
+  block: number;
+  timestamp: number;
+  gasUsed: string;
+  gasUsedChainCurrency: string;
+  gasUsedPSP: string;
+  gasUsedUSD: string;
+  totalStakeAmountPSP: string;
+  refundedAmountPSP: string;
+  refundedAmountUSD: string;
+}
+
 //                                                  psp decimals
 const scale = (num: number) => new BigNumber(num).multipliedBy(1e18);
 

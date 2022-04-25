@@ -1,7 +1,7 @@
 import '../../src/lib/log4js';
 import * as dotenv from 'dotenv';
 dotenv.config();
-import { computeMerkleData } from './refund/merkle-tree';
+import { computeMerkleData, MinGasRefundParticipation } from './refund/merkle-tree';
 
 import {
   merkleRootExists,
@@ -9,11 +9,12 @@ import {
 } from './persistance/db-persistance';
 
 import { assert } from 'ts-essentials';
+import BigNumber from 'bignumber.js';
 import {
   GasRefundGenesisEpoch,
   GRP_SUPPORTED_CHAINS,
 } from '../../src/lib/gas-refund';
-import { GasRefundParticipation } from '../../src/models/GasRefundParticipation';
+import { GasRefundTransaction } from '../../src/models/GasRefundTransaction';
 import { saveMerkleTreeInFile } from './persistance/file-persistance';
 import { init, resolveEpochCalcTimeInterval } from './common';
 
@@ -35,14 +36,27 @@ export async function computeAndStoreMerkleTreeForChain({
       `merkle root for chainId=${chainId} epoch=${epoch} already exists`,
     );
 
-  const gasRefundParticipations = await GasRefundParticipation.findAll({
+  const gasRefundTXs = await GasRefundTransaction.findAll({
     where: { epoch, chainId },
   });
+
+  const addressRefunds: Record<string, string> = {}
+
+  // todo: refactor this, looks basic
+  for(let i = 0; i < gasRefundTXs.length; i++) {
+    const { address, refundedAmountPSP } = gasRefundTXs[i]
+    if (!addressRefunds[address]) {
+      addressRefunds[address] = new BigNumber(refundedAmountPSP).toFixed(0)
+    } else {
+      addressRefunds[address] = (new BigNumber(addressRefunds[address]).plus(new BigNumber(refundedAmountPSP))).toString()
+    }
+  }
+  const gasRefundParticipations: MinGasRefundParticipation[] = Object.entries(addressRefunds).map(([address, refundedAmountPSP]) => ({address, refundedAmountPSP}))
 
   const merkleTree = await computeMerkleData({
     chainId,
     epoch,
-    gasRefundParticipations,
+    gasRefundParticipations
   });
 
   if (saveFile) {
@@ -50,7 +64,7 @@ export async function computeAndStoreMerkleTreeForChain({
     await saveMerkleTreeInFile({ chainId, epoch, merkleTree });
   } else {
     logger.info('saving merkle tree in db');
-    await saveMerkleTreeInDB({ chainId, epoch, merkleTree });
+    await saveMerkleTreeInDB({ chainId, epoch, merkleTree, addressRefundedAmountPSP: addressRefunds });
   }
 }
 
@@ -73,7 +87,9 @@ async function startComputingMerkleTreesAllChains() {
     );
 
   await Promise.all(
-    GRP_SUPPORTED_CHAINS.map(chainId =>
+    // todo: reinstate next line over subsequent
+    // GRP_SUPPORTED_CHAINS.map(chainId =>
+    [250].map(chainId =>
       computeAndStoreMerkleTreeForChain({
         chainId,
         epoch,

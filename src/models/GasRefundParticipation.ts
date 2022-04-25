@@ -9,7 +9,7 @@ import {
   createIndexDecorator,
   Index,
 } from 'sequelize-typescript';
-import { EpochGasRefundData } from '../lib/gas-refund';
+import { GasRefundParticipantData } from '../lib/gas-refund';
 
 import {
   DataType_ADDRESS,
@@ -23,7 +23,7 @@ const compositeIndex = createIndexDecorator({
 });
 
 @Table
-export class GasRefundParticipation extends Model<EpochGasRefundData> {
+export class GasRefundParticipation extends Model<GasRefundParticipantData> {
   @PrimaryKey
   @AutoIncrement
   @Column(DataType.INTEGER)
@@ -41,52 +41,12 @@ export class GasRefundParticipation extends Model<EpochGasRefundData> {
   @Column(DataType.INTEGER)
   chainId: number;
 
-  @Column(DataType.BOOLEAN)
-  isCompleted: boolean;
-
-  @Column(DataType.INTEGER)
-  firstBlock: number; // @debug
-
-  @Index
-  @Column(DataType.INTEGER)
-  lastBlock: number;
-
-  @Column(DataType.INTEGER)
-  firstTimestamp: number; // @debug
-
-  @Index
-  @Column(DataType.INTEGER)
-  lastTimestamp: number;
-
-  @Column(DataType_KECCAK256_HASHED_VALUE)
-  firstTx: string; // @debug
-
-  @Column(DataType_KECCAK256_HASHED_VALUE)
-  lastTx: string; // @debug
-
-  @Column(DataType.SMALLINT)
-  numTx: number; // @debug
-
-  @Column(DataType.BIGINT)
-  accumulatedGasUsed: string; // @debug
-
-  @Column(DataType.DECIMAL)
-  accumulatedGasUsedChainCurrency: string; // @debug
-
-  @Column(DataType.DECIMAL)
-  accumulatedGasUsedPSP: string; // @debug
-
-  @Column(DataType.DECIMAL)
-  accumulatedGasUsedUSD: string; // @debug
-
-  @Column(DataType.DECIMAL)
-  totalStakeAmountPSP: string; // @debug
-
+  // todo: check where/why this is needed - and also why refundedAmountUSD isn't
   @Column(DataType.DECIMAL)
   refundedAmountPSP: string;
 
-  @Column(DataType.DECIMAL)
-  refundedAmountUSD: string;
+  // @Column(DataType.DECIMAL)
+  // refundedAmountUSD: string;
 
   @AllowNull(true)
   @Column({

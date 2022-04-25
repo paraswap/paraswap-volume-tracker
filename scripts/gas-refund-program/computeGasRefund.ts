@@ -32,7 +32,8 @@ async function startComputingGasRefundAllChains() {
     GRPSystemGuardian.assertMaxPSPGlobalBudgetNotReached();
 
     return Promise.all(
-      GRP_SUPPORTED_CHAINS.map(async chainId => {
+      // todo: revert this
+      /*GRP_SUPPORTED_CHAINS*/[250].map(async chainId => {
         const lockId = `GasRefundParticipation_${chainId}`;
 
         await acquireLock(lockId); // next process simply hangs on inserting if lock already acquired
@@ -42,7 +43,6 @@ async function startComputingGasRefundAllChains() {
           GasRefundParticipation
         >('epoch', {
           where: {
-            isCompleted: false,
             chainId,
           },
         });

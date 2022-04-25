@@ -4,6 +4,7 @@ import _ from 'lodash';
 import { assert } from 'ts-essentials';
 import { GasRefundParticipation } from '../models/GasRefundParticipation';
 import { GasRefundDistribution } from '../models/GasRefundDistribution';
+import { GasRefundTransaction } from '../models/GasRefundTransaction'
 import {
   CHAIN_ID_BINANCE,
   CHAIN_ID_FANTOM,
@@ -106,7 +107,7 @@ export class GasRefundApi {
   async _fetchMerkleData(address: string): Promise<GasRefundClaim[]> {
     const grpData = await GasRefundParticipation.findAll({
       attributes: ['epoch', 'address', 'refundedAmountPSP', 'merkleProofs'],
-      where: { address, chainId: this.network, isCompleted: true },
+      where: { address, chainId: this.network },
       raw: true,
     });
 
@@ -142,15 +143,13 @@ export class GasRefundApi {
 
   async _getCurrentEpochPendingRefundedAmount(address: string): Promise<string>{
     const epoch = await this.epochInfo.getCurrentEpoch();
-    const grpData = await GasRefundParticipation.findAll({
-      attributes: ['epoch', 'address', 'refundedAmountPSP'],
-      where: { epoch, address, chainId: this.network, isCompleted: false },
-      raw: true,
-    });
 
-    if(!grpData.length) return "0";
-    
-    const refundedAmount = BigNumber.sum(...grpData.map(({refundedAmountPSP}) => refundedAmountPSP)).toString(10)
+    const totalPSPRefunded = await GasRefundTransaction.sum<
+      string,
+      GasRefundTransaction
+    >('refundedAmountPSP', { where: { address, epoch }});
+
+    const refundedAmount = totalPSPRefunded.toString(10)
 
     return refundedAmount;
   }
@@ -190,7 +189,7 @@ export class GasRefundApi {
     return {
       totalClaimable: totalClaimable.toString(),
       claims,
-      pendingClaimable 
+      pendingClaimable
     };
   }
 
