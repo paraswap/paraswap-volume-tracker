@@ -53,10 +53,9 @@ export async function computeSuccessfulSwapsTxFeesRefund({
   );
 
   for (
-    // todo: remove this temp testing limit
-    let _startTimestampSlice = _startTimestamp, limitWhileTesting = 0;
-    _startTimestampSlice < endTimestamp && limitWhileTesting < 10;
-    _startTimestampSlice += SLICE_DURATION, limitWhileTesting++
+    let _startTimestampSlice = _startTimestamp;
+    _startTimestampSlice < endTimestamp;
+    _startTimestampSlice += SLICE_DURATION
   ) {
     if (GRPSystemGuardian.isMaxPSPGlobalBudgetSpent()) {
       logger.warn(
