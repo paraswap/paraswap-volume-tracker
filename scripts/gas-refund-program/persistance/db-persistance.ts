@@ -13,6 +13,7 @@ import { Sequelize } from 'sequelize';
 import BigNumber from 'bignumber.js';
 
 
+// todo: obsolete now? think I removed it
 export const fetchEpochAddressesProcessedCount = async ({chainId, epoch}: {
   chainId: number;
   epoch: number;
@@ -20,11 +21,12 @@ export const fetchEpochAddressesProcessedCount = async ({chainId, epoch}: {
 
   const count = await GasRefundTransaction.count({
     distinct: true,
-    col: 'address',
+    col: 'hash',
     where: { chainId, epoch }
   });
   return count
 }
+
 export const fetchPendingGasRefundData = async ({
   chainId,
   epoch,
@@ -104,7 +106,15 @@ export async function fetchTotalRefundedAmountUSDByAddress(): Promise<{
 export const writePendingEpochData = async (
   pendingEpochGasRefundData: GasRefundTransactionData[],
 ) => {
-  await GasRefundTransaction.bulkCreate(pendingEpochGasRefundData);
+  /**
+   * todo: this comment is redundant now
+   * ignore duplicates for cases like
+   * https://etherscan.io/tx/0xb10c51756678cb6cb1635ac339f9caa592f49ea6da936b109dbd49da8e0e0a6a
+   * where the graph returns three swaps for one tx, resulting
+   * in gas being fetched three times for one tx. only an issue while
+   * we get swaps not txs.
+   */
+   await GasRefundTransaction.bulkCreate(pendingEpochGasRefundData, { ignoreDuplicates: true });
 };
 
 export const merkleRootExists = async ({
@@ -131,7 +141,7 @@ export const saveMerkleTreeInDB = async ({
   epoch: number;
   chainId: number;
   merkleTree: MerkleTreeData;
-  addressRefundedAmountPSP: Record<string, string>;
+  addressRefundedAmountPSP: Record<string, BigNumber>;
 }): Promise<void> => {
   const {
     root: { totalAmount, merkleRoot },
@@ -146,7 +156,7 @@ export const saveMerkleTreeInDB = async ({
 
       merkleProofs: leaf.merkleProofs,
       isCompleted: true,
-      refundedAmountPSP: addressRefundedAmountPSP[leaf.address],
+      refundedAmountPSP: addressRefundedAmountPSP[leaf.address].toFixed(0),
     }),
   );
 
@@ -173,3 +183,15 @@ export const saveMerkleTreeInDB = async ({
     merkleRoot,
   });
 };
+
+export const fetchTransactionOccurences = async (epoch: number, chainId: number): Promise<Record<string, number>> => {
+  const txOccurences: Record<string, number> = {}
+  const txs: Pick<GasRefundTransactionData, 'hash' | 'occurence'>[] = await GasRefundTransaction.findAll({
+    where: { chainId, epoch },
+    attributes: ['hash', 'occurenc']
+  })
+  txs.forEach((tx) => {
+    txOccurences[tx.hash] = tx.occurence
+  })
+  return txOccurences
+}

@@ -14,6 +14,7 @@ export const GRP_SUPPORTED_CHAINS = [
 ];
 
 export const GasRefundGenesisEpoch = 9;
+export const GasRefundDeduplicationStartEpoch = 11;
 
 interface BaseGasRefundData {
   epoch: number;
@@ -74,9 +75,10 @@ export interface GasRefundParticipantData {
 }
 export interface GasRefundTransactionData {
   epoch: number;
-  address: string
+  address: string;
   chainId: number;
-  hash: string
+  hash: string;
+  occurence: number;
   block: number;
   timestamp: number;
   gasUsed: string;

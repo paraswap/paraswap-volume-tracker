@@ -1,17 +1,15 @@
 import { assert } from 'ts-essentials';
-import { TxFeesByAddress } from '../types';
 import { BigNumber } from 'bignumber.js';
 import {
-  fetchEpochAddressesProcessedCount,
-  fetchPendingGasRefundData,
   fetchVeryLastTimestampProcessed,
   writePendingEpochData,
+  fetchTransactionOccurences
 } from '../persistance/db-persistance';
 import { getSwapsForAccounts } from './swaps-subgraph';
 import {
   getRefundPercent,
-  PendingEpochGasRefundData,
   GasRefundTransactionData,
+  GasRefundDeduplicationStartEpoch
 } from '../../../src/lib/gas-refund';
 import { getTransactionGasUsed } from '../staking/covalent';
 import { getPSPStakesHourlyWithinInterval } from '../staking';
@@ -51,6 +49,9 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     startTimestamp,
     veryLastTimestampProcessed + 1,
   );
+
+  // load all past txs into memory as a record to track dupes
+  const pastTXs: Record<string, number> = await fetchTransactionOccurences(epoch, chainId)
 
   for (
     let _startTimestampSlice = _startTimestamp;
@@ -132,8 +133,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
       `fetched gas used between ${_startTimestampSlice} and ${_endTimestampSlice}`,
     );
 
-    // todo: can just be an array now, no need for a record structure
-    const pendingGasRefundDataByAddress: TxFeesByAddress = {};
+    const pendingGasRefundTransactionData: GasRefundTransactionData[] = [];
 
     swapsWithGasUsed.forEach(swap => {
       if (GRPSystemGuardian.isMaxPSPGlobalBudgetSpent()) {
@@ -167,9 +167,6 @@ export async function computeSuccessfulSwapsTxFeesRefund({
         'stakes at beginning of next hour should be defined',
       );
 
-      // todo: remove all these commented out redundant vars
-      // const swapperAcc = accPendingGasRefundByAddress[address];
-
       const swapperStake = BigNumber.max(
         stakesStartOfHour[address] || 0,
         stakesStartOfNextHour[address] || 0,
@@ -189,32 +186,18 @@ export async function computeSuccessfulSwapsTxFeesRefund({
       );
 
       const currGasUsed = new BigNumber(swap.txGasUsed);
-      // const accumulatedGasUsed = currGasUsed.plus(
-      //   swapperAcc?.accumulatedGasUsed || 0,
-      // );
 
       const currGasUsedChainCur = currGasUsed.multipliedBy(
         swap.txGasPrice.toString(),
       ); // in wei
 
-      // const accumulatedGasUsedChainCurrency = currGasUsedChainCur.plus(
-      //   swapperAcc?.accumulatedGasUsedChainCurrency || 0,
-      // );
-
       const currGasUsedUSD = currGasUsedChainCur
         .multipliedBy(currencyRate.chainPrice)
         .dividedBy(10 ** 18); // chaincurrency always encoded in 18decimals
 
-      // const accumulatedGasUsedUSD = currGasUsedUSD.plus(
-      //   swapperAcc?.accumulatedGasUsedUSD || 0,
-      // );
       const currGasFeePSP = currGasUsedChainCur.dividedBy(
         currencyRate.pspToChainCurRate,
       );
-
-      // const accumulatedGasUsedPSP = currGasFeePSP.plus(
-      //   swapperAcc?.accumulatedGasUsedPSP || 0,
-      // );
 
       const totalStakeAmountPSP = swapperStake.toFixed(0); // @todo irrelevant?
       const refundPercent = getRefundPercent(totalStakeAmountPSP);
@@ -256,19 +239,14 @@ export async function computeSuccessfulSwapsTxFeesRefund({
 
       GRPSystemGuardian.increaseTotalPSPRefunded(currRefundedAmountPSP);
 
-      // const accRefundedAmountPSP = currRefundedAmountPSP.plus(
-      //   swapperAcc?.refundedAmountPSP || 0,
-      // );
-
-      // const refundedAmountUSD = currRefundedAmountUSD.plus(
-      //   swapperAcc?.refundedAmountUSD || 0,
-      // );
+      // increment occurences count (to guard against edge edge case with multiple swaps per tx)
+      pastTXs[swap.txHash] = pastTXs[swap.txHash] ? pastTXs[swap.txHash] + 1 : 1
+      const occurence = pastTXs[swap.txHash]
 
       const pendingGasRefundDatum: GasRefundTransactionData = {
         epoch,
         address,
         chainId,
-
         hash: swap.txHash,
         block: swap.blockNumber,
         timestamp: +swap.timestamp,
@@ -279,45 +257,25 @@ export async function computeSuccessfulSwapsTxFeesRefund({
         totalStakeAmountPSP,
         refundedAmountPSP: currRefundedAmountPSP.toFixed(0),
         refundedAmountUSD: currRefundedAmountUSD.toFixed(0),
-
-
-        // accumulatedGasUsedPSP: accumulatedGasUsedPSP.toFixed(0),
-        // accumulatedGasUsed: accumulatedGasUsed.toFixed(0),
-        // accumulatedGasUsedUSD: accumulatedGasUsedUSD.toFixed(0),
-        // accumulatedGasUsedChainCurrency:
-        //   accumulatedGasUsedChainCurrency.toFixed(0),
-        // firstBlock: swapperAcc?.lastBlock || swap.blockNumber,
-        // lastBlock: swap.blockNumber,
-        // totalStakeAmountPSP,
-        // refundedAmountPSP: accRefundedAmountPSP.toFixed(0),
-        // refundedAmountUSD: refundedAmountUSD.toFixed(),
-        // firstTx: swapperAcc?.firstTx || swap.txHash,
-        // lastTx: swap.txHash,
-        // firstTimestamp: swapperAcc?.firstTimestamp || +swap.timestamp,
-        // lastTimestamp: +swap.timestamp,
-        // numTx: (swapperAcc?.numTx || 0) + 1,
-        // isCompleted: false,
+        occurence
       };
 
-      // accPendingGasRefundByAddress[address] = pendingGasRefundDatum;
-      pendingGasRefundDataByAddress[address] = pendingGasRefundDatum;
+      pendingGasRefundTransactionData.push(pendingGasRefundDatum);
     });
 
-    const pendingGasRefundDataByAddressList = Object.values(
-      pendingGasRefundDataByAddress,
-    );
 
-    if (pendingGasRefundDataByAddressList.length > 0) {
+    if (pendingGasRefundTransactionData.length > 0) {
       logger.info(
-        `updating ${pendingGasRefundDataByAddressList.length} pending gas refund data`,
+        `updating ${pendingGasRefundTransactionData.length} pending gas refund data`,
       );
-      await writePendingEpochData(pendingGasRefundDataByAddressList);
+      await writePendingEpochData(pendingGasRefundTransactionData);
     }
   }
 
-  const totalAddressesAlreadyProcessedThisEpoch = await fetchEpochAddressesProcessedCount({ chainId, epoch })
+  // removed this as a mindless optimisation, could stay in ultimately
+  // const totalAddressesAlreadyProcessedThisEpoch = await fetchEpochAddressesProcessedCount({ chainId, epoch })
 
-  logger.info(
-    `On chain ${chainId}, a gas refund has been computed for ${totalAddressesAlreadyProcessedThisEpoch} addresses.`,
-  );
+  // logger.info(
+  //   `On chain ${chainId}, a gas refund has been computed for ${totalAddressesAlreadyProcessedThisEpoch} addresses.`,
+  // );
 }

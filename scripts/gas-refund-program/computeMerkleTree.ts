@@ -2,7 +2,9 @@ import '../../src/lib/log4js';
 import * as dotenv from 'dotenv';
 dotenv.config();
 import { computeMerkleData, MinGasRefundParticipation } from './refund/merkle-tree';
-
+import {
+  GasRefundDeduplicationStartEpoch
+} from '../../src/lib/gas-refund';
 import {
   merkleRootExists,
   saveMerkleTreeInDB,
@@ -10,6 +12,7 @@ import {
 
 import { assert } from 'ts-essentials';
 import BigNumber from 'bignumber.js';
+import { Sequelize } from 'sequelize-typescript';
 import {
   GasRefundGenesisEpoch,
   GRP_SUPPORTED_CHAINS,
@@ -39,19 +42,28 @@ export async function computeAndStoreMerkleTreeForChain({
   const gasRefundTXs = await GasRefundTransaction.findAll({
     where: { epoch, chainId },
   });
+  // todo: remove
+  // const gasRefundTXsGrouped = await GasRefundTransaction.findAll({
+  //   where: { epoch, chainId },
+  //   ...(epoch >= 8/*GasRefundDeduplicationStartEpoch*/ ? {
+  //     attributes: [
+  //       [Sequelize.fn('DISTINCT', Sequelize.col('hash')), 'hash'],
+  //       'refundedAmountPSP',
+  //       'address'
+  //     ],
+  //   } : {})
+  // });
 
-  const addressRefunds: Record<string, string> = {}
+  const addressRefunds: Record<string, BigNumber> = {}
 
-  // todo: refactor this, looks basic
   for(let i = 0; i < gasRefundTXs.length; i++) {
     const { address, refundedAmountPSP } = gasRefundTXs[i]
     if (!addressRefunds[address]) {
-      addressRefunds[address] = new BigNumber(refundedAmountPSP).toFixed(0)
-    } else {
-      addressRefunds[address] = (new BigNumber(addressRefunds[address]).plus(new BigNumber(refundedAmountPSP))).toString()
+      addressRefunds[address] = new BigNumber(refundedAmountPSP)
     }
+    addressRefunds[address] = addressRefunds[address].plus(new BigNumber(refundedAmountPSP))
   }
-  const gasRefundParticipations: MinGasRefundParticipation[] = Object.entries(addressRefunds).map(([address, refundedAmountPSP]) => ({address, refundedAmountPSP}))
+  const gasRefundParticipations: MinGasRefundParticipation[] = Object.entries(addressRefunds).map(([address, refundedAmountPSP]) => ({address, refundedAmountPSP: refundedAmountPSP.toFixed(0)}))
 
   const merkleTree = await computeMerkleData({
     chainId,
@@ -87,9 +99,7 @@ async function startComputingMerkleTreesAllChains() {
     );
 
   await Promise.all(
-    // todo: reinstate next line over subsequent
-    // GRP_SUPPORTED_CHAINS.map(chainId =>
-    [250].map(chainId =>
+    GRP_SUPPORTED_CHAINS.map(chainId =>
       computeAndStoreMerkleTreeForChain({
         chainId,
         epoch,

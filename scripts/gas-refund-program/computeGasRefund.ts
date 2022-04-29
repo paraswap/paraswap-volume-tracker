@@ -27,13 +27,13 @@ async function startComputingGasRefundAllChains() {
 
   const epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET, true);
 
-  return Database.sequelize.transaction(async () => {
+  // todo: reinstate transaction
+  // return Database.sequelize.transaction(async () => {
     await GRPSystemGuardian.loadStateFromDB();
     GRPSystemGuardian.assertMaxPSPGlobalBudgetNotReached();
 
     return Promise.all(
-      // todo: revert this
-      /*GRP_SUPPORTED_CHAINS*/[250].map(async chainId => {
+      GRP_SUPPORTED_CHAINS.map(async chainId => {
         const lockId = `GasRefundParticipation_${chainId}`;
 
         await acquireLock(lockId); // next process simply hangs on inserting if lock already acquired
@@ -93,7 +93,7 @@ async function startComputingGasRefundAllChains() {
         await releaseLock(lockId);
       }),
     );
-  });
+  // });
 }
 
 startComputingGasRefundAllChains()

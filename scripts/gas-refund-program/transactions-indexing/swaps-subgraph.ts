@@ -91,7 +91,7 @@ interface SwapsGQLRespose {
   data: { swaps: SwapData[] };
 }
 
-interface SwapData {
+export interface SwapData {
   txHash: string;
   txOrigin: string;
   txGasPrice: string;
