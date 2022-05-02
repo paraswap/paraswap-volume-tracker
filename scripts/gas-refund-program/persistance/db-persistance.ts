@@ -106,15 +106,7 @@ export async function fetchTotalRefundedAmountUSDByAddress(): Promise<{
 export const writePendingEpochData = async (
   pendingEpochGasRefundData: GasRefundTransactionData[],
 ) => {
-  /**
-   * todo: this comment is redundant now
-   * ignore duplicates for cases like
-   * https://etherscan.io/tx/0xb10c51756678cb6cb1635ac339f9caa592f49ea6da936b109dbd49da8e0e0a6a
-   * where the graph returns three swaps for one tx, resulting
-   * in gas being fetched three times for one tx. only an issue while
-   * we get swaps not txs.
-   */
-   await GasRefundTransaction.bulkCreate(pendingEpochGasRefundData, { ignoreDuplicates: true });
+   await GasRefundTransaction.bulkCreate(pendingEpochGasRefundData);
 };
 
 export const merkleRootExists = async ({

@@ -41,7 +41,15 @@ export async function computeAndStoreMerkleTreeForChain({
 
   const gasRefundTXs = await GasRefundTransaction.findAll({
     where: { epoch, chainId },
-    // in the future, guard against duplicate txs (of which multiple swaps can be a part of)
+    /**
+     * in the future, guard against duplicate txs (of which multiple swaps can be a part of)
+     *
+     * ignore duplicates for cases like
+     * https://etherscan.io/tx/0xb10c51756678cb6cb1635ac339f9caa592f49ea6da936b109dbd49da8e0e0a6a
+     * where the graph returned three swaps for one tx, resulting
+     * in gas being fetched three times for one tx. only an issue while
+     * we get swaps not txs.
+     */
     ...( epoch >= GasRefundDeduplicationStartEpoch ? {
       attributes: [
         [Sequelize.fn('DISTINCT', Sequelize.col('hash')), 'hash'], 'address', 'refundedAmountPSP'
