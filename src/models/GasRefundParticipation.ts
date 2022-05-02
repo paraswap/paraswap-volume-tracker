@@ -41,12 +41,8 @@ export class GasRefundParticipation extends Model<GasRefundParticipantData> {
   @Column(DataType.INTEGER)
   chainId: number;
 
-  // todo: check where/why this is needed - and also why refundedAmountUSD isn't
   @Column(DataType.DECIMAL)
   refundedAmountPSP: string;
-
-  // @Column(DataType.DECIMAL)
-  // refundedAmountUSD: string;
 
   @AllowNull(true)
   @Column({
