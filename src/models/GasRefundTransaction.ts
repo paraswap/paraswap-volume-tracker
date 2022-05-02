@@ -32,8 +32,6 @@ export class GasRefundTransaction extends Model<GasRefundTransactionData> {
   @Column(DataType.SMALLINT)
   epoch: number;
 
-  // todo: is this index needed?
-  @Index
   @Column(DataType_ADDRESS)
   address: string;
 
