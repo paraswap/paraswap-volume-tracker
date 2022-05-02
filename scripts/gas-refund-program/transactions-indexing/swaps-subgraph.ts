@@ -25,6 +25,7 @@ query ($number_gte: BigInt, $number_lt: BigInt, $first: Int, $skip: Int) {
 		txGasPrice
 		blockNumber
     timestamp
+    initiator
 	}
 }
 `;
@@ -96,6 +97,7 @@ interface SwapsGQLRespose {
 interface SwapData {
   txHash: string;
   txOrigin: string;
+  initiator: string;
   txGasPrice: string;
   blockNumber: number;
   timestamp: string;
