@@ -41,6 +41,12 @@ export async function computeAndStoreMerkleTreeForChain({
 
   const gasRefundTXs = await GasRefundTransaction.findAll({
     where: { epoch, chainId },
+    // in the future, guard against duplicate txs (of which multiple swaps can be a part of)
+    ...( epoch >= GasRefundDeduplicationStartEpoch ? {
+      attributes: [
+        [Sequelize.fn('DISTINCT', Sequelize.col('hash')), 'hash'], 'address', 'refundedAmountPSP'
+      ]
+    } : {})
   });
   const addressRefunds: Record<string, BigNumber> = {}
 

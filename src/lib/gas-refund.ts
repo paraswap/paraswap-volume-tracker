@@ -14,7 +14,7 @@ export const GRP_SUPPORTED_CHAINS = [
 ];
 
 export const GasRefundGenesisEpoch = 9;
-export const GasRefundDeduplicationStartEpoch = 11;
+export const GasRefundDeduplicationStartEpoch = 12;
 
 interface BaseGasRefundData {
   epoch: number;

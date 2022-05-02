@@ -8,8 +8,7 @@ import {
 import { getSwapsForAccounts } from './swaps-subgraph';
 import {
   getRefundPercent,
-  GasRefundTransactionData,
-  GasRefundDeduplicationStartEpoch
+  GasRefundTransactionData
 } from '../../../src/lib/gas-refund';
 import { getTransactionGasUsed } from '../staking/covalent';
 import { getPSPStakesHourlyWithinInterval } from '../staking';
