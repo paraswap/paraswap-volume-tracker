@@ -32,6 +32,7 @@ export class GasRefundTransaction extends Model<GasRefundTransactionData> {
   @Column(DataType.SMALLINT)
   epoch: number;
 
+  // todo: is this index needed?
   @Index
   @Column(DataType_ADDRESS)
   address: string;
@@ -48,7 +49,6 @@ export class GasRefundTransaction extends Model<GasRefundTransactionData> {
   @Column(DataType.SMALLINT.UNSIGNED)
   occurence: number;
 
-  @Index
   @Column(DataType.INTEGER)
   block: number;
 
