@@ -77,14 +77,34 @@ export async function getSuccessfulSwaps({
   let skip = 0;
   let pageSize = 100;
 
+  const uniqueSwaps = {} as Record<string, SwapData>;
   while (true) {
     const _swaps = await query(skip, pageSize);
     swaps = swaps.concat(_swaps);
+
+    _swaps.forEach( swap => {
+      uniqueSwaps[swap.txHash] = swap;
+    })
     if (_swaps.length < pageSize) {
       break;
     }
     skip = skip + pageSize;
   }
+
+  if(swaps.length !== Object.keys(uniqueSwaps).length) {
+    const sortingFunc = function(a: string, b: string){
+      if(a < b) { return -1; }
+      if(a > b) { return 1; }
+      return 0;
+  }
+    const swapsTxHashes = swaps.map( ({txHash}) => txHash).sort(sortingFunc).join("\n")
+    const uniqueSwapsTxHashes = Object.keys(uniqueSwaps).sort(sortingFunc).join("\n")
+
+    console.log('swapsTxHashes',swapsTxHashes)
+    console.log('uniqueSwapsTxHashes',uniqueSwapsTxHashes)
+    process.exit()
+  }
+  
 
   return swaps;
 }

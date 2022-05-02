@@ -20,12 +20,9 @@ import {
 
 const SafetyModuleAddress = '0xc8dc2ec5f5e02be8b37a8444a1931f02374a17ab';
 const BalancerVaultAddress = '0xba12222222228d8ba445958a75a0704d566bf2c8';
-const Balancer_80PSP_20WETH_poolId =
-  '0xcb0e14e96f2cefa8550ad8e4aea344f211e5061d00020000000000000000011a';
-const Balancer_80PSP_20WETH_address = Balancer_80PSP_20WETH_poolId.substring(
-  0,
-  42,
-); // or 0xcb0e14e96f2cefa8550ad8e4aea344f211e5061d
+const Balancer_80PSP_20WETH_address = '0xcb0e14e96f2cefa8550ad8e4aea344f211e5061d'
+const Balancer_80PSP_20WETH_poolId = `${Balancer_80PSP_20WETH_address}00020000000000000000011a`
+
 
 interface MinERC20 extends Contract {
   totalSupply(overrides?: CallOverrides): Promise<EthersBN>;
