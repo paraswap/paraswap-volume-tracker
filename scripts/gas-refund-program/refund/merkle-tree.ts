@@ -19,7 +19,7 @@ export async function computeMerkleData({
 }): Promise<MerkleTreeData> {
   const totalAmount = gasRefundParticipations
     .reduce((acc, curr) => (acc += BigInt(curr.refundedAmountPSP)), BigInt(0))
-    .toString();
+      .toString();
 
   const hashedClaimabled = gasRefundParticipations.reduce<
     Record<string, Claimable>

@@ -188,7 +188,7 @@ export const fetchTransactionOccurences = async (epoch: number, chainId: number)
   const txOccurences: Record<string, number> = {}
   const txs: Pick<GasRefundTransactionData, 'hash' | 'occurence'>[] = await GasRefundTransaction.findAll({
     where: { chainId, epoch },
-    attributes: ['hash', 'occurenc']
+    attributes: ['hash', 'occurence']
   })
   txs.forEach((tx) => {
     txOccurences[tx.hash] = tx.occurence

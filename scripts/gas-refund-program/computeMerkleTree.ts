@@ -42,24 +42,12 @@ export async function computeAndStoreMerkleTreeForChain({
   const gasRefundTXs = await GasRefundTransaction.findAll({
     where: { epoch, chainId },
   });
-  // todo: remove
-  // const gasRefundTXsGrouped = await GasRefundTransaction.findAll({
-  //   where: { epoch, chainId },
-  //   ...(epoch >= 8/*GasRefundDeduplicationStartEpoch*/ ? {
-  //     attributes: [
-  //       [Sequelize.fn('DISTINCT', Sequelize.col('hash')), 'hash'],
-  //       'refundedAmountPSP',
-  //       'address'
-  //     ],
-  //   } : {})
-  // });
-
   const addressRefunds: Record<string, BigNumber> = {}
 
   for(let i = 0; i < gasRefundTXs.length; i++) {
     const { address, refundedAmountPSP } = gasRefundTXs[i]
     if (!addressRefunds[address]) {
-      addressRefunds[address] = new BigNumber(refundedAmountPSP)
+      addressRefunds[address] = new BigNumber(0)
     }
     addressRefunds[address] = addressRefunds[address].plus(new BigNumber(refundedAmountPSP))
   }
