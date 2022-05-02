@@ -2,26 +2,28 @@ import '../../src/lib/log4js';
 import * as dotenv from 'dotenv';
 dotenv.config();
 import { computeGasRefundAllTxs } from './transactions-indexing';
-import { merkleRootExists } from './persistance/db-persistance';
+import {
+  getLatestEpochProcessed,
+  merkleRootExists,
+} from './persistance/db-persistance';
 
 import { assert } from 'ts-essentials';
 import {
   GasRefundGenesisEpoch,
   GRP_SUPPORTED_CHAINS,
 } from '../../src/lib/gas-refund';
-import { GasRefundParticipation } from '../../src/models/GasRefundParticipation';
 import { init, resolveEpochCalcTimeInterval } from './common';
 import { EpochInfo } from '../../src/lib/epoch-info';
 import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
 import { acquireLock, releaseLock } from '../../src/lib/lock-utils';
 import Database from '../../src/database';
 import GRPSystemGuardian from './system-guardian';
+import SafetyModuleStakesTracker from './staking/safety-module-stakes-tracker';
 
 const logger = global.LOGGER('GRP');
 
 async function startComputingGasRefundAllChains() {
   await init({
-    epochPolling: true,
     dbTransactionNamespace: 'gas-refund-computation',
   });
 
@@ -32,20 +34,15 @@ async function startComputingGasRefundAllChains() {
     await GRPSystemGuardian.loadStateFromDB();
     GRPSystemGuardian.assertMaxPSPGlobalBudgetNotReached();
 
+    await SafetyModuleStakesTracker.getInstance().loadStakes();
+
     return Promise.all(
       GRP_SUPPORTED_CHAINS.map(async chainId => {
         const lockId = `GasRefundParticipation_${chainId}`;
 
         await acquireLock(lockId); // next process simply hangs on inserting if lock already acquired
 
-        const lastEpochProcessed = await GasRefundParticipation.max<
-          number,
-          GasRefundParticipation
-        >('epoch', {
-          where: {
-            chainId,
-          },
-        });
+        const lastEpochProcessed = await getLatestEpochProcessed(chainId);
 
         const startEpoch = lastEpochProcessed || GasRefundGenesisEpoch;
 

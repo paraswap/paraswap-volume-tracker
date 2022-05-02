@@ -8,6 +8,15 @@ on:
     branches:
       - master
   workflow_dispatch:
+    inputs:
+      target_env:
+        type: choice
+        description: Target environment
+        default: staging
+        required: false
+        options:
+        - staging
+        - referrals
 
 jobs:
   build-and-deploy-service:
@@ -32,6 +41,7 @@ jobs:
           authentication_token: ${{ secrets.AUTHENTICATION_KEY }}
           authorization_token: ${{ secrets.AUTHORIZATION_KEY }}
           data_center: ${{ secrets.DATA_CENTER }}
+          target_env: ${{ github.event.inputs.target_env }}
 
       # We re-checkout composite actions repository due to a known bug that if composite action does its own checkout, it deletes any previous checkouts
       # thus, the post action fails on not finding the composite action we checked-out. See: https://github.com/actions/runner/issues/1300

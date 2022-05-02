@@ -1,5 +1,12 @@
 import BigNumber from 'bignumber.js';
+import { Event } from 'ethers';
 import * as _ from 'lodash';
+import * as pMemoize from 'p-memoize';
+import * as QuickLRU from 'quick-lru';
+import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
+import { SUBGRAPH_URL } from '../../src/lib/block-info';
+import { thegraphClient } from './data-providers-clients';
+import { assert } from 'console';
 
 export const ONE_HOUR_SEC = 60 * 60;
 const DAY_SEC_MSEC = 1000 * ONE_HOUR_SEC * 24;
@@ -56,3 +63,61 @@ export const generateHourlyTimestamps = (
 
   return hourlyTimestamps;
 };
+
+async function fetchBlockTimestamp({
+  chainId,
+  blockNumber,
+}: {
+  chainId: number;
+  blockNumber: number;
+}): Promise<number> {
+  const subgraphURL = SUBGRAPH_URL[chainId];
+  const query = `query ($block: BigInt) {
+      blocks(first: 1, where: {number: $block}) {
+        number
+        timestamp
+      }
+    }`;
+  const variables = {
+    block: blockNumber,
+  };
+
+  const {
+    data: { data },
+  } = await thegraphClient.post<{ data: { blocks: [{ timestamp: string }] } }>(
+    subgraphURL,
+    { query, variables },
+  );
+
+  const timestamp = +data.blocks[0].timestamp;
+
+  assert(
+    typeof timestamp === 'number' && !isNaN(timestamp) && timestamp > 0,
+    `could not resolve timestamp for block ${blockNumber}`,
+  );
+
+  return timestamp;
+}
+
+export const fetchBlockTimestampCached = pMemoize(fetchBlockTimestamp, {
+  cache: new QuickLRU({
+    maxSize: 100,
+  }),
+});
+
+export async function fetchBlockTimestampForEvents(events: Event[]) {
+  return Object.fromEntries(
+    await Promise.all(
+      events.map(
+        async e =>
+          [
+            e.blockNumber,
+            await fetchBlockTimestampCached({
+              blockNumber: e.blockNumber,
+              chainId: CHAIN_ID_MAINNET,
+            }),
+          ] as const,
+      ),
+    ),
+  );
+}

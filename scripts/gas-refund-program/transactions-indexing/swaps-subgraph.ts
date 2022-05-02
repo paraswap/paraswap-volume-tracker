@@ -6,20 +6,18 @@ import {
   CHAIN_ID_POLYGON,
 } from '../../../src/lib/constants';
 import { thegraphClient } from '../data-providers-clients';
-import { sliceCalls } from '../utils';
-import { assert } from 'ts-essentials';
 
 // Note: txGasUsed from thegraph is unsafe as it's actually txGasLimit https://github.com/graphprotocol/graph-node/issues/2619
 const SwapsQuery = `
-query ($number_gte: BigInt, $number_lt: BigInt, $txOrgins: [Bytes!]!) {
+query ($number_gte: BigInt, $number_lt: BigInt, $first: Int, $skip: Int) {
 	swaps(
-		first: 1000
+		first: $first
+    skip: $skip
 		orderBy: blockNumber
 		orderDirection: asc
 		where: {
 			timestamp_gte: $number_gte
 			timestamp_lt: $number_lt
-			txOrigin_in: $txOrgins
 		}
 	) {
     txHash
@@ -43,28 +41,26 @@ const SubgraphURLs: { [network: number]: string } = {
     'https://api.thegraph.com/subgraphs/name/paraswap/paraswap-subgraph-fantom',
 };
 
-interface GetSwapsForAccountsInput {
+interface GetSuccessSwapsInput {
   startTimestamp: number;
   endTimestamp: number;
-  accounts: string[];
   chainId: number;
 }
 
 // get filtered by accounts swaps from the graphql endpoint
-export async function getSwapsForAccounts({
+export async function getSuccessfulSwaps({
   startTimestamp,
   endTimestamp,
-  accounts,
   chainId,
-}: GetSwapsForAccountsInput): Promise<SwapData[]> {
+}: GetSuccessSwapsInput): Promise<SwapData[]> {
   const subgraphURL = SubgraphURLs[chainId];
 
-  // @TODO set up pagination, but seems alright for now
-  const execute = async (accounts: string[]): Promise<SwapData[]> => {
+  const query = async (skip: number, pageSize: number) => {
     const variables = {
       number_gte: startTimestamp,
       number_lt: endTimestamp,
-      txOrgins: accounts,
+      skip,
+      pageSize,
     };
 
     const { data } = await thegraphClient.post<SwapsGQLRespose>(subgraphURL, {
@@ -74,17 +70,23 @@ export async function getSwapsForAccounts({
 
     const swaps = data.data.swaps;
 
-    assert(swaps.length !== 1000, 'unsafe fix pagination');
-
     return swaps;
   };
 
-  // array of sliced results, without slicing breaks with Payload too large (too many `initiators`)
-  const result = await Promise.all(
-    sliceCalls({ inputArray: accounts, execute, sliceLength: 1000 }),
-  );
+  let swaps: SwapData[] = [];
+  let skip = 0;
+  let pageSize = 100;
 
-  return result.flat();
+  while (true) {
+    const _swaps = await query(skip, pageSize);
+    swaps = swaps.concat(_swaps);
+    if (_swaps.length < pageSize) {
+      break;
+    }
+    skip = skip + pageSize;
+  }
+
+  return swaps;
 }
 
 interface SwapsGQLRespose {

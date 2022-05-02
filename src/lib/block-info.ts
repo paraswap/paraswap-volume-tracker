@@ -9,7 +9,7 @@ import { Utils } from './utils';
 
 const logger = global.LOGGER();
 
-const SUBGRAPH_URL: { [network: number]: string } = {
+export const SUBGRAPH_URL: { [network: number]: string } = {
   [CHAIN_ID_MAINNET]:
     'https://api.thegraph.com/subgraphs/name/blocklytics/ethereum-blocks',
   [CHAIN_ID_ROPSTEN]:

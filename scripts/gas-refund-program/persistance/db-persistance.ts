@@ -103,6 +103,38 @@ export async function fetchTotalRefundedAmountUSDByAddress(): Promise<{
   return totalRefundedAmountUSDByAddress;
 }
 
+export async function getLatestEpochProcessed(
+  chainId: number,
+): Promise<number> {
+  return GasRefundParticipation.max<number, GasRefundParticipation>('epoch', {
+    where: {
+      isCompleted: false,
+      chainId,
+    },
+  });
+}
+
+export async function getLatestTransactionTimestamp() {
+  const chainToTxTimestamp = (await GasRefundParticipation.findAll({
+    attributes: [
+      'chainId',
+      [
+        Sequelize.fn('max', Sequelize.col('lastTimestamp')),
+        'lastTimestampForChain',
+      ],
+    ],
+    group: 'chainId',
+    raw: true,
+  })) as unknown as { chainId: number; lastTimestampForChain: number }[];
+
+  const lastTxTimestampsAllChains = chainToTxTimestamp.map(
+    t => t.lastTimestampForChain,
+  );
+  const latestTxTimestamps = Math.min(...lastTxTimestampsAllChains, 0);
+
+  return latestTxTimestamps;
+}
+
 export const writePendingEpochData = async (
   pendingEpochGasRefundData: GasRefundTransactionData[],
 ) => {

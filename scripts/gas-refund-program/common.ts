@@ -3,7 +3,6 @@ import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
 import { EpochInfo } from '../../src/lib/epoch-info';
 
 type Params = {
-  epochPolling?: boolean;
   dbTransactionNamespace?: string;
 };
 
@@ -11,10 +10,9 @@ export async function init(options?: Params) {
   await Database.connectAndSync(options?.dbTransactionNamespace);
   const epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET, true);
   await epochInfo.getEpochInfo();
-  if (options?.epochPolling) epochInfo.startEpochInfoPolling();
 }
 
-const OFFSET_CALC_TIME = 10 * 60; // delay to ensure that all third parties providers are synced
+export const OFFSET_CALC_TIME = 5 * 60; // delay to ensure that all third parties providers are synced
 
 export async function resolveEpochCalcTimeInterval(epoch: number): Promise<{
   startCalcTime: number;
