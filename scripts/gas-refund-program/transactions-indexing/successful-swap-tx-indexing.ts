@@ -52,7 +52,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     veryLastTimestampProcessed + 1,
   );
 
-  // load all past txs into memory as a record to track dupes
+  // load all past swaps into memory as a record to track and de-duplicate txs
   const pastTXs: Record<string, number> = await fetchTransactionOccurences(epoch, chainId)
 
   for (
