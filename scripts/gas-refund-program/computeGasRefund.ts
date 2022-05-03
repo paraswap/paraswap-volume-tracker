@@ -29,8 +29,7 @@ async function startComputingGasRefundAllChains() {
 
   const epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET, true);
 
-  // todo: reinstate transaction
-  // return Database.sequelize.transaction(async () => {
+  return Database.sequelize.transaction(async () => {
     await GRPSystemGuardian.loadStateFromDB();
     GRPSystemGuardian.assertMaxPSPGlobalBudgetNotReached();
 
@@ -90,7 +89,7 @@ async function startComputingGasRefundAllChains() {
         await releaseLock(lockId);
       }),
     );
-  // });
+  });
 }
 
 startComputingGasRefundAllChains()
