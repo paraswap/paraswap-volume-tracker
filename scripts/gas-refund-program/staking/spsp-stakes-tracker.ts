@@ -1,7 +1,6 @@
 import BigNumber from 'bignumber.js';
 import {
   BigNumber as EthersBN,
-  CallOverrides,
   Contract,
   Event,
   EventFilter,
