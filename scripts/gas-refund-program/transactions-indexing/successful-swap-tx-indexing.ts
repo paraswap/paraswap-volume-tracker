@@ -8,6 +8,7 @@ import {
 import { getSuccessfulSwaps } from './swaps-subgraph';
 import {
   GasRefundSafetyModuleStartEpoch,
+  GasRefundTxOriginCheckStartEpoch,
   getRefundPercent,
   GasRefundTransactionData
 } from '../../../src/lib/gas-refund';
@@ -116,6 +117,13 @@ export async function computeSuccessfulSwapsTxFeesRefund({
 
     await Promise.all(
       swaps.map(async swap => {
+        if (
+          epoch >= GasRefundTxOriginCheckStartEpoch &&
+          swap.initiator !== swap.txOrigin
+        ) {
+          return;
+        }
+
         const address = swap.txOrigin;
 
         const startOfHourUnixTms = startOfHourSec(+swap.timestamp);

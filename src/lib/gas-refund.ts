@@ -17,6 +17,7 @@ export const GasRefundGenesisEpoch = 9;
 export const GasRefundPricingAlgoFlipEpoch = 11;
 export const GasRefundSafetyModuleStartEpoch = 11;
 export const GasRefundDeduplicationStartEpoch = 12;
+export const GasRefundTxOriginCheckStartEpoch = 12;
 
 export type GasRefundDistributionData = {
   epoch: number;
@@ -33,7 +34,6 @@ type GasRefundLevelsDef = {
   refundPercent: number;
 };
 
-// todo: remove/refactor with above/previous structures as some will be obsolete
 export interface GasRefundParticipantData {
   epoch: number;
   address: string
