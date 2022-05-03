@@ -263,7 +263,7 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
     const from = _from.toLowerCase();
     const to = _to.toLowerCase();
     const value = new BigNumber(_value.toString());
-    const poolAddress = e.address.toLowerCase()
+    const poolAddress = e.address.toLowerCase();
 
     if (!this.differentialStates.sPSPBalanceByAccount[poolAddress]?.[from]) {
       this.differentialStates.sPSPBalanceByAccount[poolAddress] =
