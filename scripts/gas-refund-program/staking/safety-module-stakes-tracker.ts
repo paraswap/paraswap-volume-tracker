@@ -217,7 +217,7 @@ export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
 
         this.differentialStates.stkPSPBptUsersBalances[_from].push({
           timestamp,
-          value: amount.multipliedBy(isMint ? 1 : -1),
+          value: isMint ? amount : amount.negated(),
         });
 
         return;
@@ -228,7 +228,7 @@ export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
 
       this.differentialStates.stkPSPBptUsersBalances[from].push({
         timestamp,
-        value: amount.multipliedBy(-1),
+        value: amount.negated(),
       });
 
       if (!this.differentialStates.stkPSPBptUsersBalances[to])
@@ -276,7 +276,7 @@ export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
           timestamp,
           value: new BigNumber(
             paidProtocolSwapFeeAmounts[1].toString(),
-          ).multipliedBy(-1),
+          ).negated(),
         },
       ];
     });
@@ -322,7 +322,7 @@ export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
 
       return {
         timestamp,
-        value: new BigNumber(amountOut.toString()).multipliedBy(-1),
+        value: new BigNumber(amountOut.toString()).negated(),
       };
     });
 
@@ -365,9 +365,11 @@ export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
 
       const isMint = from === NULL_ADDRESS;
 
+      const value = new BigNumber(amount.toString());
+
       return {
         timestamp,
-        value: new BigNumber(amount.toString()).multipliedBy(isMint ? 1 : -1),
+        value: isMint ? value : value.negated(),
       };
     });
 
