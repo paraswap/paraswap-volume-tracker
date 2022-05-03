@@ -112,7 +112,10 @@ export async function getLatestTransactionTimestamp() {
   const lastTxTimestampsAllChains = chainToTxTimestamp.map(
     t => t.lastTimestampForChain,
   );
-  const latestTxTimestamps = Math.min(...lastTxTimestampsAllChains, 0);
+  const latestTxTimestamps =
+    lastTxTimestampsAllChains.length > 0
+      ? Math.min(...lastTxTimestampsAllChains)
+      : 0;
 
   return latestTxTimestamps;
 }
