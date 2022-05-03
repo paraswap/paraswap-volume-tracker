@@ -8,12 +8,14 @@ import {
 } from 'ethers';
 import {
   CHAIN_ID_MAINNET,
+  MULTICALL_ADDRESS,
   NULL_ADDRESS,
   PSP_ADDRESS,
 } from '../../../src/lib/constants';
 import { Provider } from '../../../src/lib/provider';
 import * as ERC20ABI from '../../../src/lib/abi/erc20.abi.json';
 import * as SPSPABI from '../../../src/lib/abi/spsp.abi.json';
+import * as MultiCallerABI from '../../../src/lib/abi/multicaller.abi.json';
 import { getTokenHolders } from './covalent';
 import { fetchBlockTimestampForEvents, ZERO_BN } from '../utils';
 import { reduceTimeSeries, TimeSeries } from '../timeseries';
@@ -24,18 +26,14 @@ import { assert } from 'ts-essentials';
 const SPSPAddresses = PoolConfigsMap[CHAIN_ID_MAINNET].filter(
   p => p.isActive,
 ).map(p => p.address.toLowerCase());
-const SPSPAddressesSet = new Set(SPSPAddresses);
 
-interface MinSPSP extends Contract {
-  totalSupply(overrides?: CallOverrides): Promise<EthersBN>;
-  pspsLocked(overrides?: CallOverrides): Promise<EthersBN>;
-}
+const SPSPAddressesSet = new Set(SPSPAddresses);
 
 const SPSPPrototypeContract = new Contract(
   NULL_ADDRESS,
   SPSPABI,
   Provider.getJsonRpcProvider(CHAIN_ID_MAINNET),
-) as MinSPSP;
+);
 
 const PSPContract = new Contract(
   PSP_ADDRESS[CHAIN_ID_MAINNET],
@@ -125,12 +123,87 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
     ]);
   }
 
-  async fetchSPSPsState(initBlock: number) {
-    // @TODO multicall to get totalSupply, sPSPLocked, PSP Balance
+  async fetchSPSPsState(blockNumber: number) {
+    const chainId = CHAIN_ID_MAINNET;
+    const provider = Provider.getJsonRpcProvider(chainId);
+    const multicallContract = new Contract(
+      MULTICALL_ADDRESS[chainId],
+      MultiCallerABI,
+      provider,
+    );
+    const multicallData = SPSPAddresses.flatMap(pool => [
+      {
+        target: pool,
+        callData:
+          SPSPPrototypeContract.interface.encodeFunctionData('totalSupply'),
+      },
+      {
+        target: pool,
+        callData:
+          SPSPPrototypeContract.interface.encodeFunctionData('pspsLocked'),
+      },
+      {
+        target: PSP_ADDRESS[chainId],
+        callData: PSPContract.interface.encodeFunctionData('balanceOf', [pool]),
+      },
+    ]);
+
+    const rawResult = await multicallContract.functions.aggregate(
+      multicallData,
+      {
+        blockTag: blockNumber,
+      },
+    );
+
+    SPSPAddresses.forEach((pool, i) => {
+      const totalSupply = SPSPPrototypeContract.interface
+        .decodeFunctionResult('totalSupply', rawResult.returnData[3 * i])
+        .toString();
+
+      const pspsLocked = SPSPPrototypeContract.interface
+        .decodeFunctionResult('pspsLocked', rawResult.returnData[3 * i + 1])
+        .toString();
+
+      const pspBalance = PSPContract.interface
+        .decodeFunctionResult('balanceOf', rawResult.returnData[3 * i + 2])
+        .toString();
+
+      this.initState.totalSupply[pool] = new BigNumber(totalSupply);
+      this.initState.pspBalance[pool] = new BigNumber(pspBalance);
+      this.initState.pspsLocked[pool] = new BigNumber(pspsLocked);
+    }, {});
   }
 
-  async fetchSPSPsStakers(initBlock: number) {
-    // @TODO call to covalent to fetch all stakers
+  async fetchSPSPsStakers(blockNumber: number) {
+    const chainId = CHAIN_ID_MAINNET;
+
+    this.initState.sPSPBalanceByAccount = Object.fromEntries(
+      await Promise.all(
+        SPSPAddresses.map(async poolAddress => {
+          // @WARNING pagination doesn't seem to work, so ask a large pageSize
+          const options = {
+            pageSize: 10000,
+            token: poolAddress,
+            chainId,
+            blockHeight: String(blockNumber),
+          };
+
+          const { items } = await getTokenHolders(options);
+
+          const stakesByAccount = Object.fromEntries(
+            items.map(
+              item =>
+                [
+                  item.address,
+                  new BigNumber(item.balance), // wei
+                ] as const,
+            ),
+          );
+
+          return [poolAddress, stakesByAccount] as const;
+        }),
+      ),
+    );
   }
 
   async resolveInternalPoolChanges() {
@@ -152,7 +225,7 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
     );
 
     allEventsAllPools.forEach(e => {
-      const poolAddress = e.address;
+      const poolAddress = e.address.toLowerCase();
 
       if (!SPSPAddressesSet.has(poolAddress)) {
         return;
@@ -186,29 +259,31 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
   }
 
   handleSPSPBalance(e: Transfer, timestamp: number) {
-    const [from, to, _value] = e.args;
-
+    const [_from, _to, _value] = e.args;
+    const from = _from.toLowerCase();
+    const to = _to.toLowerCase();
     const value = new BigNumber(_value.toString());
+    const poolAddress = e.address.toLowerCase()
 
-    if (!this.differentialStates.sPSPBalanceByAccount[e.address]?.[from]) {
-      this.differentialStates.sPSPBalanceByAccount[e.address] =
-        this.differentialStates.sPSPBalanceByAccount[e.address] || {};
-      this.differentialStates.sPSPBalanceByAccount[e.address][from] = [];
+    if (!this.differentialStates.sPSPBalanceByAccount[poolAddress]?.[from]) {
+      this.differentialStates.sPSPBalanceByAccount[poolAddress] =
+        this.differentialStates.sPSPBalanceByAccount[poolAddress] || {};
+      this.differentialStates.sPSPBalanceByAccount[poolAddress][from] = [];
     }
 
-    if (!this.differentialStates.sPSPBalanceByAccount[e.address]?.[to]) {
-      this.differentialStates.sPSPBalanceByAccount[e.address] =
-        this.differentialStates.sPSPBalanceByAccount[e.address] || {};
-      this.differentialStates.sPSPBalanceByAccount[e.address][to] = [];
+    if (!this.differentialStates.sPSPBalanceByAccount[poolAddress]?.[to]) {
+      this.differentialStates.sPSPBalanceByAccount[poolAddress] =
+        this.differentialStates.sPSPBalanceByAccount[poolAddress] || {};
+      this.differentialStates.sPSPBalanceByAccount[poolAddress][to] = [];
     }
 
     // mint
     if (from === NULL_ADDRESS) {
-      this.differentialStates.sPSPBalanceByAccount[e.address][to].push({
+      this.differentialStates.sPSPBalanceByAccount[poolAddress][to].push({
         timestamp,
         value,
       });
-      this.differentialStates.totalSupply[e.address].push({
+      this.differentialStates.totalSupply[poolAddress].push({
         timestamp,
         value,
       });
@@ -217,11 +292,11 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
 
     // burn
     if (to === NULL_ADDRESS) {
-      this.differentialStates.sPSPBalanceByAccount[e.address][to].push({
+      this.differentialStates.sPSPBalanceByAccount[poolAddress][to].push({
         timestamp,
         value: value.negated(),
       });
-      this.differentialStates.totalSupply[e.address].push({
+      this.differentialStates.totalSupply[poolAddress].push({
         timestamp,
         value: value.negated(),
       });
@@ -229,12 +304,12 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
       return;
     }
 
-    this.differentialStates.sPSPBalanceByAccount[e.address][from].push({
+    this.differentialStates.sPSPBalanceByAccount[poolAddress][from].push({
       timestamp,
       value: value.negated(),
     });
 
-    this.differentialStates.sPSPBalanceByAccount[e.address][to].push({
+    this.differentialStates.sPSPBalanceByAccount[poolAddress][to].push({
       timestamp,
       value: value,
     });
@@ -244,7 +319,7 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
     e: Unstaked | Reentered | Withdraw,
     timestamp: number,
   ) {
-    const poolAddress = e.address;
+    const poolAddress = e.address.toLowerCase();
     const [, , amount] = e.args;
 
     const value = new BigNumber(amount.toString());
@@ -279,9 +354,11 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
 
     events.forEach(e => {
       const timestamp = blockNumToTimestamp[e.blockNumber];
-      const [from, to, _value] = e.args;
+      const [_from, _to, _value] = e.args;
+      const from = _from.toLowerCase();
+      const to = _to.toLowerCase();
       const value = new BigNumber(_value.toString());
-      const poolAddress = e.address;
+      const poolAddress = e.address.toLowerCase();
 
       const transferFromSPSP = SPSPAddressesSet.has(from);
       const transferToSPSP = SPSPAddressesSet.has(to);
