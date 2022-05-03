@@ -108,18 +108,17 @@ export async function getLatestEpochProcessed(
 ): Promise<number> {
   return GasRefundParticipation.max<number, GasRefundParticipation>('epoch', {
     where: {
-      isCompleted: false,
       chainId,
     },
   });
 }
 
 export async function getLatestTransactionTimestamp() {
-  const chainToTxTimestamp = (await GasRefundParticipation.findAll({
+  const chainToTxTimestamp = (await GasRefundTransaction.findAll({
     attributes: [
       'chainId',
       [
-        Sequelize.fn('max', Sequelize.col('lastTimestamp')),
+        Sequelize.fn('max', Sequelize.col('timestamp')),
         'lastTimestampForChain',
       ],
     ],
