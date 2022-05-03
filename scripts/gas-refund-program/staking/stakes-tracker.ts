@@ -57,11 +57,11 @@ export default class StakesTracker {
     );
 
     await Promise.all([
-      SafetyModuleStakesTracker.getInstance()
-        .setBlockBoundary(startBlockSM, endBlock)
-        .loadStakes(),
       SPSPStakesTracker.getInstance()
         .setBlockBoundary(startBlockSPSP, endBlock)
+        .loadStakes(),
+      SafetyModuleStakesTracker.getInstance()
+        .setBlockBoundary(startBlockSM, endBlock)
         .loadStakes(),
     ]);
   }

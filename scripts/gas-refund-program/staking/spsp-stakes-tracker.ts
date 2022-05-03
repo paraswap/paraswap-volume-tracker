@@ -1,10 +1,5 @@
 import BigNumber from 'bignumber.js';
-import {
-  BigNumber as EthersBN,
-  Contract,
-  Event,
-  EventFilter,
-} from 'ethers';
+import { BigNumber as EthersBN, Contract, Event, EventFilter } from 'ethers';
 import {
   CHAIN_ID_MAINNET,
   MULTICALL_ADDRESS,
@@ -276,12 +271,16 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
       this.differentialStates.sPSPBalanceByAccount[poolAddress][to] = [];
     }
 
+    this.differentialStates.totalSupply[poolAddress] =
+      this.differentialStates.totalSupply[poolAddress] || [];
+
     // mint
     if (from === NULL_ADDRESS) {
       this.differentialStates.sPSPBalanceByAccount[poolAddress][to].push({
         timestamp,
         value,
       });
+
       this.differentialStates.totalSupply[poolAddress].push({
         timestamp,
         value,
@@ -357,7 +356,6 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
       const from = _from.toLowerCase();
       const to = _to.toLowerCase();
       const value = new BigNumber(_value.toString());
-      const poolAddress = e.address.toLowerCase();
 
       const transferFromSPSP = SPSPAddressesSet.has(from);
       const transferToSPSP = SPSPAddressesSet.has(to);
@@ -366,6 +364,8 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
         transferFromSPSP || transferToSPSP,
         'has to be transfer from or to SPSP',
       );
+
+      const poolAddress = transferFromSPSP ? from : to;
 
       if (!this.differentialStates.pspBalance[poolAddress])
         this.differentialStates.pspBalance[poolAddress] = [];
@@ -383,8 +383,8 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
     const totalPSPBalance = SPSPAddresses.reduce((acc, poolAddress) => {
       const sPSPAmount = reduceTimeSeries(
         timestamp,
-        this.initState.sPSPBalanceByAccount[poolAddress][account],
-        this.differentialStates.sPSPBalanceByAccount[poolAddress][account],
+        this.initState.sPSPBalanceByAccount[poolAddress]?.[account],
+        this.differentialStates.sPSPBalanceByAccount[poolAddress]?.[account],
       );
       const pspsLocked = reduceTimeSeries(
         timestamp,
