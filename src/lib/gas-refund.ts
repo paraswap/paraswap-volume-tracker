@@ -17,6 +17,7 @@ export const GasRefundGenesisEpoch = 9;
 export const GasRefundPricingAlgoFlipEpoch = 11;
 export const GasRefundSafetyModuleStartEpoch = 11;
 export const GasRefundTxOriginCheckStartEpoch = 12;
+export const GasRefundSPSPStakesAlgoFlipEpoch = 12;
 
 interface BaseGasRefundData {
   epoch: number;

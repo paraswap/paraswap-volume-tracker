@@ -108,6 +108,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
             address,
             +swap.timestamp,
             epoch,
+            endTimestamp,
           );
 
         if (swapperStake.isLessThan(GRP_MIN_STAKE)) {
