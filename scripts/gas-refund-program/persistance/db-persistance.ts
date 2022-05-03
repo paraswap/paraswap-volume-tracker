@@ -1,6 +1,4 @@
 import {
-  CompletedEpochGasRefundData,
-  PendingEpochGasRefundData,
   GasRefundTransactionData,
   GasRefundParticipantData
 } from '../../../src/lib/gas-refund';
@@ -11,19 +9,6 @@ import { MerkleData, MerkleTreeData, TxFeesByAddress } from '../types';
 import { sliceCalls } from '../utils';
 import { Sequelize } from 'sequelize';
 import BigNumber from 'bignumber.js';
-
-export const fetchEpochAddressesProcessedCount = async ({chainId, epoch}: {
-  chainId: number;
-  epoch: number;
-}): Promise<number> => {
-
-  const count = await GasRefundTransaction.count({
-    distinct: true,
-    col: 'hash',
-    where: { chainId, epoch }
-  });
-  return count
-}
 
 export const fetchPendingGasRefundData = async ({
   chainId,

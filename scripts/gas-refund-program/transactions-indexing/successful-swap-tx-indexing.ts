@@ -3,8 +3,7 @@ import { BigNumber } from 'bignumber.js';
 import {
   fetchVeryLastTimestampProcessed,
   writePendingEpochData,
-  fetchTransactionOccurences,
-  fetchEpochAddressesProcessedCount
+  fetchTransactionOccurences
 } from '../persistance/db-persistance';
 import { getSuccessfulSwaps } from './swaps-subgraph';
 import {
@@ -270,10 +269,4 @@ export async function computeSuccessfulSwapsTxFeesRefund({
       await writePendingEpochData(pendingGasRefundTransactionData);
     }
   }
-
-  const totalAddressesAlreadyProcessedThisEpoch = await fetchEpochAddressesProcessedCount({ chainId, epoch })
-
-  logger.info(
-    `On chain ${chainId}, a gas refund has been computed for ${totalAddressesAlreadyProcessedThisEpoch} addresses.`,
-  );
 }
