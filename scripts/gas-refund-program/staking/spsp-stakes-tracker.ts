@@ -13,15 +13,13 @@ import {
 } from '../../../src/lib/constants';
 import { Provider } from '../../../src/lib/provider';
 import * as ERC20ABI from '../../../src/lib/abi/erc20.abi.json';
+import * as SPSPABI from '../../../src/lib/abi/spsp.abi.json';
 import { getTokenHolders } from './covalent';
 import { fetchBlockTimestampForEvents, ZERO_BN } from '../utils';
-import {
-  reduceTimeSeries,
-  TimeSeries,
-  timeseriesComparator,
-} from '../timeseries';
+import { reduceTimeSeries, TimeSeries } from '../timeseries';
 import { PoolConfigsMap } from '../../../src/lib/pool-info';
 import AbstractStakeTracker from './abstract-stakes-tracker';
+import { assert } from 'ts-essentials';
 
 const SPSPAddresses = PoolConfigsMap[CHAIN_ID_MAINNET].filter(
   p => p.isActive,
@@ -35,9 +33,15 @@ interface MinSPSP extends Contract {
 
 const SPSPPrototypeContract = new Contract(
   NULL_ADDRESS,
-  ERC20ABI,
+  SPSPABI,
   Provider.getJsonRpcProvider(CHAIN_ID_MAINNET),
 ) as MinSPSP;
+
+const PSPContract = new Contract(
+  PSP_ADDRESS[CHAIN_ID_MAINNET],
+  ERC20ABI,
+  Provider.getJsonRpcProvider(CHAIN_ID_MAINNET),
+);
 
 interface Transfer extends Event {
   event: 'Transfer';
@@ -64,14 +68,18 @@ type InitState = {
   totalSupply: { [poolAddress: string]: BigNumber };
   pspBalance: { [poolAddress: string]: BigNumber };
   pspsLocked: { [poolAddress: string]: BigNumber };
-  balances: { [poolAddress: string]: { [accountAddress: string]: BigNumber } };
+  sPSPBalanceByAccount: {
+    [poolAddress: string]: { [accountAddress: string]: BigNumber };
+  };
 };
 
 type DiffState = {
   totalSupply: { [poolAddress: string]: TimeSeries };
   pspBalance: { [poolAddress: string]: TimeSeries };
   pspsLocked: { [poolAddress: string]: TimeSeries };
-  balances: { [poolAddress: string]: { [accountAddress: string]: TimeSeries } };
+  sPSPBalanceByAccount: {
+    [poolAddress: string]: { [accountAddress: string]: TimeSeries };
+  };
 };
 
 export default class SPSPStakesTracker extends AbstractStakeTracker {
@@ -79,13 +87,13 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
     totalSupply: {},
     pspBalance: {},
     pspsLocked: {},
-    balances: {},
+    sPSPBalanceByAccount: {},
   };
   differentialStates: DiffState = {
     totalSupply: {},
     pspBalance: {},
     pspsLocked: {},
-    balances: {},
+    sPSPBalanceByAccount: {},
   };
 
   static instance: SPSPStakesTracker;
@@ -151,21 +159,24 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
       }
 
       const { event } = e;
+      const timestamp = blockNumToTimestamp[e.blockNumber];
+
       switch (event) {
         case 'Transfer':
-          this.handleTransfer(e as Transfer);
+          this.handleSPSPBalance(e as Transfer, timestamp);
           break;
-        case 'Entered':
-          this.handleEntered(e as Entered);
-          break;
+
         case 'Unstaked':
-          this.handleUnstaked(e as Unstaked);
-          break;
         case 'Reentered':
-          this.handleReentered(e as Reentered);
-          break;
         case 'Withdraw':
-          this.handleWithdraw(e as Withdraw);
+          this.handlePSPLockedBalance(
+            e as Unstaked | Reentered | Withdraw,
+            timestamp,
+          );
+          break;
+
+        case 'Entered':
+          // noop nothing to get from this
           break;
 
         default:
@@ -174,25 +185,130 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
     });
   }
 
-  handleTransfer(e: Transfer) {}
-  handleUnstaked(e: Unstaked) {}
-  handleWithdraw(e: Withdraw) {}
-  handleEntered(e: Entered) {}
-  handleReentered(e: Reentered) {}
+  handleSPSPBalance(e: Transfer, timestamp: number) {
+    const [from, to, _value] = e.args;
 
-  async resolvePSPBalanceChanges() {
-    // @TODO resolve PSP movements
+    const value = new BigNumber(_value.toString());
+
+    if (!this.differentialStates.sPSPBalanceByAccount[e.address]?.[from]) {
+      this.differentialStates.sPSPBalanceByAccount[e.address] =
+        this.differentialStates.sPSPBalanceByAccount[e.address] || {};
+      this.differentialStates.sPSPBalanceByAccount[e.address][from] = [];
+    }
+
+    if (!this.differentialStates.sPSPBalanceByAccount[e.address]?.[to]) {
+      this.differentialStates.sPSPBalanceByAccount[e.address] =
+        this.differentialStates.sPSPBalanceByAccount[e.address] || {};
+      this.differentialStates.sPSPBalanceByAccount[e.address][to] = [];
+    }
+
+    // mint
+    if (from === NULL_ADDRESS) {
+      this.differentialStates.sPSPBalanceByAccount[e.address][to].push({
+        timestamp,
+        value,
+      });
+      this.differentialStates.totalSupply[e.address].push({
+        timestamp,
+        value,
+      });
+      return;
+    }
+
+    // burn
+    if (to === NULL_ADDRESS) {
+      this.differentialStates.sPSPBalanceByAccount[e.address][to].push({
+        timestamp,
+        value: value.negated(),
+      });
+      this.differentialStates.totalSupply[e.address].push({
+        timestamp,
+        value: value.negated(),
+      });
+
+      return;
+    }
+
+    this.differentialStates.sPSPBalanceByAccount[e.address][from].push({
+      timestamp,
+      value: value.negated(),
+    });
+
+    this.differentialStates.sPSPBalanceByAccount[e.address][to].push({
+      timestamp,
+      value: value,
+    });
   }
 
-  // @todo handle legacy (hourly intervals)
+  handlePSPLockedBalance(
+    e: Unstaked | Reentered | Withdraw,
+    timestamp: number,
+  ) {
+    const poolAddress = e.address;
+    const [, , amount] = e.args;
+
+    const value = new BigNumber(amount.toString());
+
+    if (!this.differentialStates.pspsLocked[poolAddress]) {
+      this.differentialStates.pspsLocked[poolAddress] = [];
+    }
+
+    this.differentialStates.pspsLocked[poolAddress].push({
+      timestamp,
+      value: e.event === 'Unstaked' ? value : value.negated(),
+    });
+  }
+
+  async resolvePSPBalanceChanges() {
+    const events = (
+      await Promise.all([
+        PSPContract.queryFilter(
+          PSPContract.filters.Transfer(SPSPAddresses),
+          this.startBlock,
+          this.endBlock,
+        ),
+        PSPContract.queryFilter(
+          PSPContract.filters.Transfer(null, SPSPAddresses),
+          this.startBlock,
+          this.endBlock,
+        ),
+      ])
+    ).flat() as Transfer[];
+
+    const blockNumToTimestamp = await fetchBlockTimestampForEvents(events);
+
+    events.forEach(e => {
+      const timestamp = blockNumToTimestamp[e.blockNumber];
+      const [from, to, _value] = e.args;
+      const value = new BigNumber(_value.toString());
+      const poolAddress = e.address;
+
+      const transferFromSPSP = SPSPAddressesSet.has(from);
+      const transferToSPSP = SPSPAddressesSet.has(to);
+
+      assert(
+        transferFromSPSP || transferToSPSP,
+        'has to be transfer from or to SPSP',
+      );
+
+      if (!this.differentialStates.pspBalance[poolAddress])
+        this.differentialStates.pspBalance[poolAddress] = [];
+
+      this.differentialStates.pspBalance[poolAddress].push({
+        timestamp,
+        value: transferFromSPSP ? value.negated() : value,
+      });
+    });
+  }
+
   computeStakedPSPBalance(_account: string, timestamp: number) {
     const account = _account.toLowerCase();
 
     const totalPSPBalance = SPSPAddresses.reduce((acc, poolAddress) => {
       const sPSPAmount = reduceTimeSeries(
         timestamp,
-        this.initState.balances[poolAddress][account],
-        this.differentialStates.balances[poolAddress][account],
+        this.initState.sPSPBalanceByAccount[poolAddress][account],
+        this.differentialStates.sPSPBalanceByAccount[poolAddress][account],
       );
       const pspsLocked = reduceTimeSeries(
         timestamp,

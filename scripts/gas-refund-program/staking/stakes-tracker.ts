@@ -69,6 +69,7 @@ export default class StakesTracker {
   computeStakedPSPBalance(_account: string, timestamp: number, epoch: number) {
     const account = _account.toLowerCase();
 
+    // @TODO handle  hourly stakes legacy for backward compat before epoch 12
     const pspStakedInSPSP =
       SPSPStakesTracker.getInstance().computeStakedPSPBalance(
         account,
@@ -79,7 +80,6 @@ export default class StakesTracker {
       return pspStakedInSPSP;
     }
 
-    // @TODO handle  hourly stakes legacy for backward compat before epoch 12
     const pspStakedInSM =
       SafetyModuleStakesTracker.getInstance().computeStakedPSPBalance(
         account,
