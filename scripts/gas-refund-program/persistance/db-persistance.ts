@@ -12,8 +12,6 @@ import { sliceCalls } from '../utils';
 import { Sequelize } from 'sequelize';
 import BigNumber from 'bignumber.js';
 
-
-// todo: obsolete now? think I removed it
 export const fetchEpochAddressesProcessedCount = async ({chainId, epoch}: {
   chainId: number;
   epoch: number;

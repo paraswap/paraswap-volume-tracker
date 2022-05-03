@@ -3,7 +3,8 @@ import { BigNumber } from 'bignumber.js';
 import {
   fetchVeryLastTimestampProcessed,
   writePendingEpochData,
-  fetchTransactionOccurences
+  fetchTransactionOccurences,
+  fetchEpochAddressesProcessedCount
 } from '../persistance/db-persistance';
 import { getSuccessfulSwaps } from './swaps-subgraph';
 import {
@@ -108,29 +109,11 @@ export async function computeSuccessfulSwapsTxFeesRefund({
       `fetched ${swaps.length} swaps between ${_startTimestampSlice} and ${_endTimestampSlice}`,
     );
 
-// <<<<<<< HEAD
     logger.info(
       `fetching gas used between ${_startTimestampSlice} and ${_endTimestampSlice}...`,
     );
 
-    // const swapsWithGasUsed = await Promise.all(
-    //   swaps.map(async swap => ({
-    //     ...swap,
-    //     txGasUsed: await getTransactionGasUsed({
-    //       chainId,
-    //       txHash: swap.txHash,
-    //     }),
-    //   })),
-    // );
-
-    // logger.info(
-    //   `fetched gas used between ${_startTimestampSlice} and ${_endTimestampSlice}`,
-    // );
-
     const pendingGasRefundTransactionData: GasRefundTransactionData[] = [];
-// =======
-//     const updatedPendingGasRefundDataByAddress: TxFeesByAddress = {};
-// >>>>>>> master
 
     await Promise.all(
       swaps.map(async swap => {
@@ -194,18 +177,6 @@ export async function computeSuccessfulSwapsTxFeesRefund({
           return;
         }
 
-// <<<<<<< HEAD
-//       const currGasUsedUSD = currGasUsedChainCur
-//         .multipliedBy(currencyRate.chainPrice)
-//         .dividedBy(10 ** 18); // chaincurrency always encoded in 18decimals
-
-//       const currGasFeePSP = currGasUsedChainCur.dividedBy(
-//         currencyRate.pspToChainCurRate,
-//       );
-
-//       const totalStakeAmountPSP = swapperStake.toFixed(0); // @todo irrelevant?
-//       const refundPercent = getRefundPercent(totalStakeAmountPSP);
-// =======
         const currencyRate = resolvePrice(+swap.timestamp);
 
         assert(
@@ -213,36 +184,19 @@ export async function computeSuccessfulSwapsTxFeesRefund({
           `could not retrieve psp/chaincurrency same day rate for swap at ${swap.timestamp}`,
         );
 
-        // const swapperAcc = accPendingGasRefundByAddress[address];
-
         const currGasUsed = new BigNumber(txGasUsed);
-        // const accumulatedGasUsed = currGasUsed.plus(
-        //   swapperAcc?.accumulatedGasUsed || 0,
-        // );
 
         const currGasUsedChainCur = currGasUsed.multipliedBy(
           swap.txGasPrice.toString(),
         ); // in wei
-// >>>>>>> master
-
-        // const accumulatedGasUsedChainCurrency = currGasUsedChainCur.plus(
-        //   swapperAcc?.accumulatedGasUsedChainCurrency || 0,
-        // );
 
         const currGasUsedUSD = currGasUsedChainCur
           .multipliedBy(currencyRate.chainPrice)
           .dividedBy(10 ** 18); // chaincurrency always encoded in 18decimals
 
-        // const accumulatedGasUsedUSD = currGasUsedUSD.plus(
-        //   swapperAcc?.accumulatedGasUsedUSD || 0,
-        // );
         const currGasFeePSP = currGasUsedChainCur.dividedBy(
           currencyRate.pspToChainCurRate,
         );
-
-        // const accumulatedGasUsedPSP = currGasFeePSP.plus(
-        //   swapperAcc?.accumulatedGasUsedPSP || 0,
-        // );
 
         const totalStakeAmountPSP = swapperStake.toFixed(0); // @todo irrelevant?
         const refundPercent = getRefundPercent(totalStakeAmountPSP);
@@ -284,67 +238,30 @@ export async function computeSuccessfulSwapsTxFeesRefund({
 
         GRPSystemGuardian.increaseTotalPSPRefunded(currRefundedAmountPSP);
 
-// <<<<<<< HEAD
-      // increment occurences count (to guard against edge edge case with multiple swaps per tx)
-      pastTXs[swap.txHash] = pastTXs[swap.txHash] ? pastTXs[swap.txHash] + 1 : 1
-      const occurence = pastTXs[swap.txHash]
 
-      const pendingGasRefundDatum: GasRefundTransactionData = {
-        epoch,
-        address,
-        chainId,
-        hash: swap.txHash,
-        block: swap.blockNumber,
-        timestamp: +swap.timestamp,
-        gasUsed: txGasUsed.toFixed(0),
-        gasUsedChainCurrency: currGasUsedChainCur.toFixed(0),
-        gasUsedPSP: currGasFeePSP.toFixed(0),
-        gasUsedUSD: currGasUsedUSD.toFixed(0),
-        totalStakeAmountPSP,
-        refundedAmountPSP: currRefundedAmountPSP.toFixed(0),
-        refundedAmountUSD: currRefundedAmountUSD.toFixed(0),
-        occurence
-      };
+        pastTXs[swap.txHash] = pastTXs[swap.txHash] ? pastTXs[swap.txHash] + 1 : 1
+        const occurence = pastTXs[swap.txHash]
 
-      pendingGasRefundTransactionData.push(pendingGasRefundDatum);
-    }));
-// =======
-//         const accRefundedAmountPSP = currRefundedAmountPSP.plus(
-//           swapperAcc?.refundedAmountPSP || 0,
-//         );
+        const pendingGasRefundDatum: GasRefundTransactionData = {
+          epoch,
+          address,
+          chainId,
+          hash: swap.txHash,
+          block: swap.blockNumber,
+          timestamp: +swap.timestamp,
+          gasUsed: txGasUsed.toFixed(0),
+          gasUsedChainCurrency: currGasUsedChainCur.toFixed(0),
+          gasUsedPSP: currGasFeePSP.toFixed(0),
+          gasUsedUSD: currGasUsedUSD.toFixed(0),
+          totalStakeAmountPSP,
+          refundedAmountPSP: currRefundedAmountPSP.toFixed(0),
+          refundedAmountUSD: currRefundedAmountUSD.toFixed(0),
+          occurence
+        };
 
-//         const refundedAmountUSD = currRefundedAmountUSD.plus(
-//           swapperAcc?.refundedAmountUSD || 0,
-//         );
-
-//         const pendingGasRefundDatum: PendingEpochGasRefundData = {
-//           epoch,
-//           address,
-//           chainId,
-//           accumulatedGasUsedPSP: accumulatedGasUsedPSP.toFixed(0),
-//           accumulatedGasUsed: accumulatedGasUsed.toFixed(0),
-//           accumulatedGasUsedUSD: accumulatedGasUsedUSD.toFixed(0),
-//           accumulatedGasUsedChainCurrency:
-//             accumulatedGasUsedChainCurrency.toFixed(0),
-//           firstBlock: swapperAcc?.lastBlock || swap.blockNumber,
-//           lastBlock: swap.blockNumber,
-//           totalStakeAmountPSP,
-//           refundedAmountPSP: accRefundedAmountPSP.toFixed(0),
-//           refundedAmountUSD: refundedAmountUSD.toFixed(),
-//           firstTx: swapperAcc?.firstTx || swap.txHash,
-//           lastTx: swap.txHash,
-//           firstTimestamp: swapperAcc?.firstTimestamp || +swap.timestamp,
-//           lastTimestamp: +swap.timestamp,
-//           numTx: (swapperAcc?.numTx || 0) + 1,
-//           isCompleted: false,
-//         };
-
-//         accPendingGasRefundByAddress[address] = pendingGasRefundDatum;
-//         updatedPendingGasRefundDataByAddress[address] = pendingGasRefundDatum;
-//       }),
-//     );
-// >>>>>>> master
-
+        pendingGasRefundTransactionData.push(pendingGasRefundDatum);
+      })
+    );
 
     if (pendingGasRefundTransactionData.length > 0) {
       logger.info(
@@ -354,10 +271,9 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     }
   }
 
-  // removed this as a mindless optimisation, could stay in ultimately
-  // const totalAddressesAlreadyProcessedThisEpoch = await fetchEpochAddressesProcessedCount({ chainId, epoch })
+  const totalAddressesAlreadyProcessedThisEpoch = await fetchEpochAddressesProcessedCount({ chainId, epoch })
 
-  // logger.info(
-  //   `On chain ${chainId}, a gas refund has been computed for ${totalAddressesAlreadyProcessedThisEpoch} addresses.`,
-  // );
+  logger.info(
+    `On chain ${chainId}, a gas refund has been computed for ${totalAddressesAlreadyProcessedThisEpoch} addresses.`,
+  );
 }
