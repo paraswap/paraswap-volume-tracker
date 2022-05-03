@@ -18,7 +18,7 @@ import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
 import { acquireLock, releaseLock } from '../../src/lib/lock-utils';
 import Database from '../../src/database';
 import GRPSystemGuardian from './system-guardian';
-import SafetyModuleStakesTracker from './staking/safety-module-stakes-tracker';
+import StakesTracker from './staking/stakes-tracker';
 
 const logger = global.LOGGER('GRP');
 
@@ -33,7 +33,7 @@ async function startComputingGasRefundAllChains() {
     await GRPSystemGuardian.loadStateFromDB();
     GRPSystemGuardian.assertMaxPSPGlobalBudgetNotReached();
 
-    await SafetyModuleStakesTracker.getInstance().loadStakes();
+    await StakesTracker.getInstance().loadHistoricalStakes();
 
     return Promise.all(
       GRP_SUPPORTED_CHAINS.map(async chainId => {

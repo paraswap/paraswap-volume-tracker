@@ -8,21 +8,19 @@ import {
 } from '../persistance/db-persistance';
 import { getSuccessfulSwaps } from './swaps-subgraph';
 import {
-  GasRefundSafetyModuleStartEpoch,
   GasRefundTxOriginCheckStartEpoch,
   getRefundPercent,
+  GRP_MIN_STAKE,
   PendingEpochGasRefundData,
 } from '../../../src/lib/gas-refund';
 import { getTransactionGasUsed } from '../staking/covalent';
-import { getPSPStakesHourlyWithinInterval } from '../staking';
 import * as _ from 'lodash';
-import { ONE_HOUR_SEC, startOfHourSec } from '../utils';
+import { ONE_HOUR_SEC } from '../utils';
 import { PriceResolverFn } from '../token-pricing/psp-chaincurrency-pricing';
 import GRPSystemGuardian, { MAX_USD_ADDRESS_BUDGET } from '../system-guardian';
-import SafetyModuleStakesTracker from '../staking/safety-module-stakes-tracker';
+import StakesTracker from '../staking/stakes-tracker';
 
 // empirically set to maximise on processing time without penalising memory and fetching constraigns
-// @FIXME: fix swaps subgraph pagination to always stay on safest spot
 const SLICE_DURATION = 6 * ONE_HOUR_SEC;
 
 export async function computeSuccessfulSwapsTxFeesRefund({
@@ -77,30 +75,11 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     logger.info(
       `fetching stakers between ${_startTimestampSlice} and ${_endTimestampSlice}...`,
     );
-    // over fetch stakes to allow for stakes resolving max(stakesStartOfHour, stakesEndOfHour)
-    // @TEMP: should not overflow current date time -> will transition to fetching single stake per timestamp
-    const stakesByHour = await getPSPStakesHourlyWithinInterval(
-      _startTimestampSlice,
-      Math.min(endTimestamp, _endTimestampSlice + ONE_HOUR_SEC),
-    );
-
-    assert(stakesByHour, 'stakesByHour should be defined');
-
-    const stakersAddress = _.uniq(
-      Object.values(stakesByHour).flatMap(stakesByAddress =>
-        Object.keys(stakesByAddress || {}),
-      ),
-    );
-
-    logger.info(
-      `fetched ${stakersAddress.length} stakers in total between ${_startTimestampSlice} and ${_endTimestampSlice}`,
-    );
 
     logger.info(
       `fetching swaps between ${_startTimestampSlice} and ${_endTimestampSlice}...`,
     );
 
-    // alternatively can slice requests over different sub intervals matching different stakers subset but we'd be refetching same data
     const swaps = await getSuccessfulSwaps({
       startTimestamp: _startTimestampSlice,
       endTimestamp: _endTimestampSlice,
@@ -124,44 +103,14 @@ export async function computeSuccessfulSwapsTxFeesRefund({
 
         const address = swap.txOrigin;
 
-        const startOfHourUnixTms = startOfHourSec(+swap.timestamp);
-        const startOfNextHourUnixTms = startOfHourSec(
-          +swap.timestamp + ONE_HOUR_SEC,
-        );
+        const swapperStake =
+          StakesTracker.getInstance().computeStakedPSPBalance(
+            address,
+            +swap.timestamp,
+            epoch,
+          );
 
-        const stakesStartOfHour = stakesByHour[startOfHourUnixTms];
-        const stakesStartOfNextHour =
-          stakesByHour[startOfNextHourUnixTms] || {};
-
-        assert(
-          stakesStartOfHour,
-          'stakes at beginning of hour should be defined',
-        );
-        assert(
-          stakesStartOfNextHour,
-          'stakes at beginning of next hour should be defined',
-        );
-
-        const sPSPStake = BigNumber.max(
-          stakesStartOfHour[address] || 0,
-          stakesStartOfNextHour[address] || 0,
-        );
-
-        let swapperStake: BigNumber;
-
-        if (epoch >= GasRefundSafetyModuleStartEpoch) {
-          const safetyModuleStake =
-            SafetyModuleStakesTracker.getInstance().computeStakedPSPBalance(
-              address,
-              +swap.timestamp,
-            );
-
-          swapperStake = sPSPStake.plus(safetyModuleStake);
-        } else {
-          swapperStake = sPSPStake;
-        }
-
-        if (swapperStake.isZero()) {
+        if (swapperStake.isLessThan(GRP_MIN_STAKE)) {
           return;
         }
 

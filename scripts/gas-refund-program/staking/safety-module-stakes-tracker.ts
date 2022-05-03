@@ -1,22 +1,22 @@
 import BigNumber from 'bignumber.js';
 import { BigNumber as EthersBN, CallOverrides, Contract, Event } from 'ethers';
 import { assert } from 'ts-essentials';
-import { CHAIN_ID_MAINNET, PSP_ADDRESS } from '../../../src/lib/constants';
+import {
+  CHAIN_ID_MAINNET,
+  NULL_ADDRESS,
+  PSP_ADDRESS,
+} from '../../../src/lib/constants';
 import { Provider } from '../../../src/lib/provider';
 import * as ERC20ABI from '../../../src/lib/abi/erc20.abi.json';
 import * as BVaultABI from './balancer-vault-abi.json';
 import { getTokenHolders } from './covalent';
 import { fetchBlockTimestampForEvents, ZERO_BN } from '../utils';
-import { getLatestTransactionTimestamp } from '../persistance/db-persistance';
-import { EpochInfo } from '../../../src/lib/epoch-info';
-import { GasRefundSafetyModuleStartEpoch } from '../../../src/lib/gas-refund';
-import { OFFSET_CALC_TIME } from '../common';
-import { BlockInfo } from '../../../src/lib/block-info';
 import {
   reduceTimeSeries,
   TimeSeries,
   timeseriesComparator,
 } from '../timeseries';
+import AbstractStakeTracker from './abstract-stakes-tracker';
 
 const SafetyModuleAddress = '0xc8dc2ec5f5e02be8b37a8444a1931f02374a17ab';
 const BalancerVaultAddress = '0xba12222222228d8ba445958a75a0704d566bf2c8';
@@ -64,7 +64,6 @@ const bptAsEERC20 = new Contract(
   Provider.getJsonRpcProvider(CHAIN_ID_MAINNET),
 ) as MinERC20;
 
-// event Transfer(address indexed from, address indexed to, uint256 value);
 interface Transfer extends Event {
   event: 'Transfer';
   args: [from: string, to: string, value: EthersBN];
@@ -92,8 +91,6 @@ interface Swap extends Event {
   ];
 }
 
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-
 type InitState = {
   bptPoolPSPBalance: BigNumber;
   bptPoolTotalSupply: BigNumber;
@@ -106,9 +103,7 @@ type DiffState = {
   stkPSPBptUsersBalances: { [address: string]: TimeSeries };
 };
 
-export default class SafetyModuleStakesTracker {
-  startBlock: number;
-  endBlock: number;
+export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
   initState: InitState = {
     stkPSPBptUsersBalances: {},
     bptPoolPSPBalance: ZERO_BN,
@@ -130,39 +125,7 @@ export default class SafetyModuleStakesTracker {
     return this.instance;
   }
 
-  async initProcessingInterval() {
-    const blockInfo = BlockInfo.getInstance(CHAIN_ID_MAINNET);
-    const epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET, true);
-
-    const startTime =
-      (await getLatestTransactionTimestamp()) ||
-      (await epochInfo.getEpochStartCalcTime(GasRefundSafetyModuleStartEpoch));
-
-    const endTime = Math.round(Date.now() / 1000) - OFFSET_CALC_TIME;
-
-    const [startBlock, endBlock] = await Promise.all([
-      blockInfo.getBlockAfterTimeStamp(startTime),
-      blockInfo.getBlockAfterTimeStamp(endTime),
-    ]);
-
-    assert(
-      typeof startBlock === 'number' && startBlock > 0,
-      'startBlock should be a number greater than 0',
-    );
-    assert(
-      typeof endBlock === 'number' && endBlock > 0,
-      'startBlock should be a number greater than 0',
-    );
-
-    this.startBlock = startBlock;
-    this.endBlock = endBlock;
-  }
-
-  async loadStakes(initProcessingInterval = true) {
-    if (initProcessingInterval) {
-      await this.initProcessingInterval();
-    }
-
+  async loadStakes() {
     await Promise.all([this.loadInitialState(), this.loadStateChanges()]);
   }
 
@@ -239,11 +202,11 @@ export default class SafetyModuleStakesTracker {
       const to = e.args[1].toLowerCase();
       const amount = new BigNumber(e.args[2].toString());
 
-      if (from === ZERO_ADDRESS || to === ZERO_ADDRESS) {
-        const isMint = from === ZERO_ADDRESS;
+      if (from === NULL_ADDRESS || to === NULL_ADDRESS) {
+        const isMint = from === NULL_ADDRESS;
 
         assert(
-          isMint || (!isMint && to === ZERO_ADDRESS),
+          isMint || (!isMint && to === NULL_ADDRESS),
           'invalid cond should either mint or burn here',
         );
 
@@ -374,12 +337,12 @@ export default class SafetyModuleStakesTracker {
     const events = (
       await Promise.all([
         bptAsEERC20.queryFilter(
-          bptAsEERC20.filters.Transfer(ZERO_ADDRESS),
+          bptAsEERC20.filters.Transfer(NULL_ADDRESS),
           this.startBlock,
           this.endBlock,
         ),
         bptAsEERC20.queryFilter(
-          bptAsEERC20.filters.Transfer(null, ZERO_ADDRESS),
+          bptAsEERC20.filters.Transfer(null, NULL_ADDRESS),
           this.startBlock,
           this.endBlock,
         ),
@@ -396,11 +359,11 @@ export default class SafetyModuleStakesTracker {
       const [from, to, amount] = e.args;
 
       assert(
-        from === ZERO_ADDRESS || to === ZERO_ADDRESS,
+        from === NULL_ADDRESS || to === NULL_ADDRESS,
         'can only be mint or burn',
       );
 
-      const isMint = from === ZERO_ADDRESS;
+      const isMint = from === NULL_ADDRESS;
 
       return {
         timestamp,

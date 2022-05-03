@@ -101,7 +101,7 @@ async function fetchBlockTimestamp({
 
 export const fetchBlockTimestampCached = pMemoize(fetchBlockTimestamp, {
   cache: new QuickLRU({
-    maxSize: 100,
+    maxSize: 5000,
   }),
 });
 
