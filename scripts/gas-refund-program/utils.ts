@@ -106,14 +106,16 @@ export const fetchBlockTimestampCached = pMemoize(fetchBlockTimestamp, {
 });
 
 export async function fetchBlockTimestampForEvents(events: Event[]) {
+  const blockNumbers = _.uniq(events.map(event => event.blockNumber));
+
   return Object.fromEntries(
     await Promise.all(
-      events.map(
-        async e =>
+      blockNumbers.map(
+        async blockNumber =>
           [
-            e.blockNumber,
+            blockNumber,
             await fetchBlockTimestampCached({
-              blockNumber: e.blockNumber,
+              blockNumber,
               chainId: CHAIN_ID_MAINNET,
             }),
           ] as const,
