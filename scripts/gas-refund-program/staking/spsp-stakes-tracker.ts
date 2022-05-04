@@ -386,6 +386,9 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
         this.initState.sPSPBalanceByAccount[poolAddress]?.[account],
         this.differentialStates.sPSPBalanceByAccount[poolAddress]?.[account],
       );
+
+      if (sPSPAmount.isZero()) return acc;
+
       const pspsLocked = reduceTimeSeries(
         timestamp,
         this.initState.pspsLocked[poolAddress],
@@ -408,9 +411,7 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
         .multipliedBy(pspBalanceAvailable)
         .dividedBy(totalSPSP);
 
-      acc = acc.plus(stakedPSPBalance);
-
-      return acc;
+      return acc.plus(stakedPSPBalance);
     }, ZERO_BN);
 
     return totalPSPBalance;
