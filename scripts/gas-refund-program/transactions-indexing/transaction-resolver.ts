@@ -127,6 +127,7 @@ export const getStakingTXs = async ({
   endTimestamp,
   chainId
 }: GetStakingTXsInput): Promise<GasRefundTransaction[]> => {
+  if (chainId !== 1)  return []
   // foreach staking pool, get txs within period
   const poolAddresses = Object.values(STAKING_POOL_ADDRESSES)
   const getTxsFromAllPools = [...Array(poolAddresses.length).keys()].map((i) => covalentGetTXsForContract({
