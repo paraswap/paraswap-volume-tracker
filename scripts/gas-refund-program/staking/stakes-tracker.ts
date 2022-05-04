@@ -10,7 +10,6 @@ import {
 } from '../../../src/lib/gas-refund';
 import { OFFSET_CALC_TIME } from '../common';
 import { getLatestTransactionTimestamp } from '../persistance/db-persistance';
-import { ONE_HOUR_SEC, startOfHourSec, ZERO_BN } from '../utils';
 import SafetyModuleStakesTracker from './safety-module-stakes-tracker';
 import SPSPStakesTracker from './spsp-stakes-tracker';
 
@@ -69,33 +68,6 @@ export default class StakesTracker {
     ]);
   }
 
-  computeStakedPSPBalanceLegacy(
-    account: string,
-    timestamp: number,
-    epoch: number,
-    endTimestamp: number,
-  ) {
-    const startOfHourTimestampUnix = startOfHourSec(timestamp);
-    const endOfHourTimestampUnix = startOfHourSec(timestamp + ONE_HOUR_SEC);
-
-    const endOfHourLaterThanEpoch = endOfHourTimestampUnix > endTimestamp;
-
-    const stakedPSPStartOfHour =
-      SPSPStakesTracker.getInstance().computeStakedPSPBalance(
-        account,
-        startOfHourTimestampUnix,
-      );
-
-    const stakedPSPEndOfHour = endOfHourLaterThanEpoch
-      ? ZERO_BN
-      : SPSPStakesTracker.getInstance().computeStakedPSPBalance(
-          account,
-          endOfHourTimestampUnix,
-        );
-
-    return BigNumber.max(stakedPSPStartOfHour, stakedPSPEndOfHour);
-  }
-
   computeStakedPSPBalance(
     _account: string,
     timestamp: number,
@@ -104,18 +76,16 @@ export default class StakesTracker {
   ) {
     const account = _account.toLowerCase();
 
+    const spspStakesTracker = SPSPStakesTracker.getInstance();
+
     const pspStakedInSPSP =
       epoch < GasRefundSPSPStakesAlgoFlipEpoch
-        ? this.computeStakedPSPBalanceLegacy(
+        ? spspStakesTracker.computeStakedPSPBalanceLegacy(
             account,
             timestamp,
-            epoch,
             eofEpochTimestampForBackwardCompat,
           )
-        : SPSPStakesTracker.getInstance().computeStakedPSPBalance(
-            account,
-            timestamp,
-          );
+        : spspStakesTracker.computeStakedPSPBalance(account, timestamp);
 
     if (epoch < GasRefundSafetyModuleStartEpoch) {
       return pspStakedInSPSP;

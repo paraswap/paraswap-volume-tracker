@@ -11,7 +11,12 @@ import * as ERC20ABI from '../../../src/lib/abi/erc20.abi.json';
 import * as SPSPABI from '../../../src/lib/abi/spsp.abi.json';
 import * as MultiCallerABI from '../../../src/lib/abi/multicaller.abi.json';
 import { getTokenHolders } from './covalent';
-import { fetchBlockTimestampForEvents, ZERO_BN } from '../utils';
+import {
+  fetchBlockTimestampForEvents,
+  ONE_HOUR_SEC,
+  startOfHourSec,
+  ZERO_BN,
+} from '../utils';
 import { reduceTimeSeries, TimeSeries } from '../timeseries';
 import { PoolConfigsMap } from '../../../src/lib/pool-info';
 import AbstractStakeTracker from './abstract-stakes-tracker';
@@ -73,6 +78,8 @@ type DiffState = {
     [poolAddress: string]: { [accountAddress: string]: TimeSeries };
   };
 };
+
+const ONE_UNIT = (10 ** 18).toString();
 
 export default class SPSPStakesTracker extends AbstractStakeTracker {
   initState: InitState = {
@@ -290,7 +297,7 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
 
     // burn
     if (to === NULL_ADDRESS) {
-      this.differentialStates.sPSPBalanceByAccount[poolAddress][to].push({
+      this.differentialStates.sPSPBalanceByAccount[poolAddress][from].push({
         timestamp,
         value: value.negated(),
       });
@@ -377,9 +384,7 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
     });
   }
 
-  computeStakedPSPBalance(_account: string, timestamp: number) {
-    const account = _account.toLowerCase();
-
+  computeStakedPSPBalance(account: string, timestamp: number) {
     const totalPSPBalance = SPSPAddresses.reduce((acc, poolAddress) => {
       const sPSPAmount = reduceTimeSeries(
         timestamp,
@@ -410,6 +415,77 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
       const stakedPSPBalance = sPSPAmount
         .multipliedBy(pspBalanceAvailable)
         .dividedBy(totalSPSP);
+
+      return acc.plus(stakedPSPBalance);
+    }, ZERO_BN);
+
+    return totalPSPBalance;
+  }
+
+  // @LEGACY PURELY FOR BACKWARD COMPATIBILITY
+  computeStakedPSPBalanceLegacy(
+    _account: string,
+    timestamp: number,
+    endTimestamp: number,
+  ) {
+    const account = _account.toLowerCase();
+
+    const startOfHourTimestampUnix = startOfHourSec(timestamp);
+    const endOfHourTimestampUnix = startOfHourSec(timestamp + ONE_HOUR_SEC);
+
+    const endOfHourLaterThanEpoch = endOfHourTimestampUnix > endTimestamp;
+
+    const stakedPSPStartOfHour = this.computeStakedPSPBalanceWithPoorPrecisionLegacy(
+      account,
+      startOfHourTimestampUnix,
+    );
+
+    const stakedPSPEndOfHour = endOfHourLaterThanEpoch
+      ? ZERO_BN
+      : this.computeStakedPSPBalanceWithPoorPrecisionLegacy(account, endOfHourTimestampUnix);
+
+    return BigNumber.max(stakedPSPStartOfHour, stakedPSPEndOfHour);
+  }
+
+  // @LEGACY PURELY FOR BACKWARD COMPATIBILITY 
+  //compute PSPForSPSP for ONE_UINT then multiply with sPSP like previous way to guarantee same precision https://github.com/paraswap/paraswap-volume-tracker/blob/0584cc28d8da1126c818ba7ae89ac8d56cf52984/scripts/gas-refund-program/staking/spsp-stakes.ts#L91
+  computeStakedPSPBalanceWithPoorPrecisionLegacy(account: string, timestamp: number) {
+    const totalPSPBalance = SPSPAddresses.reduce((acc, poolAddress) => {
+      const sPSPAmount = reduceTimeSeries(
+        timestamp,
+        this.initState.sPSPBalanceByAccount[poolAddress]?.[account],
+        this.differentialStates.sPSPBalanceByAccount[poolAddress]?.[account],
+      );
+
+      if (sPSPAmount.isZero()) return acc;
+
+      const pspsLocked = reduceTimeSeries(
+        timestamp,
+        this.initState.pspsLocked[poolAddress],
+        this.differentialStates.pspsLocked[poolAddress],
+      );
+      const totalSPSP = reduceTimeSeries(
+        timestamp,
+        this.initState.totalSupply[poolAddress],
+        this.differentialStates.totalSupply[poolAddress],
+      );
+      const pspBalance = reduceTimeSeries(
+        timestamp,
+        this.initState.pspBalance[poolAddress],
+        this.differentialStates.pspBalance[poolAddress],
+      );
+
+      const pspBalanceAvailable = pspBalance.minus(pspsLocked);
+
+      const pspForOneSPS = new BigNumber(ONE_UNIT)
+        .multipliedBy(pspBalanceAvailable)
+        .dividedBy(totalSPSP);
+
+      const pspRate = new BigNumber(pspForOneSPS)
+        .dividedBy(ONE_UNIT)
+        .toNumber();
+
+      const stakedPSPBalance = sPSPAmount.multipliedBy(pspRate);
 
       return acc.plus(stakedPSPBalance);
     }, ZERO_BN);
