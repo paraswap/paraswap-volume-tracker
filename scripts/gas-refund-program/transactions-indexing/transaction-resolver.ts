@@ -16,19 +16,31 @@ import { getTransactionGasUsed } from '../staking/covalent';
 import { getSuccessfulSwaps } from './swaps-subgraph'
 import { GasRefundTransaction, CovalentTransaction } from '../types'
 import { GasRefundTxOriginCheckStartEpoch, GasRefundSwapSourceCovalentStartEpoch, AUGUSTUS_ADDRESS } from '../../../src/lib/gas-refund'
-// todo:
-/*
-const getTXs = async ({chainId, timeStart, timeEnd, txType}: { chainId: number, timeStart: number, timeEnd: number, txType?: TransactionType }): Promise<GasRefundTransaction[]> => {
-  // todo: return all in chronological order
-  // todo: build promise array to fetch swaps /  stakes as `txType` param dictates
 
-  // todo: sort to be chronological
-
-  return []
+type GetAllTXsInput = {
+  startTimestamp: number;
+  endTimestamp: number;
+  chainId: number;
+  epoch: number;
 }
-*/
 
-// todo: get swaps
+export const getAllTXs = async ({epoch, chainId, startTimestamp, endTimestamp}: GetAllTXsInput): Promise<GasRefundTransaction[]> => {
+
+  // fetch swaps and stakes
+  const allTXs = await Promise.all([
+    getSwapTXs({epoch, chainId, startTimestamp, endTimestamp}),
+    getStakingTXs({chainId, startTimestamp, endTimestamp})
+  ])
+
+  const allTXsFlattened = [].concat.apply([], allTXs) as GasRefundTransaction[]
+
+  // sort to be chronological
+  const allTXsChronological = allTXsFlattened.sort((a, b) => +(a.timestamp) - +(b.timestamp));
+
+  return allTXsChronological
+}
+
+
 /**
  * this will take an epoch, a chain, and two timespan values (min/max).
  * it will use subgraph for now (and augment gas data via a covalent call),
@@ -41,8 +53,6 @@ type GetSwapTXsInput = {
   epoch: number;
 }
 export const getSwapTXs = async ({ epoch, chainId, startTimestamp, endTimestamp }: GetSwapTXsInput): Promise<GasRefundTransaction[]> => {
-  // todo: call the graph as before - and augment - unless after epoch whatever then get from covalent
-  // todo: if getting swaps from the graph, filter out those where initiator !== txOrigin
   const swaps: GasRefundTransaction[] = await (async () => {
     // todo: epoch check when we change over - remove `false &&`
     if (false && epoch >= GasRefundSwapSourceCovalentStartEpoch) {

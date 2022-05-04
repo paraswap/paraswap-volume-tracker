@@ -5,7 +5,7 @@ import {
   writePendingEpochData,
   fetchTransactionOccurences
 } from '../persistance/db-persistance';
-import { getSwapTXs } from './transaction-resolver'
+import { getAllTXs } from './transaction-resolver'
 import {
   GasRefundSafetyModuleStartEpoch,
   getRefundPercent,
@@ -75,7 +75,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     );
 
     // alternatively can slice requests over different sub intervals matching different stakers subset but we'd be refetching same data
-    const swaps = await getSwapTXs({
+    const txs = await getAllTXs({
       epoch,
       startTimestamp: _startTimestampSlice,
       endTimestamp: _endTimestampSlice,
@@ -83,13 +83,13 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     });
 
     logger.info(
-      `fetched ${swaps.length} swaps between ${_startTimestampSlice} and ${_endTimestampSlice}`,
+      `fetched ${txs.length} txs between ${_startTimestampSlice} and ${_endTimestampSlice}`,
     );
 
     const pendingGasRefundTransactionData: GasRefundTransactionData[] = [];
 
     await Promise.all(
-      swaps.map(async swap => {
+      txs.map(async swap => {
         const address = swap.txOrigin;
 
         const swapperStake =
