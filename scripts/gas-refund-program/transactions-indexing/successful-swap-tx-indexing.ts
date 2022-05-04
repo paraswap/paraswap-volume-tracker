@@ -5,14 +5,14 @@ import {
   writePendingEpochData,
   fetchTransactionOccurences
 } from '../persistance/db-persistance';
-import { getSuccessfulSwaps } from './swaps-subgraph';
+import { getSwapTXs } from './transaction-resolver'
 import {
-  GasRefundTxOriginCheckStartEpoch,
+  GasRefundSafetyModuleStartEpoch,
   getRefundPercent,
   GRP_MIN_STAKE,
   GasRefundTransactionData
 } from '../../../src/lib/gas-refund';
-import { getTransactionGasUsed } from '../staking/covalent';
+import { getPSPStakesHourlyWithinInterval } from '../staking';
 import * as _ from 'lodash';
 import { ONE_HOUR_SEC } from '../utils';
 import { PriceResolverFn } from '../token-pricing/psp-chaincurrency-pricing';
@@ -74,7 +74,9 @@ export async function computeSuccessfulSwapsTxFeesRefund({
       `fetching swaps between ${_startTimestampSlice} and ${_endTimestampSlice}...`,
     );
 
-    const swaps = await getSuccessfulSwaps({
+    // alternatively can slice requests over different sub intervals matching different stakers subset but we'd be refetching same data
+    const swaps = await getSwapTXs({
+      epoch,
       startTimestamp: _startTimestampSlice,
       endTimestamp: _endTimestampSlice,
       chainId,
@@ -88,13 +90,6 @@ export async function computeSuccessfulSwapsTxFeesRefund({
 
     await Promise.all(
       swaps.map(async swap => {
-        if (
-          epoch >= GasRefundTxOriginCheckStartEpoch &&
-          swap.initiator !== swap.txOrigin
-        ) {
-          return;
-        }
-
         const address = swap.txOrigin;
 
         const swapperStake =
@@ -109,10 +104,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
           return;
         }
 
-        const txGasUsed = await getTransactionGasUsed({
-          chainId,
-          txHash: swap.txHash,
-        });
+        const { txGasUsed } = swap
 
         if (GRPSystemGuardian.isMaxPSPGlobalBudgetSpent()) {
           logger.warn(

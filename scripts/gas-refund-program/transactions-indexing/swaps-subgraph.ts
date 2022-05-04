@@ -5,6 +5,7 @@ import {
   CHAIN_ID_MAINNET,
   CHAIN_ID_POLYGON,
 } from '../../../src/lib/constants';
+import { SubGraphSwap } from '../types'
 import { thegraphClient } from '../data-providers-clients';
 import { queryPaginatedData, QueryPaginatedDataParams } from '../utils';
 
@@ -54,7 +55,7 @@ export async function getSuccessfulSwaps({
   startTimestamp,
   endTimestamp,
   chainId,
-}: GetSuccessSwapsInput): Promise<SwapData[]> {
+}: GetSuccessSwapsInput): Promise<SubGraphSwap[]> {
   const subgraphURL = SubgraphURLs[chainId];
 
   const fetchSwaps = async ({ skip, pageSize }: QueryPaginatedDataParams) => {

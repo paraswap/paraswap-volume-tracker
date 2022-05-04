@@ -12,17 +12,21 @@
  */
 import { STAKING_POOL_ADDRESSES } from '../../../src/lib/gas-refund'
 import { covalentGetTXsForContract } from './txs-covalent'
+import { getTransactionGasUsed } from '../staking/covalent';
+import { getSuccessfulSwaps } from './swaps-subgraph'
 import { GasRefundTransaction, CovalentTransaction } from '../types'
-
+import { GasRefundTxOriginCheckStartEpoch, GasRefundSwapSourceCovalentStartEpoch, AUGUSTUS_ADDRESS } from '../../../src/lib/gas-refund'
 // todo:
-// const getTXs = async ({chainId, timeStart, timeEnd, txType}: { chainId: number, timeStart: number, timeEnd: number, txType?: TransactionType }): Promise<GasRefundTransaction[]> => {
-//   // todo: return all in chronological order
-//   // todo: build promise array to fetch swaps /  stakes as `txType` param dictates
+/*
+const getTXs = async ({chainId, timeStart, timeEnd, txType}: { chainId: number, timeStart: number, timeEnd: number, txType?: TransactionType }): Promise<GasRefundTransaction[]> => {
+  // todo: return all in chronological order
+  // todo: build promise array to fetch swaps /  stakes as `txType` param dictates
 
-//   // todo: sort to be chronological
+  // todo: sort to be chronological
 
-//   return []
-// }
+  return []
+}
+*/
 
 // todo: get swaps
 /**
@@ -30,10 +34,72 @@ import { GasRefundTransaction, CovalentTransaction } from '../types'
  * it will use subgraph for now (and augment gas data via a covalent call),
  * but later resolve to covalent after a certain epoch.
 */
-const getSwapTXs = async (): Promise<GasRefundTransaction[]> => {
+type GetSwapTXsInput = {
+  startTimestamp: number;
+  endTimestamp: number;
+  chainId: number;
+  epoch: number;
+}
+export const getSwapTXs = async ({ epoch, chainId, startTimestamp, endTimestamp }: GetSwapTXsInput): Promise<GasRefundTransaction[]> => {
   // todo: call the graph as before - and augment - unless after epoch whatever then get from covalent
   // todo: if getting swaps from the graph, filter out those where initiator !== txOrigin
-  return []
+  const swaps: GasRefundTransaction[] = await (async () => {
+    // todo: epoch check when we change over - remove `false &&`
+    if (false && epoch >= GasRefundSwapSourceCovalentStartEpoch) {
+      // get from covalent
+      const swapsFromCovalent = await covalentGetTXsForContract({
+        startTimestamp,
+        endTimestamp,
+        chainId,
+        contract: AUGUSTUS_ADDRESS
+      })
+      const normalisedSwapsFromCovalent = swapsFromCovalent.map(swap => ({
+        ...swap,
+        blockNumber: swap.blockNumber.toString()
+      }))
+      return normalisedSwapsFromCovalent
+    } else {
+      // get swaps from the graph
+      const swaps = await getSuccessfulSwaps({ startTimestamp, endTimestamp, chainId })
+
+      // optionally filter out smart contract wallets
+      const filteredSwaps = swaps.filter(swap =>
+        epoch < GasRefundTxOriginCheckStartEpoch ||
+        epoch >= GasRefundTxOriginCheckStartEpoch &&
+        swap.initiator !== swap.txOrigin
+      )
+
+      // augment with gas used
+      const swapsWithGasUsedNormalised: GasRefundTransaction[] = await Promise.all(
+        filteredSwaps.map(async ({
+          txHash,
+          txOrigin,
+          txGasPrice,
+          timestamp,
+          blockNumber
+        }) => {
+          const txGasUsed = await getTransactionGasUsed({
+            chainId,
+            txHash,
+          });
+
+          return {
+            txHash,
+            txOrigin,
+            txGasPrice,
+            timestamp,
+            blockNumber,
+            txGasUsed: txGasUsed.toString()
+          }
+        })
+      )
+
+      return swapsWithGasUsedNormalised
+    }
+  })()
+
+
+  return swaps
 }
 
 /**
@@ -66,9 +132,12 @@ export const getStakingTXs = async ({
   // sort to be chronological
   const chronologicalTxs = txsFromAllPools.sort((a, b) => +(a.timestamp) - +(b.timestamp));
 
-  const returnItems = (chronologicalTxs as GasRefundTransaction[])
+  const normalisedTXs: GasRefundTransaction[] = chronologicalTxs.map(tx => ({
+    ...tx,
+    blockNumber: tx.blockNumber.toString()
+  }))
 
-  return returnItems
+  return normalisedTXs
 }
 
 // todo: get safety module txs

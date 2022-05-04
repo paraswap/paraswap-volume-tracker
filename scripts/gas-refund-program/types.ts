@@ -79,11 +79,13 @@ export interface SubGraphSwap {
   txOrigin: string;
   initiator: string;
   txGasPrice: string;
-  blockNumber: number;
+  blockNumber: string;
   timestamp: string;
 }
 
-export type GasRefundTransaction = CovalentTransaction
+export interface GasRefundTransaction extends Omit<CovalentTransaction, 'blockNumber'> {
+  blockNumber: string;
+}
 
 // todo:
 // type TransactionType = "swap" | "staking"
