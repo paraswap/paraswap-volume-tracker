@@ -22,6 +22,8 @@ import { PoolConfigsMap } from '../../../src/lib/pool-info';
 import AbstractStakeTracker from './abstract-stakes-tracker';
 import { assert } from 'ts-essentials';
 
+const logger = global.LOGGER('SPSPStakesTracker');
+
 const SPSPAddresses = PoolConfigsMap[CHAIN_ID_MAINNET].filter(
   p => p.isActive,
 ).map(p => p.address.toLowerCase());
@@ -110,21 +112,27 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
   }
 
   async loadInitialState() {
+    logger.info('Loading initial state');
     const initBlock = this.startBlock - 1;
     await Promise.all([
       this.fetchSPSPsState(initBlock),
       this.fetchSPSPsStakers(initBlock),
     ]);
+    logger.info('Completed loading initial state');
   }
 
   async loadStateChanges() {
-    return Promise.all([
+    logger.info('Loading state changes');
+    await Promise.all([
       this.resolveInternalPoolChanges(),
       this.resolvePSPBalanceChanges(),
     ]);
+    logger.info('Completed loading state changes');
   }
 
   async fetchSPSPsState(blockNumber: number) {
+    logger.info(`Loading initial SPSP global states at block ${blockNumber}`);
+
     const chainId = CHAIN_ID_MAINNET;
     const provider = Provider.getJsonRpcProvider(chainId);
     const multicallContract = new Contract(
@@ -173,11 +181,18 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
       this.initState.pspBalance[pool] = new BigNumber(pspBalance);
       this.initState.pspsLocked[pool] = new BigNumber(pspsLocked);
     }, {});
+
+    logger.info(
+      `Completed loading initial SPSP global states at block ${blockNumber}`,
+    );
   }
 
   async fetchSPSPsStakers(blockNumber: number) {
     const chainId = CHAIN_ID_MAINNET;
 
+    logger.info(
+      `fetchSPSPsStakers: Loading initial sPSP balances at block ${blockNumber}`,
+    );
     this.initState.sPSPBalanceByAccount = Object.fromEntries(
       await Promise.all(
         SPSPAddresses.map(async poolAddress => {
@@ -205,9 +220,15 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
         }),
       ),
     );
+    logger.info(
+      `fetchSPSPsStakers: Completed loading initial sPSP balances at block ${blockNumber}`,
+    );
   }
 
   async resolveInternalPoolChanges() {
+    logger.info(
+      `resolveInternalPoolChanges: Loading multiple internal pool changes between ${this.startBlock} and ${this.endBlock}`,
+    );
     const allEventsAllPools = (
       await Promise.all(
         SPSPAddresses.map(async poolAddress => {
@@ -221,8 +242,16 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
       )
     ).flat();
 
+    logger.info(
+      `resolveInternalPoolChanges: completed loading of ${allEventsAllPools.length} events across all pools between ${this.startBlock} and ${this.endBlock}`,
+    );
+
+    logger.info(`resolveInternalPoolChanges: loading blockNumToTimestamp`);
     const blockNumToTimestamp = await fetchBlockTimestampForEvents(
       allEventsAllPools,
+    );
+    logger.info(
+      `resolveInternalPoolChanges: completed loading blockNumToTimestamp`,
     );
 
     allEventsAllPools.forEach(e => {
@@ -257,6 +286,10 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
           break;
       }
     });
+
+    logger.info(
+      `resolveInternalPoolChanges: Finished treating all events of all pools between ${this.startBlock} and ${this.endBlock}`,
+    );
   }
 
   handleSPSPBalance(e: Transfer, timestamp: number) {
@@ -340,6 +373,10 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
   }
 
   async resolvePSPBalanceChanges() {
+    logger.info(
+      `resolvePSPBalanceChanges: loading psp balance related events for all pools`,
+    );
+
     const events = (
       await Promise.all([
         PSPContract.queryFilter(
@@ -355,7 +392,15 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
       ])
     ).flat() as Transfer[];
 
+    logger.info(
+      `resolvePSPBalanceChanges: completed loading ${events.length} psp balance related events for all pools`,
+    );
+
+    logger.info(`resolvePSPBalanceChanges: loading blockNumToTimestamp`);
     const blockNumToTimestamp = await fetchBlockTimestampForEvents(events);
+    logger.info(
+      `resolvePSPBalanceChanges: completed loading blockNumToTimestamp`,
+    );
 
     events.forEach(e => {
       const timestamp = blockNumToTimestamp[e.blockNumber];
@@ -382,6 +427,10 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
         value: transferFromSPSP ? value.negated() : value,
       });
     });
+
+    logger.info(
+      `resolvePSPBalanceChanges: completed handling psp balance related events for all pools`,
+    );
   }
 
   computeStakedPSPBalance(account: string, timestamp: number) {
@@ -435,21 +484,28 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
 
     const endOfHourLaterThanEpoch = endOfHourTimestampUnix > endTimestamp;
 
-    const stakedPSPStartOfHour = this.computeStakedPSPBalanceWithPoorPrecisionLegacy(
-      account,
-      startOfHourTimestampUnix,
-    );
+    const stakedPSPStartOfHour =
+      this.computeStakedPSPBalanceWithPoorPrecisionLegacy(
+        account,
+        startOfHourTimestampUnix,
+      );
 
     const stakedPSPEndOfHour = endOfHourLaterThanEpoch
       ? ZERO_BN
-      : this.computeStakedPSPBalanceWithPoorPrecisionLegacy(account, endOfHourTimestampUnix);
+      : this.computeStakedPSPBalanceWithPoorPrecisionLegacy(
+          account,
+          endOfHourTimestampUnix,
+        );
 
     return BigNumber.max(stakedPSPStartOfHour, stakedPSPEndOfHour);
   }
 
-  // @LEGACY PURELY FOR BACKWARD COMPATIBILITY 
+  // @LEGACY PURELY FOR BACKWARD COMPATIBILITY
   //compute PSPForSPSP for ONE_UINT then multiply with sPSP like previous way to guarantee same precision https://github.com/paraswap/paraswap-volume-tracker/blob/0584cc28d8da1126c818ba7ae89ac8d56cf52984/scripts/gas-refund-program/staking/spsp-stakes.ts#L91
-  computeStakedPSPBalanceWithPoorPrecisionLegacy(account: string, timestamp: number) {
+  computeStakedPSPBalanceWithPoorPrecisionLegacy(
+    account: string,
+    timestamp: number,
+  ) {
     const totalPSPBalance = SPSPAddresses.reduce((acc, poolAddress) => {
       const sPSPAmount = reduceTimeSeries(
         timestamp,
