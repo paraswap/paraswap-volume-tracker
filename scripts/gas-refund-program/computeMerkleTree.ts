@@ -39,33 +39,23 @@ export async function computeAndStoreMerkleTreeForChain({
       `merkle root for chainId=${chainId} epoch=${epoch} already exists`,
     );
 
-  const gasRefundTXs = await GasRefundTransaction.findAll({
-    where: { epoch, chainId },
-    /**
-     * in the future, guard against duplicate txs (of which multiple swaps can be a part of)
-     *
-     * ignore duplicates for cases like
-     * https://etherscan.io/tx/0xb10c51756678cb6cb1635ac339f9caa592f49ea6da936b109dbd49da8e0e0a6a
-     * where the graph returned three swaps for one tx, resulting
-     * in gas being fetched three times for one tx. only an issue while
-     * we get swaps not txs.
-     */
-    ...( epoch >= GasRefundDeduplicationStartEpoch ? {
+  const gasRefundParticipations =
+    (await GasRefundTransaction.findAll({
+      where: {
+        epoch,
+        chainId,
+        // an extra guard against any duplicate txs that may have snuck in
+        ...(epoch >= GasRefundDeduplicationStartEpoch ? {occurence: 1} : {})
+      },
       attributes: [
-        [Sequelize.fn('DISTINCT', Sequelize.col('hash')), 'hash'], 'address', 'refundedAmountPSP'
-      ]
-    } : {})
-  });
-  const addressRefunds: Record<string, BigNumber> = {}
-
-  for(let i = 0; i < gasRefundTXs.length; i++) {
-    const { address, refundedAmountPSP } = gasRefundTXs[i]
-    if (!addressRefunds[address]) {
-      addressRefunds[address] = new BigNumber(0)
-    }
-    addressRefunds[address] = addressRefunds[address].plus(new BigNumber(refundedAmountPSP))
-  }
-  const gasRefundParticipations: MinGasRefundParticipation[] = Object.entries(addressRefunds).map(([address, refundedAmountPSP]) => ({address, refundedAmountPSP: refundedAmountPSP.toFixed(0)}))
+        'address',
+        [
+          Sequelize.fn('SUM', Sequelize.col('refundedAmountPSP')),
+          'refundedAmountPSP',
+        ],
+      ],
+      group: ['address']
+    })) as unknown as { address: string; refundedAmountPSP: string }[];
 
   const merkleTree = await computeMerkleData({
     chainId,
@@ -78,7 +68,7 @@ export async function computeAndStoreMerkleTreeForChain({
     await saveMerkleTreeInFile({ chainId, epoch, merkleTree });
   } else {
     logger.info('saving merkle tree in db');
-    await saveMerkleTreeInDB({ chainId, epoch, merkleTree, addressRefundedAmountPSP: addressRefunds });
+    await saveMerkleTreeInDB({ chainId, epoch, merkleTree });
   }
 }
 

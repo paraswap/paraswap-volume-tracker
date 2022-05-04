@@ -41,9 +41,6 @@ export class GasRefundParticipation extends Model<GasRefundParticipantData> {
   @Column(DataType.INTEGER)
   chainId: number;
 
-  @Column(DataType.DECIMAL)
-  refundedAmountPSP: string;
-
   @AllowNull(true)
   @Column({
     type: DataType.ARRAY(DataType_KECCAK256_HASHED_VALUE),

@@ -141,13 +141,11 @@ export const merkleRootExists = async ({
 export const saveMerkleTreeInDB = async ({
   chainId,
   epoch,
-  merkleTree,
-  addressRefundedAmountPSP,
+  merkleTree
 }: {
   epoch: number;
   chainId: number;
   merkleTree: MerkleTreeData;
-  addressRefundedAmountPSP: Record<string, BigNumber>;
 }): Promise<void> => {
   const {
     root: { totalAmount, merkleRoot },
@@ -162,7 +160,6 @@ export const saveMerkleTreeInDB = async ({
 
       merkleProofs: leaf.merkleProofs,
       isCompleted: true,
-      refundedAmountPSP: addressRefundedAmountPSP[leaf.address].toFixed(0),
     }),
   );
 

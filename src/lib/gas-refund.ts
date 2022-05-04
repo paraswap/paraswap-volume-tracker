@@ -40,7 +40,6 @@ export interface GasRefundParticipantData {
   chainId: number;
   merkleProofs: string[];
   isCompleted: boolean;
-  refundedAmountPSP: string;
 }
 export interface GasRefundTransactionData {
   epoch: number;
@@ -52,8 +51,10 @@ export interface GasRefundTransactionData {
   timestamp: number;
   gasUsed: string;
   gasUsedChainCurrency: string;
-  gasUsedPSP: string;
   gasUsedUSD: string;
+  pspUsd: number;
+  chainCurrencyUsd: number;
+  pspChainCurrency: number;
   totalStakeAmountPSP: string;
   refundedAmountPSP: string;
   refundedAmountUSD: string;
