@@ -119,7 +119,9 @@ export async function getLatestTransactionTimestamp() {
   // in such case prefer returning 0 and fallback to GasRefundGensisStartTime
   if (lastTxTimestampsAllChains.length !== GRP_SUPPORTED_CHAINS.length) return 0;
 
-  return Math.min(...lastTxTimestampsAllChains);
+  const latestTransactionTimestamp = Math.min(...lastTxTimestampsAllChains);
+
+  return latestTransactionTimestamp
 }
 
 export const writePendingEpochData = async (
