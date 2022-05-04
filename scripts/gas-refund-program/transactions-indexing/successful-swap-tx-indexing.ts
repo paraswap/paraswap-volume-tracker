@@ -111,7 +111,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
             endTimestamp,
           );
 
-        if (swapperStake.isLessThan(GRP_MIN_STAKE)) {
+        if (swapperStake < BigInt(GRP_MIN_STAKE.toFixed(0))) {
           return;
         }
 
@@ -169,7 +169,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
           swapperAcc?.accumulatedGasUsedPSP || 0,
         );
 
-        const totalStakeAmountPSP = swapperStake.toFixed(0); // @todo irrelevant?
+        const totalStakeAmountPSP = swapperStake.toString(); // @todo irrelevant?
         const refundPercent = getRefundPercent(totalStakeAmountPSP);
 
         assert(

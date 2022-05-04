@@ -1,4 +1,3 @@
-import BigNumber from 'bignumber.js';
 import { BigNumber as EthersBN, Contract, Event, EventFilter } from 'ethers';
 import {
   CHAIN_ID_MAINNET,
@@ -11,7 +10,7 @@ import * as ERC20ABI from '../../../src/lib/abi/erc20.abi.json';
 import * as SPSPABI from '../../../src/lib/abi/spsp.abi.json';
 import * as MultiCallerABI from '../../../src/lib/abi/multicaller.abi.json';
 import { getTokenHolders } from './covalent';
-import { fetchBlockTimestampForEvents, ZERO_BN } from '../utils';
+import { fetchBlockTimestampForEvents } from '../utils';
 import { reduceTimeSeries, TimeSeries } from '../timeseries';
 import { PoolConfigsMap } from '../../../src/lib/pool-info';
 import AbstractStakeTracker from './abstract-stakes-tracker';
@@ -57,11 +56,11 @@ interface Reentered extends Event {
 }
 
 type InitState = {
-  totalSupply: { [poolAddress: string]: BigNumber };
-  pspBalance: { [poolAddress: string]: BigNumber };
-  pspsLocked: { [poolAddress: string]: BigNumber };
+  totalSupply: { [poolAddress: string]: bigint };
+  pspBalance: { [poolAddress: string]: bigint };
+  pspsLocked: { [poolAddress: string]: bigint };
   sPSPBalanceByAccount: {
-    [poolAddress: string]: { [accountAddress: string]: BigNumber };
+    [poolAddress: string]: { [accountAddress: string]: bigint };
   };
 };
 
@@ -162,9 +161,9 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
         .decodeFunctionResult('balanceOf', rawResult.returnData[3 * i + 2])
         .toString();
 
-      this.initState.totalSupply[pool] = new BigNumber(totalSupply);
-      this.initState.pspBalance[pool] = new BigNumber(pspBalance);
-      this.initState.pspsLocked[pool] = new BigNumber(pspsLocked);
+      this.initState.totalSupply[pool] = BigInt(totalSupply);
+      this.initState.pspBalance[pool] = BigInt(pspBalance);
+      this.initState.pspsLocked[pool] = BigInt(pspsLocked);
     }, {});
   }
 
@@ -189,7 +188,7 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
               item =>
                 [
                   item.address,
-                  new BigNumber(item.balance), // wei
+                  BigInt(item.balance), // wei
                 ] as const,
             ),
           );
@@ -256,7 +255,7 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
     const [_from, _to, _value] = e.args;
     const from = _from.toLowerCase();
     const to = _to.toLowerCase();
-    const value = new BigNumber(_value.toString());
+    const value = _value.toBigInt();
     const poolAddress = e.address.toLowerCase();
 
     if (!this.differentialStates.sPSPBalanceByAccount[poolAddress]?.[from]) {
@@ -292,11 +291,11 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
     if (to === NULL_ADDRESS) {
       this.differentialStates.sPSPBalanceByAccount[poolAddress][to].push({
         timestamp,
-        value: value.negated(),
+        value: -value,
       });
       this.differentialStates.totalSupply[poolAddress].push({
         timestamp,
-        value: value.negated(),
+        value: -value,
       });
 
       return;
@@ -304,7 +303,7 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
 
     this.differentialStates.sPSPBalanceByAccount[poolAddress][from].push({
       timestamp,
-      value: value.negated(),
+      value: -value,
     });
 
     this.differentialStates.sPSPBalanceByAccount[poolAddress][to].push({
@@ -320,7 +319,7 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
     const poolAddress = e.address.toLowerCase();
     const [, , amount] = e.args;
 
-    const value = new BigNumber(amount.toString());
+    const value = amount.toBigInt();
 
     if (!this.differentialStates.pspsLocked[poolAddress]) {
       this.differentialStates.pspsLocked[poolAddress] = [];
@@ -328,7 +327,7 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
 
     this.differentialStates.pspsLocked[poolAddress].push({
       timestamp,
-      value: e.event === 'Unstaked' ? value : value.negated(),
+      value: e.event === 'Unstaked' ? value : -value,
     });
   }
 
@@ -355,7 +354,7 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
       const [_from, _to, _value] = e.args;
       const from = _from.toLowerCase();
       const to = _to.toLowerCase();
-      const value = new BigNumber(_value.toString());
+      const value = _value.toBigInt();
 
       const transferFromSPSP = SPSPAddressesSet.has(from);
       const transferToSPSP = SPSPAddressesSet.has(to);
@@ -372,7 +371,7 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
 
       this.differentialStates.pspBalance[poolAddress].push({
         timestamp,
-        value: transferFromSPSP ? value.negated() : value,
+        value: transferFromSPSP ? -value : value,
       });
     });
   }
@@ -387,7 +386,7 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
         this.differentialStates.sPSPBalanceByAccount[poolAddress]?.[account],
       );
 
-      if (sPSPAmount.isZero()) return acc;
+      if (sPSPAmount === BigInt(0)) return acc;
 
       const pspsLocked = reduceTimeSeries(
         timestamp,
@@ -405,14 +404,12 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
         this.differentialStates.pspBalance[poolAddress],
       );
 
-      const pspBalanceAvailable = pspBalance.minus(pspsLocked);
+      const pspBalanceAvailable = pspBalance - pspsLocked;
 
-      const stakedPSPBalance = sPSPAmount
-        .multipliedBy(pspBalanceAvailable)
-        .dividedBy(totalSPSP);
+      const stakedPSPBalance = (sPSPAmount * pspBalanceAvailable) / totalSPSP;
 
-      return acc.plus(stakedPSPBalance);
-    }, ZERO_BN);
+      return acc + stakedPSPBalance;
+    }, BigInt(0));
 
     return totalPSPBalance;
   }

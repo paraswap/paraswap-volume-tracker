@@ -117,7 +117,8 @@ export async function getLatestTransactionTimestamp() {
   // if we didn't get exact same number as supported chains
   // it might be due to data of one chain not being computed yet
   // in such case prefer returning 0 and fallback to GasRefundGensisStartTime
-  if (lastTxTimestampsAllChains.length !== GRP_SUPPORTED_CHAINS.length) return 0;
+  if (lastTxTimestampsAllChains.length !== GRP_SUPPORTED_CHAINS.length)
+    return 0;
 
   return Math.min(...lastTxTimestampsAllChains);
 }

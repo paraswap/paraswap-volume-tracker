@@ -1,4 +1,3 @@
-import BigNumber from 'bignumber.js';
 import { BigNumber as EthersBN, CallOverrides, Contract, Event } from 'ethers';
 import { assert } from 'ts-essentials';
 import {
@@ -10,7 +9,7 @@ import { Provider } from '../../../src/lib/provider';
 import * as ERC20ABI from '../../../src/lib/abi/erc20.abi.json';
 import * as BVaultABI from './balancer-vault-abi.json';
 import { getTokenHolders } from './covalent';
-import { fetchBlockTimestampForEvents, ZERO_BN } from '../utils';
+import { fetchBlockTimestampForEvents } from '../utils';
 import {
   reduceTimeSeries,
   TimeSeries,
@@ -92,9 +91,9 @@ interface Swap extends Event {
 }
 
 type InitState = {
-  bptPoolPSPBalance: BigNumber;
-  bptPoolTotalSupply: BigNumber;
-  stkPSPBptUsersBalances: { [address: string]: BigNumber };
+  bptPoolPSPBalance: bigint;
+  bptPoolTotalSupply: bigint;
+  stkPSPBptUsersBalances: { [address: string]: bigint };
 };
 
 type DiffState = {
@@ -106,8 +105,8 @@ type DiffState = {
 export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
   initState: InitState = {
     stkPSPBptUsersBalances: {},
-    bptPoolPSPBalance: ZERO_BN,
-    bptPoolTotalSupply: ZERO_BN,
+    bptPoolPSPBalance: BigInt(0),
+    bptPoolTotalSupply: BigInt(0),
   };
   differentialStates: DiffState = {
     stkPSPBptUsersBalances: {},
@@ -155,12 +154,12 @@ export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
         blockTag: initBlock,
       },
     );
-    this.initState.bptPoolPSPBalance = new BigNumber(pspBalance.toString());
+    this.initState.bptPoolPSPBalance = pspBalance.toBigInt();
   }
 
   async fetchBPTotalSupply(initBlock: number) {
     const totalSupply = await bptAsEERC20.totalSupply({ blockTag: initBlock });
-    this.initState.bptPoolTotalSupply = new BigNumber(totalSupply.toString());
+    this.initState.bptPoolTotalSupply = totalSupply.toBigInt();
   }
 
   async fetchStkPSPBptStakers(initBlock: number) {
@@ -177,9 +176,9 @@ export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
     );
 
     this.initState.stkPSPBptUsersBalances = stakes.reduce<{
-      [address: string]: BigNumber;
+      [address: string]: bigint;
     }>((acc, curr) => {
-      acc[curr.address.toLowerCase()] = new BigNumber(curr.balance);
+      acc[curr.address.toLowerCase()] = BigInt(curr.balance);
       return acc;
     }, {});
   }
@@ -200,7 +199,7 @@ export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
 
       const from = e.args[0].toLowerCase();
       const to = e.args[1].toLowerCase();
-      const amount = new BigNumber(e.args[2].toString());
+      const amount = e.args[2].toBigInt();
 
       if (from === NULL_ADDRESS || to === NULL_ADDRESS) {
         const isMint = from === NULL_ADDRESS;
@@ -217,7 +216,7 @@ export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
 
         this.differentialStates.stkPSPBptUsersBalances[_from].push({
           timestamp,
-          value: isMint ? amount : amount.negated(),
+          value: isMint ? amount : -amount,
         });
 
         return;
@@ -228,7 +227,7 @@ export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
 
       this.differentialStates.stkPSPBptUsersBalances[from].push({
         timestamp,
-        value: amount.negated(),
+        value: -amount,
       });
 
       if (!this.differentialStates.stkPSPBptUsersBalances[to])
@@ -270,13 +269,11 @@ export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
       return [
         {
           timestamp,
-          value: new BigNumber(pspAmountInOrOut.toString()), // onPoolJoin / onPoolExit amount is positive / negative
+          value: pspAmountInOrOut.toBigInt(), // onPoolJoin / onPoolExit amount is positive / negative
         },
         {
           timestamp,
-          value: new BigNumber(
-            paidProtocolSwapFeeAmounts[1].toString(),
-          ).negated(),
+          value: -paidProtocolSwapFeeAmounts[1].toBigInt(),
         },
       ];
     });
@@ -317,12 +314,12 @@ export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
       if (isPSPTokenIn)
         return {
           timestamp,
-          value: new BigNumber(amountIn.toString()),
+          value: amountIn.toBigInt(),
         };
 
       return {
         timestamp,
-        value: new BigNumber(amountOut.toString()).negated(),
+        value: -amountOut.toBigInt(),
       };
     });
 
@@ -365,11 +362,11 @@ export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
 
       const isMint = from === NULL_ADDRESS;
 
-      const value = new BigNumber(amount.toString());
+      const value = amount.toBigInt();
 
       return {
         timestamp,
-        value: isMint ? value : value.negated(),
+        value: isMint ? value : -value,
       };
     });
 
@@ -392,7 +389,7 @@ export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
       this.initState.bptPoolTotalSupply,
       this.differentialStates.bptPoolTotalSupply,
     );
-    return pspBalance.dividedBy(totalSupply);
+    return pspBalance / totalSupply;
   }
 
   // PSP-BPT / stkPSPbpt = 1 till no slashing
@@ -409,6 +406,6 @@ export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
     );
     const stkPSP2PSPRate = this.compute_StkPSPBPT_to_PSP_Rate(timestamp);
 
-    return stkPSPBPT.multipliedBy(stkPSP2PSPRate);
+    return stkPSPBPT * stkPSP2PSPRate;
   }
 }

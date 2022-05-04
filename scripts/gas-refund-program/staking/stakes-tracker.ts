@@ -1,4 +1,3 @@
-import BigNumber from 'bignumber.js';
 import { assert } from 'ts-essentials';
 import { BlockInfo } from '../../../src/lib/block-info';
 import { CHAIN_ID_MAINNET } from '../../../src/lib/constants';
@@ -10,7 +9,7 @@ import {
 } from '../../../src/lib/gas-refund';
 import { OFFSET_CALC_TIME } from '../common';
 import { getLatestTransactionTimestamp } from '../persistance/db-persistance';
-import { ONE_HOUR_SEC, startOfHourSec, ZERO_BN } from '../utils';
+import { ONE_HOUR_SEC, startOfHourSec } from '../utils';
 import SafetyModuleStakesTracker from './safety-module-stakes-tracker';
 import SPSPStakesTracker from './spsp-stakes-tracker';
 
@@ -30,9 +29,9 @@ export default class StakesTracker {
 
     const latestTxTimestamp = await getLatestTransactionTimestamp();
 
-    const startTimeSPSP =
-      latestTxTimestamp ||
-      (await epochInfo.getEpochStartCalcTime(GasRefundGenesisEpoch));
+    const startTimeSPSP = await epochInfo.getEpochStartCalcTime(
+      GasRefundGenesisEpoch,
+    );
 
     const startTimeSM =
       latestTxTimestamp ||
@@ -87,13 +86,13 @@ export default class StakesTracker {
       );
 
     const stakedPSPEndOfHour = endOfHourLaterThanEpoch
-      ? ZERO_BN
+      ? BigInt(0)
       : SPSPStakesTracker.getInstance().computeStakedPSPBalance(
           account,
           endOfHourTimestampUnix,
         );
 
-    return BigNumber.max(stakedPSPStartOfHour, stakedPSPEndOfHour);
+    return stakedPSPStartOfHour > stakedPSPEndOfHour ? stakedPSPStartOfHour : stakedPSPEndOfHour;
   }
 
   computeStakedPSPBalance(
@@ -127,6 +126,6 @@ export default class StakesTracker {
         timestamp,
       );
 
-    return pspStakedInSPSP.plus(pspStakedInSM);
+    return pspStakedInSPSP + pspStakedInSM;
   }
 }

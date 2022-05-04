@@ -17,12 +17,12 @@ describe('SafetyModuleStakesTracker', () => {
   test('Init state', () => {
     // hint: Use https://etherscan.io/tokencheck-tool to check all snapshoted data
     const initStateSerialised = {
-      bptPoolPSPBalance: tracker.initState.bptPoolPSPBalance.toFixed(), // hint: given by balancer vault by looking at getPoolTokenInfo() - execute rpc call at specific block
-      bptPoolTotalSupply: tracker.initState.bptPoolTotalSupply.toFixed(), // hint: check total supply of 0xcb0e14e96f2cefa8550ad8e4aea344f211e5061d at block
+      bptPoolPSPBalance: tracker.initState.bptPoolPSPBalance.toString(), // hint: given by balancer vault by looking at getPoolTokenInfo() - execute rpc call at specific block
+      bptPoolTotalSupply: tracker.initState.bptPoolTotalSupply.toString(), // hint: check total supply of 0xcb0e14e96f2cefa8550ad8e4aea344f211e5061d at block
       stkPSPBptUsersBalances: Object.fromEntries(
         // hint: check balances of 0xc8dc2ec5f5e02be8b37a8444a1931f02374a17ab of users at blocl
         Object.entries(tracker.initState.stkPSPBptUsersBalances).map(
-          ([key, value]) => [key, value.toFixed()] as const,
+          ([key, value]) => [key, value.toString()] as const,
         ),
       ),
     };
@@ -64,6 +64,6 @@ describe('SafetyModuleStakesTracker', () => {
     );
 
     // hint: verify by computing data for earlier timestamp and compare staked balance with dapps like zerion or debank
-    expect(pspBalanceAtTimestamp.toFixed(0)).toBe('31176610680399907896512');
+    expect(pspBalanceAtTimestamp.toString()).toBe('31176610680399907896512');
   });
 });
