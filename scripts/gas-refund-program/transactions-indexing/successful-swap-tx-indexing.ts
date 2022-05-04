@@ -73,10 +73,6 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     );
 
     logger.info(
-      `fetching stakers between ${_startTimestampSlice} and ${_endTimestampSlice}...`,
-    );
-
-    logger.info(
       `fetching swaps between ${_startTimestampSlice} and ${_endTimestampSlice}...`,
     );
 
