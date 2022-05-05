@@ -2,13 +2,13 @@ import { assert } from 'ts-essentials';
 import { BigNumber } from 'bignumber.js';
 import {
   fetchVeryLastTimestampProcessed,
-  writePendingEpochData,
-  fetchTransactionOccurences
+  writePendingEpochData
 } from '../persistance/db-persistance';
 import { getSuccessfulSwaps } from './swaps-subgraph';
 import {
   GasRefundSafetyModuleStartEpoch,
   GasRefundTxOriginCheckStartEpoch,
+  GasRefundDeduplicationStartEpoch,
   getRefundPercent,
   GasRefundTransactionData
 } from '../../../src/lib/gas-refund';
@@ -52,8 +52,6 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     veryLastTimestampProcessed + 1,
   );
 
-  // load all past swaps into memory as a record to track and de-duplicate txs
-  const pastTXs: Record<string, number> = await fetchTransactionOccurences(epoch, chainId)
 
   for (
     let _startTimestampSlice = _startTimestamp;
@@ -110,6 +108,8 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     );
 
     const pendingGasRefundTransactionData: GasRefundTransactionData[] = [];
+    // hash list to track if we've seen a tx already (just checks against timeslices, we assume tx duplicates have the same timestamp)
+    let txsSeen: Record<string, boolean> = {}
 
     await Promise.all(
       swaps.map(async swap => {
@@ -120,7 +120,13 @@ export async function computeSuccessfulSwapsTxFeesRefund({
           return;
         }
 
-        const address = swap.txOrigin;
+        const { txHash, txOrigin: address } = swap;
+
+        if (txsSeen[txHash] && epoch >= GasRefundDeduplicationStartEpoch) {
+          return;
+        } else {
+          txsSeen[txHash] = true
+        }
 
         const startOfHourUnixTms = startOfHourSec(+swap.timestamp);
         const startOfNextHourUnixTms = startOfHourSec(
@@ -241,10 +247,6 @@ export async function computeSuccessfulSwapsTxFeesRefund({
 
         GRPSystemGuardian.increaseTotalPSPRefunded(currRefundedAmountPSP);
 
-
-        pastTXs[swap.txHash] = pastTXs[swap.txHash] ? pastTXs[swap.txHash] + 1 : 1
-        const occurence = pastTXs[swap.txHash]
-
         const pendingGasRefundDatum: GasRefundTransactionData = {
           epoch,
           address,
@@ -260,8 +262,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
           gasUsedUSD: currGasUsedUSD.toFixed(0),
           totalStakeAmountPSP,
           refundedAmountPSP: currRefundedAmountPSP.toFixed(0),
-          refundedAmountUSD: currRefundedAmountUSD.toFixed(0),
-          occurence
+          refundedAmountUSD: currRefundedAmountUSD.toFixed(0)
         };
 
         pendingGasRefundTransactionData.push(pendingGasRefundDatum);
