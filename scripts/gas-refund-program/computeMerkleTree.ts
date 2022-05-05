@@ -1,19 +1,23 @@
 import '../../src/lib/log4js';
 import * as dotenv from 'dotenv';
 dotenv.config();
-import { computeMerkleData } from './refund/merkle-tree';
-
+import { computeMerkleData, MinGasRefundParticipation } from './refund/merkle-tree';
+import {
+  GasRefundDeduplicationStartEpoch
+} from '../../src/lib/gas-refund';
 import {
   merkleRootExists,
   saveMerkleTreeInDB,
 } from './persistance/db-persistance';
 
 import { assert } from 'ts-essentials';
+import BigNumber from 'bignumber.js';
+import { Sequelize } from 'sequelize-typescript';
 import {
   GasRefundGenesisEpoch,
   GRP_SUPPORTED_CHAINS,
 } from '../../src/lib/gas-refund';
-import { GasRefundParticipation } from '../../src/models/GasRefundParticipation';
+import { GasRefundTransaction } from '../../src/models/GasRefundTransaction';
 import { saveMerkleTreeInFile } from './persistance/file-persistance';
 import { init, resolveEpochCalcTimeInterval } from './common';
 
@@ -35,14 +39,28 @@ export async function computeAndStoreMerkleTreeForChain({
       `merkle root for chainId=${chainId} epoch=${epoch} already exists`,
     );
 
-  const gasRefundParticipations = await GasRefundParticipation.findAll({
-    where: { epoch, chainId },
-  });
+  const gasRefundParticipations =
+    (await GasRefundTransaction.findAll({
+      where: {
+        epoch,
+        chainId,
+        // an extra guard against any duplicate txs that may have snuck in
+        ...(epoch >= GasRefundDeduplicationStartEpoch ? {occurence: 1} : {})
+      },
+      attributes: [
+        'address',
+        [
+          Sequelize.fn('SUM', Sequelize.col('refundedAmountPSP')),
+          'refundedAmountPSP',
+        ],
+      ],
+      group: ['address']
+    })) as unknown as { address: string; refundedAmountPSP: string }[];
 
   const merkleTree = await computeMerkleData({
     chainId,
     epoch,
-    gasRefundParticipations,
+    gasRefundParticipations
   });
 
   if (saveFile) {

@@ -1,10 +1,10 @@
 import { Claimable, MerkleTreeData } from '../types';
 import { utils, logger } from 'ethers';
 import { MerkleTree } from 'merkletreejs';
-import { GasRefundParticipation } from '../../../src/models/GasRefundParticipation';
+import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
 
 export type MinGasRefundParticipation = Pick<
-  GasRefundParticipation,
+GasRefundTransaction,
   'refundedAmountPSP' | 'address'
 >;
 
