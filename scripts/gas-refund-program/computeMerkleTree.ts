@@ -3,9 +3,6 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 import { computeMerkleData, MinGasRefundParticipation } from './refund/merkle-tree';
 import {
-  GasRefundDeduplicationStartEpoch
-} from '../../src/lib/gas-refund';
-import {
   merkleRootExists,
   saveMerkleTreeInDB,
 } from './persistance/db-persistance';
@@ -44,8 +41,6 @@ export async function computeAndStoreMerkleTreeForChain({
       where: {
         epoch,
         chainId,
-        // an extra guard against any duplicate txs that may have snuck in
-        ...(epoch >= GasRefundDeduplicationStartEpoch ? {occurence: 1} : {})
       },
       attributes: [
         'address',
