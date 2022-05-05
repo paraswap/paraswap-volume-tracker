@@ -1,6 +1,7 @@
 import { assert } from 'ts-essentials';
 import { URLSearchParams } from 'url';
 import { covalentClient } from '../data-providers-clients';
+import { queryPaginatedData, QueryPaginatedDataParams } from '../utils';
 
 const COVALENT_API_KEY = process.env.COVALENT_API_KEY || 'ckey_docs'; // public, is rate-limited
 
@@ -8,30 +9,35 @@ interface TokenHoldersOptions {
   token: string;
   chainId: number;
   blockHeight?: string;
-  pageNumber?: number;
-  pageSize?: number;
 }
 
 export async function getTokenHolders({
   token,
   chainId,
   blockHeight,
-  pageNumber,
-  pageSize,
-}: TokenHoldersOptions): Promise<TokensHoldersData> {
-  const queryString = makeQueryStr({
-    'block-height': blockHeight,
-    'page-number': pageNumber?.toString(),
-    'page-size': pageSize?.toString(),
-  });
+}: TokenHoldersOptions): Promise<TokensHoldersData['items']> {
+  const fetchTokenHolders = async ({
+    pageNumber,
+    pageSize,
+  }: QueryPaginatedDataParams) => {
+    const queryString = makeQueryStr({
+      'block-height': blockHeight,
+      'page-number': pageNumber.toString(),
+      'page-size': pageSize.toString(),
+    });
 
-  const url = `/${chainId}/tokens/${token}/token_holders/?key=${COVALENT_API_KEY}${
-    queryString ? '&' + queryString : ''
-  }`;
+    const url = `/${chainId}/tokens/${token}/token_holders/?key=${COVALENT_API_KEY}${
+      queryString ? '&' + queryString : ''
+    }`;
 
-  const { data } = await covalentClient.get<TokensHoldersResponse>(url);
+    const { data } = await covalentClient.get<TokensHoldersResponse>(url);
 
-  return data.data;
+    return data.data.items;
+  };
+
+  const tokenHolders = await queryPaginatedData(fetchTokenHolders, 10_000);
+
+  return tokenHolders;
 }
 
 interface TransactionQueryOptions {

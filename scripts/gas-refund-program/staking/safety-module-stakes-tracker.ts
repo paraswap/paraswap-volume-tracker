@@ -164,17 +164,11 @@ export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
   }
 
   async fetchStkPSPBptStakers(initBlock: number) {
-    const { items: stakes } = await getTokenHolders({
+    const stakes = await getTokenHolders({
       token: SafetyModuleAddress,
       chainId: CHAIN_ID_MAINNET,
       blockHeight: String(initBlock),
-      pageSize: 10000,
     });
-
-    assert(
-      stakes.length < 1000,
-      'more than 1000 stakers not safe, fix pagination',
-    );
 
     this.initState.stkPSPBptUsersBalances = stakes.reduce<{
       [address: string]: BigNumber;

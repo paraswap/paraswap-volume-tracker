@@ -198,16 +198,15 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
         SPSPAddresses.map(async poolAddress => {
           // @WARNING pagination doesn't seem to work, so ask a large pageSize
           const options = {
-            pageSize: 10000,
             token: poolAddress,
             chainId,
             blockHeight: String(blockNumber),
           };
 
-          const { items } = await getTokenHolders(options);
+          const stakes = await getTokenHolders(options);
 
           const stakesByAccount = Object.fromEntries(
-            items.map(
+            stakes.map(
               item =>
                 [
                   item.address,
