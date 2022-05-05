@@ -109,10 +109,6 @@ export async function computeSuccessfulSwapsTxFeesRefund({
       `fetched ${swaps.length} swaps between ${_startTimestampSlice} and ${_endTimestampSlice}`,
     );
 
-    logger.info(
-      `fetching gas used between ${_startTimestampSlice} and ${_endTimestampSlice}...`,
-    );
-
     const pendingGasRefundTransactionData: GasRefundTransactionData[] = [];
 
     await Promise.all(
