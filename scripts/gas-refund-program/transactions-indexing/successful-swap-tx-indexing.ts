@@ -77,7 +77,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
       startTimestamp: _startTimestampSlice,
       endTimestamp: _endTimestampSlice,
       chainId,
-      epoch
+      epochEndTimestamp: endTimestamp
     });
 
     logger.info(

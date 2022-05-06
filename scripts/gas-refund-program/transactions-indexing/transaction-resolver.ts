@@ -13,22 +13,24 @@
 import { STAKING_POOL_ADDRESSES } from '../../../src/lib/gas-refund'
 import { covalentGetTXsForContract } from './txs-covalent'
 import { getTransactionGasUsed } from '../staking/covalent';
+import StakesTracker from '../staking/stakes-tracker';
 import { getSuccessfulSwaps } from './swaps-subgraph'
 import { GasRefundTransaction, CovalentTransaction } from '../types'
-import { GasRefundTxOriginCheckStartEpoch, GasRefundSwapSourceCovalentStartEpoch, AUGUSTUS_ADDRESS } from '../../../src/lib/gas-refund'
+import { GasRefundTxOriginCheckStartEpoch, GasRefundSwapSourceCovalentStartEpoch, AUGUSTUS_ADDRESS, GRP_MIN_STAKE } from '../../../src/lib/gas-refund'
 
 type GetAllTXsInput = {
   startTimestamp: number;
   endTimestamp: number;
   chainId: number;
   epoch: number;
+  epochEndTimestamp: number;
 }
 
-export const getAllTXs = async ({epoch, chainId, startTimestamp, endTimestamp}: GetAllTXsInput): Promise<GasRefundTransaction[]> => {
+export const getAllTXs = async ({ epoch, chainId, startTimestamp, endTimestamp, epochEndTimestamp }: GetAllTXsInput): Promise<GasRefundTransaction[]> => {
 
   // fetch swaps and stakes
   const allTXs = await Promise.all([
-    getSwapTXs({epoch, chainId, startTimestamp, endTimestamp}),
+    getSwapTXs({epoch, chainId, startTimestamp, endTimestamp, epochEndTimestamp}),
     getStakingTXs({chainId, startTimestamp, endTimestamp})
   ])
 
@@ -47,12 +49,13 @@ export const getAllTXs = async ({epoch, chainId, startTimestamp, endTimestamp}: 
  * but later resolve to covalent after a certain epoch.
 */
 type GetSwapTXsInput = {
+  epoch: number;
+  chainId: number;
   startTimestamp: number;
   endTimestamp: number;
-  chainId: number;
-  epoch: number;
+  epochEndTimestamp: number;
 }
-export const getSwapTXs = async ({ epoch, chainId, startTimestamp, endTimestamp }: GetSwapTXsInput): Promise<GasRefundTransaction[]> => {
+export const getSwapTXs = async ({ epoch, chainId, startTimestamp, endTimestamp, epochEndTimestamp }: GetSwapTXsInput): Promise<GasRefundTransaction[]> => {
   const swaps: GasRefundTransaction[] = await (async () => {
     // todo: epoch check when we change over - remove `false &&`
     if (false && epoch >= GasRefundSwapSourceCovalentStartEpoch) {
@@ -70,7 +73,7 @@ export const getSwapTXs = async ({ epoch, chainId, startTimestamp, endTimestamp 
       return normalisedSwapsFromCovalent
     } else {
       // get swaps from the graph
-      const swaps = await getSuccessfulSwaps({ startTimestamp, endTimestamp, chainId })
+      const swaps = await getSuccessfulSwaps({ startTimestamp, endTimestamp, chainId, epoch })
 
       // optionally filter out smart contract wallets
       const filteredSwaps = swaps.filter(swap =>
@@ -78,6 +81,17 @@ export const getSwapTXs = async ({ epoch, chainId, startTimestamp, endTimestamp 
         epoch >= GasRefundTxOriginCheckStartEpoch &&
         swap.initiator !== swap.txOrigin
       )
+
+      // check the swapper is a staker to avoid subsequently wasting resources looking up gas unnecessarily
+      const swapsOfQualifyingStakers = filteredSwaps.map(swap => {
+        const swapperStake = StakesTracker.getInstance().computeStakedPSPBalance(
+          swap.txOrigin,
+          +swap.timestamp,
+          epoch,
+          epochEndTimestamp
+        )
+        return !swapperStake.isLessThan(GRP_MIN_STAKE)
+      })
 
       // augment with gas used
       const swapsWithGasUsedNormalised: GasRefundTransaction[] = await Promise.all(
@@ -104,7 +118,7 @@ export const getSwapTXs = async ({ epoch, chainId, startTimestamp, endTimestamp 
         })
       )
 
-      return swapsWithGasUsedNormalised
+      return swapsOfQualifyingStakers
     }
   })()
 
