@@ -86,6 +86,3 @@ export interface SubGraphSwap {
 export interface GasRefundTransaction extends Omit<CovalentTransaction, 'blockNumber'> {
   blockNumber: string;
 }
-
-// todo:
-// type TransactionType = "swap" | "staking"
