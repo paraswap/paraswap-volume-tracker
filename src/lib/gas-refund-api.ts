@@ -6,7 +6,7 @@ import * as Sequelize from 'sequelize';
 import Database from '../../src/database';
 import { GasRefundParticipation } from '../models/GasRefundParticipation';
 import { GasRefundDistribution } from '../models/GasRefundDistribution';
-import { GasRefundTransaction } from '../models/GasRefundTransaction'
+import { GasRefundTransaction } from '../models/GasRefundTransaction';
 import {
   CHAIN_ID_BINANCE,
   CHAIN_ID_FANTOM,
@@ -16,7 +16,7 @@ import {
 import { EpochInfo } from './epoch-info';
 import { GasRefundGenesisEpoch } from './gas-refund';
 import { Provider } from './provider';
-import BigNumber from 'bignumber.js';
+import  from 'bignumber.js';
 
 const MerkleRedeemAbi = [
   'function seedAllocations(uint _week, bytes32 _merkleRoot, uint _totalAllocation)',

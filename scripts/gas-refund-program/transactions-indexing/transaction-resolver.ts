@@ -10,14 +10,14 @@
  * the caller of functions in this util don't need to care about how the data
  * is resolved, that is the response of the code in this file.
  */
-import { SPSPAddresses } from '../staking/spsp-stakes-tracker'
-import { covalentGetTXsForContract } from './txs-covalent'
+import { SPSPAddresses } from '../staking/spsp-stakes-tracker';
+import { covalentGetTXsForContract } from './txs-covalent';
 import { getTransactionGasUsed } from '../staking/covalent';
 import StakesTracker from '../staking/stakes-tracker';
-import { getSuccessfulSwaps } from './swaps-subgraph'
-import { GasRefundTransaction, CovalentTransaction } from '../types'
-import { GasRefundTxOriginCheckStartEpoch, GasRefundSwapSourceCovalentStartEpoch, AUGUSTUS_ADDRESS, GRP_MIN_STAKE } from '../../../src/lib/gas-refund'
-import { CHAIN_ID_MAINNET } from '../../../src/lib/constants'
+import { getSuccessfulSwaps } from './swaps-subgraph';
+import { GasRefundTransaction, CovalentTransaction } from '../types';
+import { GasRefundTxOriginCheckStartEpoch, GasRefundSwapSourceCovalentStartEpoch, AUGUSTUS_ADDRESS, GRP_MIN_STAKE } from '../../../src/lib/gas-refund';
+import { CHAIN_ID_MAINNET } from '../../../src/lib/constants';
 
 type GetAllTXsInput = {
   startTimestamp: number;
@@ -30,20 +30,20 @@ type GetAllTXsInput = {
 export const getAllTXs = async ({ epoch, chainId, startTimestamp, endTimestamp, epochEndTimestamp }: GetAllTXsInput): Promise<GasRefundTransaction[]> => {
 
   // foreach staking pool (assuming we're checking mainnet)
-  const poolAddresses = chainId === CHAIN_ID_MAINNET ? Object.values(SPSPAddresses) : []
+  const poolAddresses = chainId === CHAIN_ID_MAINNET ? Object.values(SPSPAddresses) : [];
 
   // fetch swaps and stakes
   const allTXs = await Promise.all([
     getSwapTXs({epoch, chainId, startTimestamp, endTimestamp, epochEndTimestamp}),
     getContractsTXs({chainId, startTimestamp, endTimestamp, whiteListedAddresses: poolAddresses})
-  ])
+  ]);
 
-  const allTXsFlattened = [].concat.apply([], allTXs) as GasRefundTransaction[]
+  const allTXsFlattened = [].concat.apply([], allTXs) as GasRefundTransaction[];
 
   // sort to be chronological
   const allTXsChronological = allTXsFlattened.sort((a, b) => +(a.timestamp) - +(b.timestamp));
 
-  return allTXsChronological
+  return allTXsChronological;
 }
 
 
@@ -69,22 +69,22 @@ export const getSwapTXs = async ({ epoch, chainId, startTimestamp, endTimestamp,
         endTimestamp,
         chainId,
         contract: AUGUSTUS_ADDRESS
-      })
+      });
       const normalisedSwapsFromCovalent = swapsFromCovalent.map(swap => ({
         ...swap,
         blockNumber: swap.blockNumber.toString()
-      }))
-      return normalisedSwapsFromCovalent
+      }));
+      return normalisedSwapsFromCovalent;
     } else {
       // get swaps from the graph
-      const swaps = await getSuccessfulSwaps({ startTimestamp, endTimestamp, chainId, epoch })
+      const swaps = await getSuccessfulSwaps({ startTimestamp, endTimestamp, chainId, epoch });
 
       // optionally filter out smart contract wallets
       const filteredSwaps = swaps.filter(swap =>
         epoch < GasRefundTxOriginCheckStartEpoch ||
         epoch >= GasRefundTxOriginCheckStartEpoch &&
         swap.initiator !== swap.txOrigin
-      )
+      );
 
       // check the swapper is a staker to avoid subsequently wasting resources looking up gas unnecessarily
       const swapsOfQualifyingStakers = filteredSwaps.map(swap => {
@@ -93,9 +93,9 @@ export const getSwapTXs = async ({ epoch, chainId, startTimestamp, endTimestamp,
           +swap.timestamp,
           epoch,
           epochEndTimestamp
-        )
-        return !swapperStake.isLessThan(GRP_MIN_STAKE)
-      })
+        );
+        return !swapperStake.isLessThan(GRP_MIN_STAKE);
+      });
 
       // augment with gas used
       const swapsWithGasUsedNormalised: GasRefundTransaction[] = await Promise.all(
@@ -120,14 +120,14 @@ export const getSwapTXs = async ({ epoch, chainId, startTimestamp, endTimestamp,
             txGasUsed: txGasUsed.toString()
           }
         })
-      )
+      );
 
-      return swapsOfQualifyingStakers
+      return swapsOfQualifyingStakers;
     }
   })()
 
 
-  return swaps
+  return swaps;
 }
 
 /**
@@ -153,10 +153,10 @@ export const getContractsTXs = async ({
     endTimestamp,
     chainId,
     contract: whiteListedAddresses[i]
-  }))
-  const txsAcrossContracts = await Promise.all(getTxsFromAllContracts)
+  }));
+  const txsAcrossContracts = await Promise.all(getTxsFromAllContracts);
 
-  const txsFromAllContracts = [].concat.apply([], txsAcrossContracts) as CovalentTransaction[]
+  const txsFromAllContracts = [].concat.apply([], txsAcrossContracts) as CovalentTransaction[];
 
   // sort to be chronological
   const chronologicalTxs = txsFromAllContracts.sort((a, b) => +(a.timestamp) - +(b.timestamp));
@@ -166,5 +166,5 @@ export const getContractsTXs = async ({
     blockNumber: tx.blockNumber.toString()
   }))
 
-  return normalisedTXs
+  return normalisedTXs;
 }

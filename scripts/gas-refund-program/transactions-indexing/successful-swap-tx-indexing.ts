@@ -4,7 +4,7 @@ import {
   fetchVeryLastTimestampProcessed,
   writePendingEpochData
 } from '../persistance/db-persistance';
-import { getAllTXs } from './transaction-resolver'
+import { getAllTXs } from './transaction-resolver';
 import {
   getRefundPercent,
   GRP_MIN_STAKE,
