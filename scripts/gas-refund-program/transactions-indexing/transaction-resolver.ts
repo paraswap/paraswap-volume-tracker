@@ -28,10 +28,13 @@ type GetAllTXsInput = {
 
 export const getAllTXs = async ({ epoch, chainId, startTimestamp, endTimestamp, epochEndTimestamp }: GetAllTXsInput): Promise<GasRefundTransaction[]> => {
 
+  // foreach staking pool (assuming we're checking mainnet)
+  const poolAddresses = chainId === 1 ? Object.values(STAKING_POOL_ADDRESSES) : []
+
   // fetch swaps and stakes
   const allTXs = await Promise.all([
     getSwapTXs({epoch, chainId, startTimestamp, endTimestamp, epochEndTimestamp}),
-    getStakingTXs({chainId, startTimestamp, endTimestamp})
+    getContractsTXs({chainId, startTimestamp, endTimestamp, whiteListedAddresses: poolAddresses})
   ])
 
   const allTXsFlattened = [].concat.apply([], allTXs) as GasRefundTransaction[]
@@ -131,31 +134,31 @@ export const getSwapTXs = async ({ epoch, chainId, startTimestamp, endTimestamp,
  * call covalent and get all txs within a period for a staking contract. do this
  * for all staking contracts.
  */
-type GetStakingTXsInput = {
+type GetContractsTXsInput = {
   chainId: number;
   startTimestamp: number;
   endTimestamp: number;
+  whiteListedAddresses: string[]
 }
-export const getStakingTXs = async ({
+export const getContractsTXs = async ({
   startTimestamp,
   endTimestamp,
-  chainId
-}: GetStakingTXsInput): Promise<GasRefundTransaction[]> => {
-  if (chainId !== 1)  return []
-  // foreach staking pool, get txs within period
-  const poolAddresses = Object.values(STAKING_POOL_ADDRESSES)
-  const getTxsFromAllPools = [...Array(poolAddresses.length).keys()].map((i) => covalentGetTXsForContract({
+  chainId,
+  whiteListedAddresses
+}: GetContractsTXsInput): Promise<GasRefundTransaction[]> => {
+
+  const getTxsFromAllContracts = [...Array(whiteListedAddresses.length).keys()].map((i) => covalentGetTXsForContract({
     startTimestamp,
     endTimestamp,
     chainId,
-    contract: poolAddresses[i]
+    contract: whiteListedAddresses[i]
   }))
-  const poolsWithTxs = await Promise.all(getTxsFromAllPools)
+  const txsAcrossContracts = await Promise.all(getTxsFromAllContracts)
 
-  const txsFromAllPools = [].concat.apply([], poolsWithTxs) as CovalentTransaction[]
+  const txsFromAllContracts = [].concat.apply([], txsAcrossContracts) as CovalentTransaction[]
 
   // sort to be chronological
-  const chronologicalTxs = txsFromAllPools.sort((a, b) => +(a.timestamp) - +(b.timestamp));
+  const chronologicalTxs = txsFromAllContracts.sort((a, b) => +(a.timestamp) - +(b.timestamp));
 
   const normalisedTXs: GasRefundTransaction[] = chronologicalTxs.map(tx => ({
     ...tx,
@@ -164,7 +167,3 @@ export const getStakingTXs = async ({
 
   return normalisedTXs
 }
-
-// todo: get safety module txs
-
-// todo: get approval txs
