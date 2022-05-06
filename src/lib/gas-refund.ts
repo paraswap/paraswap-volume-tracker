@@ -96,7 +96,6 @@ export interface GasRefundTransactionData {
   address: string;
   chainId: number;
   hash: string;
-  occurence: number;
   block: number;
   timestamp: number;
   gasUsed: string;

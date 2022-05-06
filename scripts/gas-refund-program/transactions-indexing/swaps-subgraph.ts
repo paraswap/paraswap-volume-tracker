@@ -1,3 +1,4 @@
+import { assert } from 'ts-essentials';
 import {
   CHAIN_ID_AVALANCHE,
   CHAIN_ID_BINANCE,
@@ -5,7 +6,9 @@ import {
   CHAIN_ID_MAINNET,
   CHAIN_ID_POLYGON,
 } from '../../../src/lib/constants';
-import { SubGraphSwap } from '../types'
+import {
+  GasRefundDeduplicationStartEpoch,
+} from '../../../src/lib/gas-refund';
 import { thegraphClient } from '../data-providers-clients';
 import { queryPaginatedData, QueryPaginatedDataParams } from '../utils';
 
@@ -48,6 +51,7 @@ interface GetSuccessSwapsInput {
   startTimestamp: number;
   endTimestamp: number;
   chainId: number;
+  epoch: number;
 }
 
 // get filtered by accounts swaps from the graphql endpoint
@@ -55,7 +59,8 @@ export async function getSuccessfulSwaps({
   startTimestamp,
   endTimestamp,
   chainId,
-}: GetSuccessSwapsInput): Promise<SubGraphSwap[]> {
+  epoch
+}: GetSuccessSwapsInput): Promise<SwapData[]> {
   const subgraphURL = SubgraphURLs[chainId];
 
   const fetchSwaps = async ({ skip, pageSize }: QueryPaginatedDataParams) => {
@@ -78,7 +83,16 @@ export async function getSuccessfulSwaps({
 
   const swaps = await queryPaginatedData(fetchSwaps, 100);
 
-  return swaps;
+  // allow dupes until epoch 11, after which throw an error
+  if (epoch < GasRefundDeduplicationStartEpoch) {
+    return swaps
+  } else {
+    const uniqSwaps = [...new Set(swaps.map(swap => swap.txHash))]
+
+    assert(uniqSwaps.length === swaps.length, 'duplicates found')
+
+    return swaps;
+  }
 }
 
 interface SwapsGQLRespose {

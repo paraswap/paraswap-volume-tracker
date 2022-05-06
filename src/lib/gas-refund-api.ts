@@ -2,6 +2,8 @@ import { TransactionRequest } from '@ethersproject/providers';
 import { Contract } from '@ethersproject/contracts';
 import _ from 'lodash';
 import { assert } from 'ts-essentials';
+import * as Sequelize from 'sequelize';
+import Database from '../../src/database';
 import { GasRefundParticipation } from '../models/GasRefundParticipation';
 import { GasRefundDistribution } from '../models/GasRefundDistribution';
 import { GasRefundTransaction } from '../models/GasRefundTransaction'
@@ -39,10 +41,10 @@ const MerkleRedeemAddress: { [chainId: number]: string } = {
   [CHAIN_ID_BINANCE]: '0x8fdcdAc765128F2A5CB2EB7Ed8990B2B24Cb66d7',
 };
 
-type GasRefundClaim = Pick<
+interface GasRefundClaim extends Pick<
   GasRefundParticipation,
-  'epoch' | 'address' | 'refundedAmountPSP' | 'merkleProofs'
->;
+  'epoch' | 'address' | 'merkleProofs'
+> { refundedAmountPSP: string };
 
 type BaseGasRefundClaimsResponse<T> = {
   totalClaimable: T;
@@ -105,13 +107,25 @@ export class GasRefundApi {
   }
 
   async _fetchMerkleData(address: string): Promise<GasRefundClaim[]> {
-    const grpData = await GasRefundParticipation.findAll({
-      attributes: ['epoch', 'address', 'refundedAmountPSP', 'merkleProofs'],
-      where: { address, chainId: this.network },
-      raw: true,
-    });
+    const sqlQuery = `
+      SELECT grp.address, grp.epoch, grp."merkleProofs", refunds."refundedAmountPSP"
+      FROM "GasRefundParticipations" grp
+      JOIN (
+        SELECT grt."address", SUM(grt."refundedAmountPSP") AS "refundedAmountPSP"
+        FROM "GasRefundTransactions" grt
+        GROUP BY grt.address
+      ) AS refunds ON grp.address = refunds.address
+      WHERE grp.address=:address AND grp."chainId"=:chainId
+    `
+    const grpDataResult: GasRefundClaim[] = await Database.sequelize.query(sqlQuery, {
+      type: Sequelize.QueryTypes.SELECT,
+      replacements: {
+          address,
+          chainId: this.network
+      },
+    })
 
-    return grpData;
+    return grpDataResult;
   }
 
   async _getClaimStatus(
