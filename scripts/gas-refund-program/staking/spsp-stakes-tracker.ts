@@ -24,7 +24,7 @@ import { assert } from 'ts-essentials';
 
 const logger = global.LOGGER('SPSPStakesTracker');
 
-const SPSPAddresses = PoolConfigsMap[CHAIN_ID_MAINNET].filter(
+export const SPSPAddresses = PoolConfigsMap[CHAIN_ID_MAINNET].filter(
   p => p.isActive,
 ).map(p => p.address.toLowerCase());
 
