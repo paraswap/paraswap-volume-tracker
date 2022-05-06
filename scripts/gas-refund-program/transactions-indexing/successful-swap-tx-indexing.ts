@@ -8,7 +8,6 @@ import { getSuccessfulSwaps } from './swaps-subgraph';
 import {
   GasRefundSafetyModuleStartEpoch,
   GasRefundTxOriginCheckStartEpoch,
-  GasRefundDeduplicationStartEpoch,
   getRefundPercent,
   GasRefundTransactionData
 } from '../../../src/lib/gas-refund';
@@ -101,6 +100,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
       startTimestamp: _startTimestampSlice,
       endTimestamp: _endTimestampSlice,
       chainId,
+      epoch
     });
 
     logger.info(
@@ -108,8 +108,6 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     );
 
     const pendingGasRefundTransactionData: GasRefundTransactionData[] = [];
-    // hash list to track if we've seen a tx already (just checks against timeslices, we assume tx duplicates have the same timestamp)
-    let txsSeen: Record<string, boolean> = {}
 
     await Promise.all(
       swaps.map(async swap => {
@@ -120,13 +118,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
           return;
         }
 
-        const { txHash, txOrigin: address } = swap;
-
-        if (txsSeen[txHash] && epoch >= GasRefundDeduplicationStartEpoch) {
-          return;
-        } else {
-          txsSeen[txHash] = true
-        }
+        const address = swap.txOrigin
 
         const startOfHourUnixTms = startOfHourSec(+swap.timestamp);
         const startOfNextHourUnixTms = startOfHourSec(
