@@ -1,9 +1,9 @@
-import { PendingEpochGasRefundData } from '../../src/lib/gas-refund';
+import { GasRefundTransactionData } from '../../src/lib/gas-refund';
 
 export type HistoricalPrice = { [timestamp: string]: number };
 
 export type TxFeesByAddress = {
-  [address: string]: PendingEpochGasRefundData;
+  [address: string]: GasRefundTransactionData;
 };
 
 export type Claimable = {
