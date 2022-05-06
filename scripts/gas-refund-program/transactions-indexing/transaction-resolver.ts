@@ -17,6 +17,7 @@ import StakesTracker from '../staking/stakes-tracker';
 import { getSuccessfulSwaps } from './swaps-subgraph'
 import { GasRefundTransaction, CovalentTransaction } from '../types'
 import { GasRefundTxOriginCheckStartEpoch, GasRefundSwapSourceCovalentStartEpoch, AUGUSTUS_ADDRESS, GRP_MIN_STAKE } from '../../../src/lib/gas-refund'
+import { CHAIN_ID_MAINNET } from '../../../src/lib/constants'
 
 type GetAllTXsInput = {
   startTimestamp: number;
@@ -29,7 +30,7 @@ type GetAllTXsInput = {
 export const getAllTXs = async ({ epoch, chainId, startTimestamp, endTimestamp, epochEndTimestamp }: GetAllTXsInput): Promise<GasRefundTransaction[]> => {
 
   // foreach staking pool (assuming we're checking mainnet)
-  const poolAddresses = chainId === 1 ? Object.values(SPSPAddresses) : []
+  const poolAddresses = chainId === CHAIN_ID_MAINNET ? Object.values(SPSPAddresses) : []
 
   // fetch swaps and stakes
   const allTXs = await Promise.all([
