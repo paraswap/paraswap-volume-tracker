@@ -96,13 +96,16 @@ export async function getSuccessfulSwaps({
   // allow dupes until epoch 11, after which throw an error
   if (epoch < GasRefundDeduplicationStartEpoch) {
     return swaps
-  } else {
-    const uniqSwaps = [...new Set(swaps.map(swap => swap.txHash))]
-
-    assert(uniqSwaps.length === swaps.length, 'duplicates found')
-
-    return swaps;
   }
+
+  // optionally filter out smart contract wallets
+  const filteredSwaps = swaps.filter(swap => swap.initiator !== swap.txOrigin);
+
+  const uniqSwaps = [...new Set(filteredSwaps.map(swap => swap.txHash))]
+
+  assert(uniqSwaps.length === filteredSwaps.length, 'duplicates found')
+
+  return filteredSwaps;
 }
 
 interface SwapsGQLRespose {
