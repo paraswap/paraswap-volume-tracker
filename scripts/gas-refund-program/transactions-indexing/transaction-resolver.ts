@@ -10,7 +10,7 @@
  * the caller of functions in this util don't need to care about how the data
  * is resolved, that is the response of the code in this file.
  */
-import { STAKING_POOL_ADDRESSES } from '../../../src/lib/gas-refund'
+import { SPSPAddresses } from '../staking/spsp-stakes-tracker'
 import { covalentGetTXsForContract } from './txs-covalent'
 import { getTransactionGasUsed } from '../staking/covalent';
 import StakesTracker from '../staking/stakes-tracker';
@@ -29,7 +29,7 @@ type GetAllTXsInput = {
 export const getAllTXs = async ({ epoch, chainId, startTimestamp, endTimestamp, epochEndTimestamp }: GetAllTXsInput): Promise<GasRefundTransaction[]> => {
 
   // foreach staking pool (assuming we're checking mainnet)
-  const poolAddresses = chainId === 1 ? Object.values(STAKING_POOL_ADDRESSES) : []
+  const poolAddresses = chainId === 1 ? Object.values(SPSPAddresses) : []
 
   // fetch swaps and stakes
   const allTXs = await Promise.all([
