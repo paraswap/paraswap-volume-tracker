@@ -87,11 +87,14 @@ export async function getSuccessfulSwaps({
   if (epoch < GasRefundDeduplicationStartEpoch) {
     return swaps
   } else {
-    const uniqSwaps = [...new Set(swaps.map(swap => swap.txHash))]
+    // optionally filter out smart contract wallets
+    const filteredSwaps = swaps.filter(swap => swap.initiator !== swap.txOrigin)
+    ;
+    const uniqSwaps = [...new Set(filteredSwaps.map(swap => swap.txHash))]
 
-    assert(uniqSwaps.length === swaps.length, 'duplicates found')
+    assert(uniqSwaps.length === filteredSwaps.length, 'duplicates found')
 
-    return swaps;
+    return filteredSwaps;
   }
 }
 
@@ -104,6 +107,6 @@ export interface SwapData {
   txOrigin: string;
   initiator: string;
   txGasPrice: string;
-  blockNumber: number;
+  blockNumber: string;
   timestamp: string;
 }

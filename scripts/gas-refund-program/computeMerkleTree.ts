@@ -11,6 +11,7 @@ import { assert } from 'ts-essentials';
 import { Sequelize } from 'sequelize-typescript';
 import {
   GasRefundGenesisEpoch,
+  GRP_SUPPORTED_CHAINS
 } from '../../src/lib/gas-refund';
 import { GasRefundTransaction } from '../../src/models/GasRefundTransaction';
 import { saveMerkleTreeInFile } from './persistance/file-persistance';
@@ -84,7 +85,7 @@ async function startComputingMerkleTreesAllChains() {
     );
 
   await Promise.all(
-  GRP_SUPPORTED_CHAINS.map(chainId =>
+    GRP_SUPPORTED_CHAINS.map(chainId =>
       computeAndStoreMerkleTreeForChain({
         chainId,
         epoch,

@@ -79,15 +79,8 @@ export const getSwapTXs = async ({ epoch, chainId, startTimestamp, endTimestamp,
       // get swaps from the graph
       const swaps = await getSuccessfulSwaps({ startTimestamp, endTimestamp, chainId, epoch });
 
-      // optionally filter out smart contract wallets
-      const filteredSwaps = swaps.filter(swap =>
-        epoch < GasRefundTxOriginCheckStartEpoch ||
-        epoch >= GasRefundTxOriginCheckStartEpoch &&
-        swap.initiator !== swap.txOrigin
-      );
-
       // check the swapper is a staker to avoid subsequently wasting resources looking up gas unnecessarily
-      const swapsOfQualifyingStakers = filteredSwaps.map(swap => {
+      const swapsOfQualifyingStakers = swaps.filter(swap => {
         const swapperStake = StakesTracker.getInstance().computeStakedPSPBalance(
           swap.txOrigin,
           +swap.timestamp,
@@ -99,7 +92,7 @@ export const getSwapTXs = async ({ epoch, chainId, startTimestamp, endTimestamp,
 
       // augment with gas used
       const swapsWithGasUsedNormalised: GasRefundTransaction[] = await Promise.all(
-        filteredSwaps.map(async ({
+        swapsOfQualifyingStakers.map(async ({
           txHash,
           txOrigin,
           txGasPrice,
@@ -122,7 +115,7 @@ export const getSwapTXs = async ({ epoch, chainId, startTimestamp, endTimestamp,
         })
       );
 
-      return swapsOfQualifyingStakers;
+      return swapsWithGasUsedNormalised;
     }
   })()
 
