@@ -8,6 +8,7 @@ import {
 } from '../../../src/lib/constants';
 import {
   GasRefundDeduplicationStartEpoch,
+  GasRefundTxOriginCheckStartEpoch,
 } from '../../../src/lib/gas-refund';
 import { thegraphClient } from '../data-providers-clients';
 
@@ -58,7 +59,7 @@ export async function getSuccessfulSwaps({
   startTimestamp,
   endTimestamp,
   chainId,
-  epoch
+  epoch,
 }: GetSuccessSwapsInput): Promise<SwapData[]> {
   const subgraphURL = SubgraphURLs[chainId];
 
@@ -93,19 +94,28 @@ export async function getSuccessfulSwaps({
     skip = skip + pageSize;
   }
 
-  // allow dupes until epoch 11, after which throw an error
-  if (epoch < GasRefundDeduplicationStartEpoch) {
-    return swaps
+  if (epoch < GasRefundTxOriginCheckStartEpoch) {
+    return swaps;
   }
 
-  // optionally filter out smart contract wallets
-  const filteredSwaps = swaps.filter(swap => swap.initiator !== swap.txOrigin);
+  const swapsWithTxOriginEqMsgSender = swaps.filter(
+    swap => swap.initiator.toLowerCase() === swap.txOrigin.toLowerCase(),
+  );
 
-  const uniqSwaps = [...new Set(filteredSwaps.map(swap => swap.txHash))]
+  if (epoch < GasRefundDeduplicationStartEpoch) {
+    return swapsWithTxOriginEqMsgSender;
+  }
 
-  assert(uniqSwaps.length === filteredSwaps.length, 'duplicates found')
+  const uniqSwapTxHashes = [
+    ...new Set(swapsWithTxOriginEqMsgSender.map(swap => swap.txHash)),
+  ];
 
-  return filteredSwaps;
+  assert(
+    uniqSwapTxHashes.length === swapsWithTxOriginEqMsgSender.length,
+    'duplicates found',
+  );
+
+  return swapsWithTxOriginEqMsgSender;
 }
 
 interface SwapsGQLRespose {
