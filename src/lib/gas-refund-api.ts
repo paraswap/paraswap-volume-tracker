@@ -3,7 +3,7 @@ import { Contract } from '@ethersproject/contracts';
 import _ from 'lodash';
 import { assert } from 'ts-essentials';
 import * as Sequelize from 'sequelize';
-import Database from '../../src/database';
+import Database from '../database';
 import { GasRefundParticipation } from '../models/GasRefundParticipation';
 import { GasRefundDistribution } from '../models/GasRefundDistribution';
 import { GasRefundTransaction } from '../models/GasRefundTransaction'
