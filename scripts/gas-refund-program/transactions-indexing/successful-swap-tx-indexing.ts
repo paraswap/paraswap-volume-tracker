@@ -6,12 +6,10 @@ import {
 } from '../persistance/db-persistance';
 import { getAllTXs } from './transaction-resolver'
 import {
-  GasRefundSafetyModuleStartEpoch,
   getRefundPercent,
   GRP_MIN_STAKE,
   GasRefundTransactionData
 } from '../../../src/lib/gas-refund';
-import { getPSPStakesHourlyWithinInterval } from '../staking';
 import * as _ from 'lodash';
 import { ONE_HOUR_SEC } from '../utils';
 import { PriceResolverFn } from '../token-pricing/psp-chaincurrency-pricing';
