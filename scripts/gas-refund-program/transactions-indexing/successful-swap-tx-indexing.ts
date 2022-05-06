@@ -2,12 +2,10 @@ import { assert } from 'ts-essentials';
 import { BigNumber } from 'bignumber.js';
 import {
   fetchVeryLastTimestampProcessed,
-  writePendingEpochData,
-  fetchTransactionOccurences
+  writePendingEpochData
 } from '../persistance/db-persistance';
 import { getSuccessfulSwaps } from './swaps-subgraph';
 import {
-  GasRefundTxOriginCheckStartEpoch,
   getRefundPercent,
   GRP_MIN_STAKE,
   GasRefundTransactionData
@@ -50,8 +48,6 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     veryLastTimestampProcessed + 1,
   );
 
-  // load all past swaps into memory as a record to track and de-duplicate txs
-  const pastTXs: Record<string, number> = await fetchTransactionOccurences(epoch, chainId)
 
   for (
     let _startTimestampSlice = _startTimestamp;
@@ -78,6 +74,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
       startTimestamp: _startTimestampSlice,
       endTimestamp: _endTimestampSlice,
       chainId,
+      epoch
     });
 
     logger.info(
@@ -88,14 +85,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
 
     await Promise.all(
       swaps.map(async swap => {
-        if (
-          epoch >= GasRefundTxOriginCheckStartEpoch &&
-          swap.initiator !== swap.txOrigin
-        ) {
-          return;
-        }
-
-        const address = swap.txOrigin;
+        const address = swap.txOrigin
 
         const swapperStake =
           StakesTracker.getInstance().computeStakedPSPBalance(
@@ -187,10 +177,6 @@ export async function computeSuccessfulSwapsTxFeesRefund({
 
         GRPSystemGuardian.increaseTotalPSPRefunded(currRefundedAmountPSP);
 
-
-        pastTXs[swap.txHash] = pastTXs[swap.txHash] ? pastTXs[swap.txHash] + 1 : 1
-        const occurence = pastTXs[swap.txHash]
-
         const pendingGasRefundDatum: GasRefundTransactionData = {
           epoch,
           address,
@@ -206,8 +192,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
           gasUsedUSD: currGasUsedUSD.toFixed(0),
           totalStakeAmountPSP,
           refundedAmountPSP: currRefundedAmountPSP.toFixed(0),
-          refundedAmountUSD: currRefundedAmountUSD.toFixed(0),
-          occurence
+          refundedAmountUSD: currRefundedAmountUSD.toFixed(0)
         };
 
         pendingGasRefundTransactionData.push(pendingGasRefundDatum);

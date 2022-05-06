@@ -1,3 +1,4 @@
+import { assert } from 'ts-essentials';
 import {
   CHAIN_ID_AVALANCHE,
   CHAIN_ID_BINANCE,
@@ -5,6 +6,10 @@ import {
   CHAIN_ID_MAINNET,
   CHAIN_ID_POLYGON,
 } from '../../../src/lib/constants';
+import {
+  GasRefundDeduplicationStartEpoch,
+  GasRefundTxOriginCheckStartEpoch,
+} from '../../../src/lib/gas-refund';
 import { thegraphClient } from '../data-providers-clients';
 import { queryPaginatedData, QueryPaginatedDataParams } from '../utils';
 
@@ -47,6 +52,7 @@ interface GetSuccessSwapsInput {
   startTimestamp: number;
   endTimestamp: number;
   chainId: number;
+  epoch: number;
 }
 
 // get filtered by accounts swaps from the graphql endpoint
@@ -54,6 +60,7 @@ export async function getSuccessfulSwaps({
   startTimestamp,
   endTimestamp,
   chainId,
+  epoch,
 }: GetSuccessSwapsInput): Promise<SwapData[]> {
   const subgraphURL = SubgraphURLs[chainId];
 
@@ -77,7 +84,28 @@ export async function getSuccessfulSwaps({
 
   const swaps = await queryPaginatedData(fetchSwaps, 100);
 
-  return swaps;
+  if (epoch < GasRefundTxOriginCheckStartEpoch) {
+    return swaps;
+  }
+
+  const swapsWithTxOriginEqMsgSender = swaps.filter(
+    swap => swap.initiator.toLowerCase() === swap.txOrigin.toLowerCase(),
+  );
+
+  if (epoch < GasRefundDeduplicationStartEpoch) {
+    return swapsWithTxOriginEqMsgSender;
+  }
+
+  const uniqSwapTxHashes = [
+    ...new Set(swapsWithTxOriginEqMsgSender.map(swap => swap.txHash)),
+  ];
+
+  assert(
+    uniqSwapTxHashes.length === swapsWithTxOriginEqMsgSender.length,
+    'duplicates found',
+  );
+
+  return swapsWithTxOriginEqMsgSender;
 }
 
 interface SwapsGQLRespose {

@@ -17,6 +17,7 @@ on:
         options:
         - staging
         - referrals
+        - orders
 
 jobs:
   build-and-deploy-service:

@@ -15,12 +15,6 @@ import {
   DataType_KECCAK256_HASHED_VALUE,
 } from '../lib/sql-data-types';
 
-const compositeIndex = createIndexDecorator({
-  name: 'gas_refund_transaction_chain_id_hash_occurence',
-  type: 'UNIQUE',
-  unique: true,
-});
-
 @Table
 export class GasRefundTransaction extends Model<GasRefundTransactionData> {
   @PrimaryKey
@@ -35,17 +29,11 @@ export class GasRefundTransaction extends Model<GasRefundTransactionData> {
   @Column(DataType_ADDRESS)
   address: string;
 
-  @compositeIndex
   @Column(DataType.INTEGER)
   chainId: number;
 
-  @compositeIndex
   @Column(DataType_KECCAK256_HASHED_VALUE)
   hash: string;
-
-  @compositeIndex
-  @Column(DataType.SMALLINT.UNSIGNED)
-  occurence: number;
 
   @Column(DataType.INTEGER)
   block: number;
