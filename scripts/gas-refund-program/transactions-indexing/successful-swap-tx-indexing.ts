@@ -4,7 +4,9 @@ import {
   fetchVeryLastTimestampProcessed,
   writePendingEpochData
 } from '../persistance/db-persistance';
+import { getSuccessfulSwaps } from './swaps-subgraph';
 import { getAllTXs } from './transaction-resolver';
+import { getTransactionGasUsed } from '../staking/covalent';
 import {
   getRefundPercent,
   GRP_MIN_STAKE,
@@ -47,6 +49,8 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     veryLastTimestampProcessed + 1,
   );
 
+  let allSwaps = []
+
 
   for (
     let _startTimestampSlice = _startTimestamp;
@@ -70,6 +74,12 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     );
 
     // alternatively can slice requests over different sub intervals matching different stakers subset but we'd be refetching same data
+    const swaps = await getSuccessfulSwaps({
+      startTimestamp: _startTimestampSlice,
+      endTimestamp: _endTimestampSlice,
+      chainId,
+      epoch
+    });
     const txs = await getAllTXs({
       epoch,
       startTimestamp: _startTimestampSlice,
@@ -85,7 +95,8 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     const pendingGasRefundTransactionData: GasRefundTransactionData[] = [];
 
     await Promise.all(
-      txs.map(async swap => {
+      swaps.map(async swap => {
+      // txs.map(async swap => {
         const address = swap.txOrigin;
 
         const swapperStake =
@@ -100,7 +111,24 @@ export async function computeSuccessfulSwapsTxFeesRefund({
           return;
         }
 
-        const { txGasUsed } = swap
+        // repeat these checks, to counter possible race conditions.
+        if (GRPSystemGuardian.isMaxPSPGlobalBudgetSpent()) {
+          logger.warn(
+            `max psp global budget spent, preventing further processing & storing`,
+          );
+          return;
+        }
+
+        if (GRPSystemGuardian.isAccountUSDBudgetSpent(address)) {
+          logger.warn(`Max budget already spent for ${address}`);
+          return;
+        }
+
+        // const { txGasUsed } = swap
+        const txGasUsed = await getTransactionGasUsed({
+          chainId,
+          txHash: swap.txHash,
+        });
 
         if (GRPSystemGuardian.isMaxPSPGlobalBudgetSpent()) {
           logger.warn(
@@ -182,7 +210,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
           hash: swap.txHash,
           block: +swap.blockNumber,
           timestamp: +swap.timestamp,
-          gasUsed: txGasUsed,
+          gasUsed: txGasUsed.toFixed(0),
           gasUsedChainCurrency: currGasUsedChainCur.toFixed(0),
           pspUsd: currencyRate.pspPrice,
           chainCurrencyUsd: currencyRate.chainPrice,
@@ -202,6 +230,8 @@ export async function computeSuccessfulSwapsTxFeesRefund({
         `updating ${pendingGasRefundTransactionData.length} pending gas refund data`,
       );
       await writePendingEpochData(pendingGasRefundTransactionData);
+      allSwaps.push(...pendingGasRefundTransactionData)
     }
   }
+  console.log('swaps count', allSwaps.length)
 }

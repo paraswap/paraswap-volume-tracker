@@ -35,7 +35,7 @@ export const getAllTXs = async ({ epoch, chainId, startTimestamp, endTimestamp, 
   // fetch swaps and stakes
   const allTXs = await Promise.all([
     getSwapTXs({epoch, chainId, startTimestamp, endTimestamp, epochEndTimestamp}),
-    getContractsTXs({chainId, startTimestamp, endTimestamp, whiteListedAddresses: poolAddresses})
+    // getContractsTXs({chainId, startTimestamp, endTimestamp, whiteListedAddresses: poolAddresses})
   ]);
 
   const allTXsFlattened = [].concat.apply([], allTXs) as GasRefundTransaction[];
@@ -110,7 +110,7 @@ export const getSwapTXs = async ({ epoch, chainId, startTimestamp, endTimestamp,
             txGasPrice,
             timestamp,
             blockNumber,
-            txGasUsed: txGasUsed.toString()
+            txGasUsed: txGasUsed.toFixed()
           }
         })
       );
