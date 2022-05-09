@@ -99,6 +99,18 @@ export async function computeSuccessfulSwapsTxFeesRefund({
           return;
         }
 
+        if (GRPSystemGuardian.isMaxPSPGlobalBudgetSpent()) {
+          logger.warn(
+            `max psp global budget spent, preventing further processing & storing`,
+          );
+          return;
+        }
+
+        if (GRPSystemGuardian.isAccountUSDBudgetSpent(address)) {
+          logger.warn(`Max budget already spent for ${address}`);
+          return;
+        }
+
         const txGasUsed = await getTransactionGasUsed({
           chainId,
           txHash: swap.txHash,
