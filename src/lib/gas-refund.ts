@@ -22,18 +22,6 @@ export const GasRefundSPSPStakesAlgoFlipEpoch = 12;
 // todo: set this number accordingly
 export const GasRefundSwapSourceCovalentStartEpoch = 13;
 
-
-// todo: missing 2,5,6 - check that's expected
-export const STAKING_POOL_ADDRESSES: Record<string, string> = {
-  POOL_1: '0x55A68016910A7Bcb0ed63775437e04d2bB70D570',
-  POOL_3: '0xea02DF45f56A690071022c45c95c46E7F61d3eAb',
-  POOL_4: '0x6b1D394Ca67fDB9C90BBd26FE692DdA4F4f53ECD',
-  POOL_7: '0x37b1E4590638A266591a9C11d6f945fe7A1adAA7',
-  POOL_8: '0x03c1eaff32c4bd67ee750ab75ce85ba7e5aa65fb',
-  POOL_9: '0xC3359DbdD579A3538Ea49669002e8E8eeA191433',
-  POOL_10: '0x36d69afE2194F9A1756ba1956CE2e0287A40F671',
-}
-
 export const AUGUSTUS_ADDRESS = '0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57'
 
 interface BaseGasRefundData {
