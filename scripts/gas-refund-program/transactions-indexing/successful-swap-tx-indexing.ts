@@ -192,7 +192,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
           gasUsedUSD: currGasUsedUSD.toFixed(0),
           totalStakeAmountPSP,
           refundedAmountPSP: currRefundedAmountPSP.toFixed(0),
-          refundedAmountUSD: currRefundedAmountUSD.toFixed(0)
+          refundedAmountUSD: currRefundedAmountUSD.toFixed() // purposefully not rounded to preserve dollar amount precision
         };
 
         pendingGasRefundTransactionData.push(pendingGasRefundDatum);
