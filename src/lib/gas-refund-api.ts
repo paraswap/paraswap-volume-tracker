@@ -3,7 +3,7 @@ import { Contract } from '@ethersproject/contracts';
 import _ from 'lodash';
 import { assert } from 'ts-essentials';
 import * as Sequelize from 'sequelize';
-import Database from '../../src/database';
+import Database from '../database';
 import { GasRefundParticipation } from '../models/GasRefundParticipation';
 import { GasRefundDistribution } from '../models/GasRefundDistribution';
 import { GasRefundTransaction } from '../models/GasRefundTransaction'
@@ -108,14 +108,15 @@ export class GasRefundApi {
 
   async _fetchMerkleData(address: string): Promise<GasRefundClaim[]> {
     const sqlQuery = `
-      SELECT grp.address, grp.epoch, grp."merkleProofs", refunds."refundedAmountPSP"
-      FROM "GasRefundParticipations" grp
-      JOIN (
-        SELECT grt."address", SUM(grt."refundedAmountPSP") AS "refundedAmountPSP"
-        FROM "GasRefundTransactions" grt
-        GROUP BY grt.address
-      ) AS refunds ON grp.address = refunds.address
-      WHERE grp.address=:address AND grp."chainId"=:chainId
+        SELECT  grp.address, grp.epoch, grp."merkleProofs", refunds."refundedAmountPSP"
+        FROM "GasRefundParticipations" grp
+        JOIN (
+          SELECT grt."address", grt.epoch, SUM(grt."refundedAmountPSP") AS "refundedAmountPSP"
+          FROM "GasRefundTransactions" grt
+          WHERE grt."chainId" = :chainId
+          GROUP BY grt.address, grt.epoch
+        ) AS refunds ON grp.address = refunds.address and grp.epoch = refunds.epoch
+        WHERE grp.address=:address AND grp."chainId"=:chainId
     `
     const grpDataResult: GasRefundClaim[] = await Database.sequelize.query(sqlQuery, {
       type: Sequelize.QueryTypes.SELECT,
