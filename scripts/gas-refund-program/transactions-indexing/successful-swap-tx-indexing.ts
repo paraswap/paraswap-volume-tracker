@@ -189,10 +189,10 @@ export async function computeSuccessfulSwapsTxFeesRefund({
           pspUsd: currencyRate.pspPrice,
           chainCurrencyUsd: currencyRate.chainPrice,
           pspChainCurrency: currencyRate.pspToChainCurRate,
-          gasUsedUSD: currGasUsedUSD.toFixed(0),
+          gasUsedUSD: currGasUsedUSD.toFixed(), // purposefully not rounded to preserve dollar amount precision - purely debug / avoid 0$ values in db
           totalStakeAmountPSP,
           refundedAmountPSP: currRefundedAmountPSP.toFixed(0),
-          refundedAmountUSD: currRefundedAmountUSD.toFixed(0)
+          refundedAmountUSD: currRefundedAmountUSD.toFixed() // purposefully not rounded to preserve dollar amount precision [IMPORTANT FOR CALCULCATIONS]
         };
 
         pendingGasRefundTransactionData.push(pendingGasRefundDatum);

@@ -73,6 +73,7 @@ export async function fetchTotalRefundedAmountUSDByAddress(): Promise<{
         ],
       ],
       group: 'address',
+      raw: true,
     })) as unknown as { address: string; totalRefundedAmountUSD: string }[];
 
   const totalRefundedAmountUSDByAddress =
