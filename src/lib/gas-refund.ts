@@ -18,6 +18,7 @@ export const GasRefundPricingAlgoFlipEpoch = 11;
 export const GasRefundSafetyModuleStartEpoch = 11;
 export const GasRefundDeduplicationStartEpoch = 12;
 export const GasRefundTxOriginCheckStartEpoch = 12;
+export const GasRefundSPSPStakesAlgoFlipEpoch = 12;
 
 export type GasRefundDistributionData = {
   epoch: number;

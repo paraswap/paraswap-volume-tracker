@@ -1,4 +1,5 @@
 import {
+  GRP_SUPPORTED_CHAINS,
   GasRefundTransactionData,
   GasRefundParticipantData
 } from '../../../src/lib/gas-refund';
@@ -112,9 +113,16 @@ export async function getLatestTransactionTimestamp() {
   const lastTxTimestampsAllChains = chainToTxTimestamp.map(
     t => t.lastTimestampForChain,
   );
-  const latestTxTimestamps = Math.min(...lastTxTimestampsAllChains, 0);
 
-  return latestTxTimestamps;
+  // if we didn't get exact same number as supported chains
+  // it might be due to data of one chain not being computed yet
+  // in such case prefer returning 0 and fallback to GasRefundGensisStartTime
+  if (lastTxTimestampsAllChains.length !== GRP_SUPPORTED_CHAINS.length)
+    return 0;
+
+  const latestTransactionTimestamp = Math.min(...lastTxTimestampsAllChains);
+
+  return latestTransactionTimestamp;
 }
 
 export const writePendingEpochData = async (

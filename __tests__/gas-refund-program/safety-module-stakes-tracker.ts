@@ -10,10 +10,8 @@ describe('SafetyModuleStakesTracker', () => {
 
   beforeAll(async () => {
     tracker = new SafetyModuleStakeTracker();
-    tracker.startBlock = startBlock + 1;
-    tracker.endBlock = startBlock + 10000;
-
-    await tracker.loadStakes(false);
+    tracker.setBlockBoundary(startBlock + 1, startBlock + 10000);
+    await tracker.loadStakes();
   });
 
   test('Init state', () => {

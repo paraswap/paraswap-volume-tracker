@@ -11,6 +11,7 @@ import {
   GasRefundTxOriginCheckStartEpoch,
 } from '../../../src/lib/gas-refund';
 import { thegraphClient } from '../data-providers-clients';
+import { queryPaginatedData, QueryPaginatedDataParams } from '../utils';
 
 // Note: txGasUsed from thegraph is unsafe as it's actually txGasLimit https://github.com/graphprotocol/graph-node/issues/2619
 const SwapsQuery = `
@@ -63,7 +64,7 @@ export async function getSuccessfulSwaps({
 }: GetSuccessSwapsInput): Promise<SwapData[]> {
   const subgraphURL = SubgraphURLs[chainId];
 
-  const query = async (skip: number, pageSize: number) => {
+  const fetchSwaps = async ({ skip, pageSize }: QueryPaginatedDataParams) => {
     const variables = {
       number_gte: startTimestamp,
       number_lt: endTimestamp,
@@ -81,18 +82,7 @@ export async function getSuccessfulSwaps({
     return swaps;
   };
 
-  let swaps: SwapData[] = [];
-  let skip = 0;
-  let pageSize = 100;
-
-  while (true) {
-    const _swaps = await query(skip, pageSize);
-    swaps = swaps.concat(_swaps);
-    if (_swaps.length < pageSize) {
-      break;
-    }
-    skip = skip + pageSize;
-  }
+  const swaps = await queryPaginatedData(fetchSwaps, 100);
 
   if (epoch < GasRefundTxOriginCheckStartEpoch) {
     return swaps;

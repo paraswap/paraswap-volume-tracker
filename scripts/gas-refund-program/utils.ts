@@ -40,6 +40,36 @@ export function sliceCalls<T, U>({
   return results as [U, ...U[]];
 }
 
+export type QueryPaginatedDataParams = {
+  skip: number;
+  pageNumber: number;
+  pageSize: number;
+};
+export async function queryPaginatedData<T>(
+  query: ({
+    skip,
+    pageNumber,
+    pageSize,
+  }: QueryPaginatedDataParams) => Promise<T[]>,
+  pageSize: number,
+): Promise<T[]> {
+  let items: T[] = [];
+  let skip = 0;
+  let pageNumber = 0;
+
+  while (true) {
+    const _items = await query({ skip, pageNumber, pageSize });
+    items = items.concat(_items);
+    if (_items.length < pageSize) {
+      break;
+    }
+    skip = skip + pageSize;
+    pageNumber++;
+  }
+
+  return items;
+}
+
 export const startOfHourSec = (unixTimestamp: number) => {
   return Math.floor(unixTimestamp / ONE_HOUR_SEC) * ONE_HOUR_SEC;
 };
@@ -101,19 +131,21 @@ async function fetchBlockTimestamp({
 
 export const fetchBlockTimestampCached = pMemoize(fetchBlockTimestamp, {
   cache: new QuickLRU({
-    maxSize: 100,
+    maxSize: 5000,
   }),
 });
 
 export async function fetchBlockTimestampForEvents(events: Event[]) {
+  const blockNumbers = _.uniq(events.map(event => event.blockNumber));
+
   return Object.fromEntries(
     await Promise.all(
-      events.map(
-        async e =>
+      blockNumbers.map(
+        async blockNumber =>
           [
-            e.blockNumber,
+            blockNumber,
             await fetchBlockTimestampCached({
-              blockNumber: e.blockNumber,
+              blockNumber,
               chainId: CHAIN_ID_MAINNET,
             }),
           ] as const,
