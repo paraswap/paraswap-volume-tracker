@@ -17,6 +17,7 @@ import StakesTracker from '../staking/stakes-tracker';
 import { getSuccessfulSwaps } from './swaps-subgraph';
 import { GasRefundTransaction, CovalentTransaction } from '../types';
 import { GasRefundTxOriginCheckStartEpoch, GasRefundSwapSourceCovalentStartEpoch, AUGUSTUS_ADDRESS, GRP_MIN_STAKE } from '../../../src/lib/gas-refund';
+import GRPSystemGuardian, { MAX_USD_ADDRESS_BUDGET } from '../system-guardian';
 import { CHAIN_ID_MAINNET, SAFETY_MODULE_ADDRESS } from '../../../src/lib/constants';
 
 type GetAllTXsInput = {
@@ -79,7 +80,7 @@ export const getSwapTXs = async ({ epoch, chainId, startTimestamp, endTimestamp,
       // get swaps from the graph
       const swaps = await getSuccessfulSwaps({ startTimestamp, endTimestamp, chainId, epoch });
 
-      // check the swapper is a staker to avoid subsequently wasting resources looking up gas unnecessarily
+      // check the swapper is a staker, and likewise hasn't used up their budget, to avoid subsequently wasting resources looking up gas unnecessarily
       const swapsOfQualifyingStakers = swaps.filter(swap => {
         const swapperStake = StakesTracker.getInstance().computeStakedPSPBalance(
           swap.txOrigin,
@@ -87,7 +88,8 @@ export const getSwapTXs = async ({ epoch, chainId, startTimestamp, endTimestamp,
           epoch,
           epochEndTimestamp
         );
-        return !swapperStake.isLessThan(GRP_MIN_STAKE);
+        // tx address must be a staker && must not be over their budget in order to be processed
+        return swapperStake.isGreaterThanOrEqualTo(GRP_MIN_STAKE) && !GRPSystemGuardian.isAccountUSDBudgetSpent(swap.txOrigin);
       });
 
       // augment with gas used
