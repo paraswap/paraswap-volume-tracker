@@ -85,7 +85,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     const pendingGasRefundTransactionData: GasRefundTransactionData[] = [];
 
     await Promise.all(
-      txs.map(async swap => {
+      txs.map(swap => {
         const address = swap.txOrigin;
 
         const swapperStake =
