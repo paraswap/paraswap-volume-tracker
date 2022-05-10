@@ -37,15 +37,13 @@ export const getAllTXs = async ({ epoch, chainId, startTimestamp, endTimestamp, 
   ]
 
   // fetch swaps and stakes
-  const allTXs = await Promise.all([
+  const allTXs =( await Promise.all([
     getSwapTXs({epoch, chainId, startTimestamp, endTimestamp, epochEndTimestamp}),
     getContractsTXs({chainId, startTimestamp, endTimestamp, whiteListedAddresses})
-  ]);
-
-  const allTXsFlattened = [].concat.apply([], allTXs) as GasRefundTransaction[];
+  ])).flat()
 
   // sort to be chronological
-  const allTXsChronological = allTXsFlattened.sort((a, b) => +(a.timestamp) - +(b.timestamp));
+  const allTXsChronological = allTXs.sort((a, b) => +(a.timestamp) - +(b.timestamp));
 
   return allTXsChronological;
 }
