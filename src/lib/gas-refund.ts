@@ -19,6 +19,7 @@ export const GasRefundSafetyModuleStartEpoch = 11;
 export const GasRefundDeduplicationStartEpoch = 12;
 export const GasRefundTxOriginCheckStartEpoch = 12;
 export const GasRefundSPSPStakesAlgoFlipEpoch = 12;
+export const GasRefundConsiderContractTXsStartEpoch = 12;
 // todo: set this number accordingly
 export const GasRefundSwapSourceCovalentStartEpoch = 13;
 

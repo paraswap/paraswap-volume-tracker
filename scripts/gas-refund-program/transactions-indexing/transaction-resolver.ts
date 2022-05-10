@@ -16,7 +16,7 @@ import { getTransactionGasUsed } from '../staking/covalent';
 import StakesTracker from '../staking/stakes-tracker';
 import { getSuccessfulSwaps } from './swaps-subgraph';
 import { GasRefundTransaction, CovalentTransaction } from '../types';
-import { GasRefundTxOriginCheckStartEpoch, GasRefundSwapSourceCovalentStartEpoch, AUGUSTUS_ADDRESS, GRP_MIN_STAKE } from '../../../src/lib/gas-refund';
+import { GasRefundTxOriginCheckStartEpoch, GasRefundSwapSourceCovalentStartEpoch, GasRefundConsiderContractTXsStartEpoch, AUGUSTUS_ADDRESS, GRP_MIN_STAKE } from '../../../src/lib/gas-refund';
 import GRPSystemGuardian, { MAX_USD_ADDRESS_BUDGET } from '../system-guardian';
 import { CHAIN_ID_MAINNET, SAFETY_MODULE_ADDRESS } from '../../../src/lib/constants';
 
@@ -38,7 +38,7 @@ export const getAllTXs = async ({ epoch, chainId, startTimestamp, endTimestamp, 
   // fetch swaps and contract (staking pools, safety module) txs
   const allTXs = (await Promise.all([
     getSwapTXs({epoch, chainId, startTimestamp, endTimestamp, epochEndTimestamp}),
-    getContractsTXs({chainId, startTimestamp, endTimestamp, whiteListedAddresses })
+    getContractsTXs({epoch, chainId, startTimestamp, endTimestamp, whiteListedAddresses })
   ])).flat()
 
   // sort to be chronological
@@ -131,17 +131,23 @@ export const getSwapTXs = async ({ epoch, chainId, startTimestamp, endTimestamp,
  * for all staking contracts.
  */
 type GetContractsTXsInput = {
+  epoch: number;
   chainId: number;
   startTimestamp: number;
   endTimestamp: number;
   whiteListedAddresses: string[]
 }
 export const getContractsTXs = async ({
+  epoch,
   startTimestamp,
   endTimestamp,
   chainId,
   whiteListedAddresses
 }: GetContractsTXsInput): Promise<GasRefundTransaction[]> => {
+  // fail fast if this is a deadend
+  if (epoch < GasRefundConsiderContractTXsStartEpoch || !whiteListedAddresses || whiteListedAddresses.length === 0) {
+    return []
+  }
 
   const getTxsFromAllContracts = whiteListedAddresses.map(contract => covalentGetTXsForContract({
     startTimestamp,
