@@ -28,10 +28,7 @@ export const covalentGetTXsForContract = async ({
   })
 
   const { COVALENT_API_KEY } = process.env;
-
-  // todo: better would be to first call the end point with page-size=0 just to get the total number of items, and then construct many request promises and run concurrently - currently this isn't possible (as `total_count` is null) in the covalent api but scheduled
-  const fetchTXs = async({ pageNumber, pageSize }: QueryPaginatedDataParams): Promise<CovalentTransaction[]> => {
-
+  const path = (page: number) => {
     // safety margin to counter possible edge case of relative - not absolute - range bounds
     const safeMarginForRequestLimits = 10;
     const startSecondsAgo = Math.floor((new Date().getTime()) / 1000) - startTimestamp + safeMarginForRequestLimits;
@@ -46,14 +43,27 @@ export const covalentGetTXsForContract = async ({
       throw new Error('only query historic data');
     }
 
-    const route = `/${chainId}/address/${contract}/transactions_v2/?key=${COVALENT_API_KEY}&no-logs=true&page-number=${pageNumber}&page-size=${pageSize}&block-signed-at-limit=${startSecondsAgo}&block-signed-at-span=${duration}`;
+    return `/${chainId}/address/${contract}/transactions_v2/?key=${COVALENT_API_KEY}&no-logs=true&page-number=${page}&page-size=1000&block-signed-at-limit=${startSecondsAgo}&block-signed-at-span=${duration}`;
+  }
+
+  // todo: better would be to first call the end point with page-size=0 just to get the total number of items, and then construct many request promises and run concurrently - currently this isn't possible (as `total_count` is null) in the covalent api but scheduled
+  let hasMore = true
+  let page = 0
+  let items: CovalentTransaction[] = []
+
+  while (hasMore) {
+    // request query params should be calculated for each request (since time relative)
+    const route = path(page)
 
     const { data } = await covalentClient.get(route);
 
-    return data.data.items.map(covalentAddressToTransaction);
-  };
+    const { data: { pagination: { has_more }, items: receivedItems }} = data
 
-  const items = await queryPaginatedData(fetchTXs, 1000);
+    hasMore = has_more
+    page++
+
+    items = [...items, ...receivedItems.map(covalentAddressToTransaction)]
+  };
 
   return items
     // ensure we only return those within the specified range and not those included in the safety margin
