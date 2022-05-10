@@ -141,11 +141,11 @@ export const getContractsTXs = async ({
   whiteListedAddresses
 }: GetContractsTXsInput): Promise<GasRefundTransaction[]> => {
 
-  const getTxsFromAllContracts = [...Array(whiteListedAddresses.length).keys()].map((i) => covalentGetTXsForContract({
+  const getTxsFromAllContracts = whiteListedAddresses.map(contract => covalentGetTXsForContract({
     startTimestamp,
     endTimestamp,
     chainId,
-    contract: whiteListedAddresses[i]
+    contract
   }));
   const txsAcrossContracts = await Promise.all(getTxsFromAllContracts);
 
