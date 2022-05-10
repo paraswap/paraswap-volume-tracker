@@ -17,7 +17,7 @@ import StakesTracker from '../staking/stakes-tracker';
 import { getSuccessfulSwaps } from './swaps-subgraph';
 import { GasRefundTransaction, CovalentTransaction } from '../types';
 import { GasRefundTxOriginCheckStartEpoch, GasRefundSwapSourceCovalentStartEpoch, AUGUSTUS_ADDRESS, GRP_MIN_STAKE } from '../../../src/lib/gas-refund';
-import { CHAIN_ID_MAINNET } from '../../../src/lib/constants';
+import { CHAIN_ID_MAINNET, SAFETY_MODULE_ADDRESS } from '../../../src/lib/constants';
 
 type GetAllTXsInput = {
   startTimestamp: number;
@@ -31,11 +31,15 @@ export const getAllTXs = async ({ epoch, chainId, startTimestamp, endTimestamp, 
 
   // foreach staking pool (assuming we're checking mainnet)
   const poolAddresses = chainId === CHAIN_ID_MAINNET ? Object.values(SPSPAddresses) : [];
+  const whiteListedAddresses = [
+    ...poolAddresses,
+    ...(chainId === CHAIN_ID_MAINNET ? [SAFETY_MODULE_ADDRESS] : [])
+  ]
 
   // fetch swaps and stakes
   const allTXs = await Promise.all([
     getSwapTXs({epoch, chainId, startTimestamp, endTimestamp, epochEndTimestamp}),
-    getContractsTXs({chainId, startTimestamp, endTimestamp, whiteListedAddresses: poolAddresses})
+    getContractsTXs({chainId, startTimestamp, endTimestamp, whiteListedAddresses})
   ]);
 
   const allTXsFlattened = [].concat.apply([], allTXs) as GasRefundTransaction[];
