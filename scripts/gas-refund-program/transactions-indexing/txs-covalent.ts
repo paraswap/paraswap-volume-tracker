@@ -27,14 +27,10 @@ export const covalentGetTXsForContract = async ({
     timestamp: (+txCov.block_signed_at/1000).toString(),
   })
 
-  // filter out smart contract wallets
-  const filterTXs = (txCov: CovalentAPI.Transaction): boolean =>txCov.to_address?.toLowerCase() === contract.toLowerCase();
-
-
   const { COVALENT_API_KEY } = process.env;
 
   // todo: better would be to first call the end point with page-size=0 just to get the total number of items, and then construct many request promises and run concurrently - currently this isn't possible (as `total_count` is null) in the covalent api but scheduled
-  const fetchTXs = async({ pageNumber }: QueryPaginatedDataParams): Promise<CovalentTransaction[]> => {
+  const fetchTXs = async({ pageNumber, pageSize }: QueryPaginatedDataParams): Promise<CovalentTransaction[]> => {
 
     // safety margin to counter possible edge case of relative - not absolute - range bounds
     const safeMarginForRequestLimits = 10;
@@ -50,14 +46,14 @@ export const covalentGetTXsForContract = async ({
       throw new Error('only query historic data');
     }
 
-    const route = `/${chainId}/address/${contract}/transactions_v2/?key=${COVALENT_API_KEY}&no-logs=true&page-number=${pageNumber}&page-size=1000&block-signed-at-limit=${startSecondsAgo}&block-signed-at-span=${duration}`;
+    const route = `/${chainId}/address/${contract}/transactions_v2/?key=${COVALENT_API_KEY}&no-logs=true&page-number=${pageNumber}&page-size=${pageSize}&block-signed-at-limit=${startSecondsAgo}&block-signed-at-span=${duration}`;
 
     const { data } = await covalentClient.get(route);
 
-    return data.data.items.filter(filterTXs).map(covalentAddressToTransaction);
+    return data.data.items.map(covalentAddressToTransaction);
   };
 
-  const items = await queryPaginatedData(fetchTXs);
+  const items = await queryPaginatedData(fetchTXs, 1000);
 
   return items
     // ensure we only return those within the specified range and not those included in the safety margin

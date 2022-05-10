@@ -51,7 +51,7 @@ export async function queryPaginatedData<T>(
     pageNumber,
     pageSize,
   }: QueryPaginatedDataParams) => Promise<T[]>,
-  pageSize = 1000,
+  pageSize: number,
 ): Promise<T[]> {
   let items: T[] = [];
   let skip = 0;
