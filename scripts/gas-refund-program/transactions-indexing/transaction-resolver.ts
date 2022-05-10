@@ -29,17 +29,15 @@ type GetAllTXsInput = {
 
 export const getAllTXs = async ({ epoch, chainId, startTimestamp, endTimestamp, epochEndTimestamp }: GetAllTXsInput): Promise<GasRefundTransaction[]> => {
 
-  // foreach staking pool (assuming we're checking mainnet)
-  const poolAddresses = chainId === CHAIN_ID_MAINNET ? Object.values(SPSPAddresses) : [];
-  const whiteListedAddresses = [
-    ...poolAddresses,
-    ...(chainId === CHAIN_ID_MAINNET ? [SAFETY_MODULE_ADDRESS] : [])
-  ]
+  const chainWhiteListedAddresses: Record<number, string[]> = {
+    [CHAIN_ID_MAINNET]: [...SPSPAddresses, SAFETY_MODULE_ADDRESS]
+  }
+  const whiteListedAddresses = chainWhiteListedAddresses?.[chainId] ?? []
 
-  // fetch swaps and stakes
-  const allTXs =( await Promise.all([
+  // fetch swaps and contract (staking pools, safety module) txs
+  const allTXs = (await Promise.all([
     getSwapTXs({epoch, chainId, startTimestamp, endTimestamp, epochEndTimestamp}),
-    getContractsTXs({chainId, startTimestamp, endTimestamp, whiteListedAddresses})
+    getContractsTXs({chainId, startTimestamp, endTimestamp, whiteListedAddresses })
   ])).flat()
 
   // sort to be chronological
