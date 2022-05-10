@@ -24,7 +24,7 @@ export const covalentGetTXsForContract = async ({
     txGasUsed: txCov.gas_spent.toString(),
     blockNumber: txCov.block_height,
     // convert time to unixtime (seconds)
-    timestamp: (new Date(txCov.block_signed_at).getTime() / 1000).toString(),
+    timestamp: (+txCov.block_signed_at/1000).toString(),
   })
 
   // filter out smart contract wallets
