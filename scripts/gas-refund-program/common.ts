@@ -12,6 +12,7 @@ export async function init(options?: Params) {
   await epochInfo.getEpochInfo();
 }
 
+export const SCRIPT_START_TIME_SEC = Math.round(Date.now() / 1000);
 export const OFFSET_CALC_TIME = 5 * 60; // delay to ensure that all third parties providers are synced
 
 export async function resolveEpochCalcTimeInterval(epoch: number): Promise<{
@@ -26,11 +27,9 @@ export async function resolveEpochCalcTimeInterval(epoch: number): Promise<{
   ]);
   const epochEndTime = epochStartTime + epochDuration; // safer than getEpochEndCalcTime as it fails for current epoch
 
-  const nowSec = Math.round(Date.now() / 1000);
-
   return {
     startCalcTime: epochStartTime,
-    endCalcTime: Math.min(nowSec - OFFSET_CALC_TIME, epochEndTime),
-    isEpochEnded: nowSec > epochEndTime + OFFSET_CALC_TIME,
+    endCalcTime: Math.min(SCRIPT_START_TIME_SEC - OFFSET_CALC_TIME, epochEndTime),
+    isEpochEnded: SCRIPT_START_TIME_SEC >= epochEndTime + OFFSET_CALC_TIME,
   };
 }
