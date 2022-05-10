@@ -1,7 +1,5 @@
 import { covalentClient } from '../data-providers-clients';
 import { CovalentAPI, CovalentTransaction } from '../types';
-import { queryPaginatedData, QueryPaginatedDataParams } from '../utils';
-
 
 interface GetContractTXsByNetworkInput {
   chainId: number;
@@ -43,7 +41,7 @@ export const covalentGetTXsForContract = async ({
       throw new Error('only query historic data');
     }
 
-    return `/${chainId}/address/${contract}/transactions_v2/?key=${COVALENT_API_KEY}&no-logs=true&page-number=${page}&page-size=1000&block-signed-at-limit=${startSecondsAgo}&block-signed-at-span=${duration}`;
+    return `/${chainId}/address/${contract}/transactions_v2/?key=${COVALENT_API_KEY}&no-logs=true&page-number=${page}&page-size=1000&block-signed-at-limit=${startSecondsAgo}&block-signed-at-span=${duration}&match={"to_address": "${contract}"}`;
   }
 
   // todo: better would be to first call the end point with page-size=0 just to get the total number of items, and then construct many request promises and run concurrently - currently this isn't possible (as `total_count` is null) in the covalent api but scheduled
