@@ -1,4 +1,3 @@
-import BigNumber from 'bignumber.js';
 import { assert } from 'ts-essentials';
 import { BlockInfo } from '../../../src/lib/block-info';
 import { CHAIN_ID_MAINNET } from '../../../src/lib/constants';

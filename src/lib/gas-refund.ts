@@ -19,6 +19,40 @@ export const GasRefundSafetyModuleStartEpoch = 11;
 export const GasRefundDeduplicationStartEpoch = 12;
 export const GasRefundTxOriginCheckStartEpoch = 12;
 export const GasRefundSPSPStakesAlgoFlipEpoch = 12;
+export const GasRefundConsiderContractTXsStartEpoch = 12;
+
+interface BaseGasRefundData {
+  epoch: number;
+  address: string;
+  chainId: number;
+}
+export interface PendingEpochGasRefundData extends BaseGasRefundData {
+  accumulatedGasUsed: string;
+  accumulatedGasUsedPSP: string;
+  accumulatedGasUsedChainCurrency: string;
+  accumulatedGasUsedUSD: string;
+  firstBlock: number;
+  lastBlock: number;
+  firstTimestamp: number;
+  lastTimestamp: number;
+  isCompleted: false;
+  totalStakeAmountPSP: string;
+  refundedAmountPSP: string;
+  refundedAmountUSD: string;
+  firstTx: string;
+  lastTx: string;
+  numTx: number;
+}
+
+export interface CompletedEpochGasRefundData
+  extends Partial<Omit<PendingEpochGasRefundData, 'isCompleted'>> {
+  merkleProofs: string[];
+  isCompleted: true;
+}
+
+export type EpochGasRefundData = Partial<
+  Omit<CompletedEpochGasRefundData, 'isCompleted'>
+> & { isCompleted: boolean };
 
 export type GasRefundDistributionData = {
   epoch: number;
@@ -92,3 +126,4 @@ export const getRefundPercent = (stakedAmount: string): number | undefined =>
   gasRefundLevels.find(({ minStakedAmount }) =>
     new BigNumber(stakedAmount).gte(minStakedAmount),
   )?.refundPercent;
+

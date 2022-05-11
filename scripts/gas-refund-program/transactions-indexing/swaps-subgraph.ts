@@ -117,6 +117,6 @@ export interface SwapData {
   txOrigin: string;
   initiator: string;
   txGasPrice: string;
-  blockNumber: number;
+  blockNumber: string;
   timestamp: string;
 }

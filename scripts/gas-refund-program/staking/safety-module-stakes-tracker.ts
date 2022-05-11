@@ -5,6 +5,7 @@ import {
   CHAIN_ID_MAINNET,
   NULL_ADDRESS,
   PSP_ADDRESS,
+  SAFETY_MODULE_ADDRESS
 } from '../../../src/lib/constants';
 import { Provider } from '../../../src/lib/provider';
 import * as ERC20ABI from '../../../src/lib/abi/erc20.abi.json';
@@ -18,7 +19,6 @@ import {
 } from '../timeseries';
 import AbstractStakeTracker from './abstract-stakes-tracker';
 
-const SafetyModuleAddress = '0xc8dc2ec5f5e02be8b37a8444a1931f02374a17ab';
 const BalancerVaultAddress = '0xba12222222228d8ba445958a75a0704d566bf2c8';
 const Balancer_80PSP_20WETH_poolId =
   '0xcb0e14e96f2cefa8550ad8e4aea344f211e5061d00020000000000000000011a';
@@ -32,7 +32,7 @@ interface MinERC20 extends Contract {
 }
 
 const StkPSPBPtAsERC20 = new Contract(
-  SafetyModuleAddress,
+  SAFETY_MODULE_ADDRESS,
   ERC20ABI,
   Provider.getJsonRpcProvider(CHAIN_ID_MAINNET),
 ) as MinERC20;
@@ -165,7 +165,7 @@ export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
 
   async fetchStkPSPBptStakers(initBlock: number) {
     const stakes = await getTokenHolders({
-      token: SafetyModuleAddress,
+      token: SAFETY_MODULE_ADDRESS,
       chainId: CHAIN_ID_MAINNET,
       blockHeight: String(initBlock),
     });

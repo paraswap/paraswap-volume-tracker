@@ -1,18 +1,17 @@
 import '../../src/lib/log4js';
 import * as dotenv from 'dotenv';
 dotenv.config();
-import { computeMerkleData, MinGasRefundParticipation } from './refund/merkle-tree';
+import { computeMerkleData } from './refund/merkle-tree';
 import {
   merkleRootExists,
   saveMerkleTreeInDB,
 } from './persistance/db-persistance';
 
 import { assert } from 'ts-essentials';
-import BigNumber from 'bignumber.js';
 import { Sequelize } from 'sequelize-typescript';
 import {
   GasRefundGenesisEpoch,
-  GRP_SUPPORTED_CHAINS,
+  GRP_SUPPORTED_CHAINS
 } from '../../src/lib/gas-refund';
 import { GasRefundTransaction } from '../../src/models/GasRefundTransaction';
 import { saveMerkleTreeInFile } from './persistance/file-persistance';
