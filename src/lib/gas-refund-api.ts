@@ -16,7 +16,6 @@ import {
 import { EpochInfo } from './epoch-info';
 import { GasRefundGenesisEpoch } from './gas-refund';
 import { Provider } from './provider';
-import  from 'bignumber.js';
 
 const MerkleRedeemAbi = [
   'function seedAllocations(uint _week, bytes32 _merkleRoot, uint _totalAllocation)',
