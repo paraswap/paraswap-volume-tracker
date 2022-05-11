@@ -8,7 +8,7 @@ import {
   GasRefundSafetyModuleStartEpoch,
   GasRefundSPSPStakesAlgoFlipEpoch,
 } from '../../../src/lib/gas-refund';
-import { OFFSET_CALC_TIME } from '../common';
+import { OFFSET_CALC_TIME, SCRIPT_START_TIME_SEC } from '../common';
 import { getLatestTransactionTimestamp } from '../persistance/db-persistance';
 import SafetyModuleStakesTracker from './safety-module-stakes-tracker';
 import SPSPStakesTracker from './spsp-stakes-tracker';
@@ -37,7 +37,7 @@ export default class StakesTracker {
       latestTxTimestamp ||
       (await epochInfo.getEpochStartCalcTime(GasRefundSafetyModuleStartEpoch));
 
-    const endTime = Math.round(Date.now() / 1000) - OFFSET_CALC_TIME;
+    const endTime = SCRIPT_START_TIME_SEC - OFFSET_CALC_TIME;
 
     const [startBlockSPSP, startBlockSM, endBlock] = await Promise.all([
       blockInfo.getBlockAfterTimeStamp(startTimeSPSP),
