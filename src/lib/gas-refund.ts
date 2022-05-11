@@ -20,10 +20,6 @@ export const GasRefundDeduplicationStartEpoch = 12;
 export const GasRefundTxOriginCheckStartEpoch = 12;
 export const GasRefundSPSPStakesAlgoFlipEpoch = 12;
 export const GasRefundConsiderContractTXsStartEpoch = 12;
-// todo: set this number accordingly
-export const GasRefundSwapSourceCovalentStartEpoch = 13;
-
-export const AUGUSTUS_ADDRESS = '0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57'
 
 interface BaseGasRefundData {
   epoch: number;

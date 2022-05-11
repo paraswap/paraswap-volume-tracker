@@ -16,7 +16,7 @@ import { getTransactionGasUsed } from '../staking/covalent';
 import StakesTracker from '../staking/stakes-tracker';
 import { getSuccessfulSwaps } from './swaps-subgraph';
 import { GasRefundTransaction, CovalentTransaction } from '../types';
-import { GasRefundTxOriginCheckStartEpoch, GasRefundSwapSourceCovalentStartEpoch, GasRefundConsiderContractTXsStartEpoch, AUGUSTUS_ADDRESS, GRP_MIN_STAKE } from '../../../src/lib/gas-refund';
+import { GasRefundConsiderContractTXsStartEpoch, GRP_MIN_STAKE } from '../../../src/lib/gas-refund';
 import GRPSystemGuardian, { MAX_USD_ADDRESS_BUDGET } from '../system-guardian';
 import { CHAIN_ID_MAINNET, SAFETY_MODULE_ADDRESS } from '../../../src/lib/constants';
 
@@ -61,68 +61,47 @@ type GetSwapTXsInput = {
   epochEndTimestamp: number;
 }
 export const getSwapTXs = async ({ epoch, chainId, startTimestamp, endTimestamp, epochEndTimestamp }: GetSwapTXsInput): Promise<GasRefundTransaction[]> => {
-  const swaps: GasRefundTransaction[] = await (async () => {
-    // todo: epoch check when we change over - remove `false &&`
-    if (false && epoch >= GasRefundSwapSourceCovalentStartEpoch) {
-      // get from covalent
-      const swapsFromCovalent = await covalentGetTXsForContract({
-        startTimestamp,
-        endTimestamp,
+  // get swaps from the graph
+  const swaps = await getSuccessfulSwaps({ startTimestamp, endTimestamp, chainId, epoch });
+
+  // check the swapper is a staker, and likewise hasn't used up their budget, to avoid subsequently wasting resources looking up gas unnecessarily
+  const swapsOfQualifyingStakers = swaps.filter(swap => {
+    const swapperStake = StakesTracker.getInstance().computeStakedPSPBalance(
+      swap.txOrigin,
+      +swap.timestamp,
+      epoch,
+      epochEndTimestamp
+    );
+    // tx address must be a staker && must not be over their budget in order to be processed
+    return swapperStake.isGreaterThanOrEqualTo(GRP_MIN_STAKE) && !GRPSystemGuardian.isAccountUSDBudgetSpent(swap.txOrigin);
+  });
+
+  // augment with gas used
+  const swapsWithGasUsedNormalised: GasRefundTransaction[] = await Promise.all(
+    swapsOfQualifyingStakers.map(async ({
+      txHash,
+      txOrigin,
+      txGasPrice,
+      timestamp,
+      blockNumber
+    }) => {
+      const txGasUsed = await getTransactionGasUsed({
         chainId,
-        contract: AUGUSTUS_ADDRESS
-      });
-      const normalisedSwapsFromCovalent = swapsFromCovalent.map(swap => ({
-        ...swap,
-        blockNumber: swap.blockNumber.toString()
-      }));
-      return normalisedSwapsFromCovalent;
-    } else {
-      // get swaps from the graph
-      const swaps = await getSuccessfulSwaps({ startTimestamp, endTimestamp, chainId, epoch });
-
-      // check the swapper is a staker, and likewise hasn't used up their budget, to avoid subsequently wasting resources looking up gas unnecessarily
-      const swapsOfQualifyingStakers = swaps.filter(swap => {
-        const swapperStake = StakesTracker.getInstance().computeStakedPSPBalance(
-          swap.txOrigin,
-          +swap.timestamp,
-          epoch,
-          epochEndTimestamp
-        );
-        // tx address must be a staker && must not be over their budget in order to be processed
-        return swapperStake.isGreaterThanOrEqualTo(GRP_MIN_STAKE) && !GRPSystemGuardian.isAccountUSDBudgetSpent(swap.txOrigin);
+        txHash,
       });
 
-      // augment with gas used
-      const swapsWithGasUsedNormalised: GasRefundTransaction[] = await Promise.all(
-        swapsOfQualifyingStakers.map(async ({
-          txHash,
-          txOrigin,
-          txGasPrice,
-          timestamp,
-          blockNumber
-        }) => {
-          const txGasUsed = await getTransactionGasUsed({
-            chainId,
-            txHash,
-          });
+      return {
+        txHash,
+        txOrigin,
+        txGasPrice,
+        timestamp,
+        blockNumber,
+        txGasUsed: txGasUsed.toString()
+      }
+    })
+  );
 
-          return {
-            txHash,
-            txOrigin,
-            txGasPrice,
-            timestamp,
-            blockNumber,
-            txGasUsed: txGasUsed.toString()
-          }
-        })
-      );
-
-      return swapsWithGasUsedNormalised;
-    }
-  })()
-
-
-  return swaps;
+  return swapsWithGasUsedNormalised;
 }
 
 /**
