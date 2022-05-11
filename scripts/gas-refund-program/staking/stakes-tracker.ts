@@ -46,7 +46,7 @@ export default class StakesTracker {
 
     assert(
       typeof endBlock === 'number' && endBlock > 0,
-      'startBlock should be a number greater than 0',
+      'endBlock should be a number greater than 0',
     );
     assert(
       typeof startBlockSPSP === 'number' && startBlockSPSP > endBlock,
