@@ -78,78 +78,61 @@ export const startOfDayMilliSec = (timestamp: number) => {
   return Math.floor(timestamp / DAY_SEC_MSEC) * DAY_SEC_MSEC;
 };
 
-export const generateHourlyTimestamps = (
-  startUnixTimestamp: number,
-  endUnixTimestamp: number,
-) => {
-  const startOfHourTimestampUnix = startOfHourSec(startUnixTimestamp);
-  const endOfHourTimestampUnix = startOfHourSec(endUnixTimestamp);
-  const hoursInBetween = Math.floor(
-    (endOfHourTimestampUnix - startOfHourTimestampUnix) / ONE_HOUR_SEC,
-  );
-  const hourlyTimestamps = _.range(0, hoursInBetween + 1).map(
-    i => startOfHourTimestampUnix + i * ONE_HOUR_SEC,
-  );
-
-  return hourlyTimestamps;
-};
-
-async function fetchBlockTimestamp({
+async function fetchBlocksTimestamps({
   chainId,
-  blockNumber,
+  blockNumbers: _blockNumbers,
 }: {
   chainId: number;
-  blockNumber: number;
-}): Promise<number> {
-  const subgraphURL = SUBGRAPH_URL[chainId];
-  const query = `query ($block: BigInt) {
-      blocks(first: 1, where: {number: $block}) {
+  blockNumbers: number[];
+}): Promise<{ [blockNumber: number]: number }> {
+  const blockNumbers = _.uniq(_blockNumbers);
+
+  const sliceLength = 100;
+
+  const execute = async (
+    blockNumberSliced: number[],
+  ): Promise<[{ number: string; timestamp: string }]> => {
+    const subgraphURL = SUBGRAPH_URL[chainId];
+    const query = `query ($sliceLength: Int, $blocks: [BigInt!]!) {
+      blocks(first: 100, where: {number_in: $blocks}) {
         number
         timestamp
       }
     }`;
-  const variables = {
-    block: blockNumber,
+    const variables = {
+      sliceLength,
+      blocks: blockNumberSliced,
+    };
+
+    const {
+      data: { data },
+    } = await thegraphClient.post<{
+      data: { blocks: [{ number: string; timestamp: string }] };
+    }>(subgraphURL, { query, variables });
+
+    assert(
+      data.blocks.length === blockNumberSliced.length,
+      `didn't get all the blocks`,
+    );
+
+    return data.blocks;
   };
 
-  const {
-    data: { data },
-  } = await thegraphClient.post<{ data: { blocks: [{ timestamp: string }] } }>(
-    subgraphURL,
-    { query, variables },
-  );
-
-  const timestamp = +data.blocks[0].timestamp;
-
-  assert(
-    typeof timestamp === 'number' && !isNaN(timestamp) && timestamp > 0,
-    `could not resolve timestamp for block ${blockNumber}`,
-  );
-
-  return timestamp;
-}
-
-export const fetchBlockTimestampCached = pMemoize(fetchBlockTimestamp, {
-  cache: new QuickLRU({
-    maxSize: 5000,
-  }),
-});
-
-export async function fetchBlockTimestampForEvents(events: Event[]) {
-  const blockNumbers = _.uniq(events.map(event => event.blockNumber));
+  const allResults = (
+    await Promise.all(
+      sliceCalls({ inputArray: blockNumbers, execute, sliceLength }),
+    )
+  ).flat();
 
   return Object.fromEntries(
-    await Promise.all(
-      blockNumbers.map(
-        async blockNumber =>
-          [
-            blockNumber,
-            await fetchBlockTimestampCached({
-              blockNumber,
-              chainId: CHAIN_ID_MAINNET,
-            }),
-          ] as const,
-      ),
-    ),
+    allResults.map(({ number, timestamp }) => [number, +timestamp]),
   );
 }
+
+export const fetchBlockTimestampForEvents = async (
+  events: Event[],
+): Promise<{ [blockNumber: string]: number }> =>
+  fetchBlocksTimestamps({
+    chainId: CHAIN_ID_MAINNET,
+    blockNumbers: events.map(event => event.blockNumber),
+  });
