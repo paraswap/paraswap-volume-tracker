@@ -45,16 +45,16 @@ export default class StakesTracker {
     ]);
 
     assert(
-      typeof startBlockSPSP === 'number' && startBlockSPSP > 0,
-      'startBlockSPSP should be a number greater than 0',
-    );
-    assert(
-      typeof startBlockSM === 'number' && startBlockSM > 0,
-      'startBlockSM should be a number greater than 0',
-    );
-    assert(
       typeof endBlock === 'number' && endBlock > 0,
       'startBlock should be a number greater than 0',
+    );
+    assert(
+      typeof startBlockSPSP === 'number' && startBlockSPSP > endBlock,
+      'startBlockSPSP should be a number greater than endBlock',
+    );
+    assert(
+      typeof startBlockSM === 'number' && startBlockSM  > endBlock,
+      'startBlockSM should be a number greater than endBlock',
     );
 
     await Promise.all([
