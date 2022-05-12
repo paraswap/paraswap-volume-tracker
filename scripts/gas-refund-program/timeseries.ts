@@ -32,7 +32,3 @@ export function timeseriesComparator(a: TimeSeriesItem, b: TimeSeriesItem) {
   if (a.timestamp > b.timestamp) return 1;
   return 0;
 }
-
-export function serialiseTimeSeriesValues(timeseries: TimeSeries) {
-  return timeseries.map(v => ({ ...v, value: v.value.toFixed(0) }));
-}
