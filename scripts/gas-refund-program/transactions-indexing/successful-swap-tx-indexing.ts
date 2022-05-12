@@ -100,7 +100,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
           return;
         }
 
-        const { txGasUsed } = swap
+        const { txGasUsed, contract } = swap
 
         if (GRPSystemGuardian.isMaxPSPGlobalBudgetSpent()) {
           logger.warn(
@@ -190,7 +190,8 @@ export async function computeSuccessfulSwapsTxFeesRefund({
           gasUsedUSD: currGasUsedUSD.toFixed(), // purposefully not rounded to preserve dollar amount precision - purely debug / avoid 0$ values in db
           totalStakeAmountPSP,
           refundedAmountPSP: currRefundedAmountPSP.toFixed(0),
-          refundedAmountUSD: currRefundedAmountUSD.toFixed() // purposefully not rounded to preserve dollar amount precision [IMPORTANT FOR CALCULCATIONS]
+          refundedAmountUSD: currRefundedAmountUSD.toFixed(), // purposefully not rounded to preserve dollar amount precision [IMPORTANT FOR CALCULCATIONS]
+          contract
         };
 
         pendingGasRefundTransactionData.push(pendingGasRefundDatum);

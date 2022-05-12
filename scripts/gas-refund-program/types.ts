@@ -85,4 +85,5 @@ export interface SubGraphSwap {
 
 export interface GasRefundTransaction extends Omit<CovalentTransaction, 'blockNumber'> {
   blockNumber: string;
+  contract: string;
 }
