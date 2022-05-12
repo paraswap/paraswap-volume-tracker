@@ -1,5 +1,5 @@
 import { covalentClient } from '../data-providers-clients';
-import { CovalentAPI, CovalentTransaction } from '../types';
+import { CovalentAPI, CovalentTransaction, GasRefundTransaction } from '../types';
 
 interface GetContractTXsByNetworkInput {
   chainId: number;
@@ -15,14 +15,15 @@ export const covalentGetTXsForContract = async ({
   contract
 }: GetContractTXsByNetworkInput): Promise<CovalentTransaction[]> => {
 
-  const covalentAddressToTransaction = (txCov: CovalentAPI.Transaction): CovalentTransaction => ({
+  const covalentAddressToTransaction = (txCov: CovalentAPI.Transaction): GasRefundTransaction => ({
     txHash: txCov.tx_hash,
     txOrigin: txCov.from_address,
     txGasPrice: txCov.gas_price.toString(),
     txGasUsed: txCov.gas_spent.toString(),
-    blockNumber: txCov.block_height,
+    blockNumber: txCov.block_height.toString(),
     // convert time to unixtime (seconds)
-    timestamp: (new Date(txCov.block_signed_at).getTime() / 1000).toString()
+    timestamp: (new Date(txCov.block_signed_at).getTime() / 1000).toString(),
+    contract
   })
 
   const { COVALENT_API_KEY } = process.env;

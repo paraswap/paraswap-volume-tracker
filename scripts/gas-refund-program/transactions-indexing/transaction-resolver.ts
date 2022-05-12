@@ -15,10 +15,10 @@ import { covalentGetTXsForContract } from './txs-covalent';
 import { getTransactionGasUsed } from '../staking/covalent';
 import StakesTracker from '../staking/stakes-tracker';
 import { getSuccessfulSwaps } from './swaps-subgraph';
-import { GasRefundTransaction, CovalentTransaction } from '../types';
+import { GasRefundTransaction } from '../types';
 import { GasRefundConsiderContractTXsStartEpoch, GRP_MIN_STAKE } from '../../../src/lib/gas-refund';
-import GRPSystemGuardian, { MAX_USD_ADDRESS_BUDGET } from '../system-guardian';
-import { CHAIN_ID_MAINNET, SAFETY_MODULE_ADDRESS } from '../../../src/lib/constants';
+import GRPSystemGuardian from '../system-guardian';
+import { CHAIN_ID_MAINNET, SAFETY_MODULE_ADDRESS, AUGUSTUS_ADDRESS } from '../../../src/lib/constants';
 
 type GetAllTXsInput = {
   startTimestamp: number;
@@ -76,7 +76,7 @@ export const getSwapTXs = async ({ epoch, chainId, startTimestamp, endTimestamp,
     return swapperStake.isGreaterThanOrEqualTo(GRP_MIN_STAKE) && !GRPSystemGuardian.isAccountUSDBudgetSpent(swap.txOrigin);
   });
 
-  // augment with gas used
+  // augment with gas used and the pertaining contract the tx occured on
   const swapsWithGasUsedNormalised: GasRefundTransaction[] = await Promise.all(
     swapsOfQualifyingStakers.map(async ({
       txHash,
@@ -96,7 +96,8 @@ export const getSwapTXs = async ({ epoch, chainId, startTimestamp, endTimestamp,
         txGasPrice,
         timestamp,
         blockNumber,
-        txGasUsed: txGasUsed.toString()
+        txGasUsed: txGasUsed.toString(),
+        contract: AUGUSTUS_ADDRESS
       }
     })
   );
@@ -136,15 +137,10 @@ export const getContractsTXs = async ({
   }));
   const txsAcrossContracts = await Promise.all(getTxsFromAllContracts);
 
-  const txsFromAllContracts = [].concat.apply([], txsAcrossContracts) as CovalentTransaction[];
+  const txsFromAllContracts = [].concat.apply([], txsAcrossContracts) as GasRefundTransaction[];
 
   // sort to be chronological
   const chronologicalTxs = txsFromAllContracts.sort((a, b) => +(a.timestamp) - +(b.timestamp));
 
-  const normalisedTXs: GasRefundTransaction[] = chronologicalTxs.map(tx => ({
-    ...tx,
-    blockNumber: tx.blockNumber.toString()
-  }))
-
-  return normalisedTXs;
+  return chronologicalTxs;
 }

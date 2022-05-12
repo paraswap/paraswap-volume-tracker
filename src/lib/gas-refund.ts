@@ -92,6 +92,7 @@ export interface GasRefundTransactionData {
   totalStakeAmountPSP: string;
   refundedAmountPSP: string;
   refundedAmountUSD: string;
+  contract: string;
 }
 
 //                                                  psp decimals
