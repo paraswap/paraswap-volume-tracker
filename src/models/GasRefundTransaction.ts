@@ -68,6 +68,6 @@ export class GasRefundTransaction extends Model<GasRefundTransactionData> {
   refundedAmountUSD: string;
 
   @Index
-  @Column(DataType_KECCAK256_HASHED_VALUE)
+  @Column(DataType_ADDRESS)
   contract: string;
 }
