@@ -1,8 +1,6 @@
 import BigNumber from 'bignumber.js';
 import { Event } from 'ethers';
 import * as _ from 'lodash';
-import * as pMemoize from 'p-memoize';
-import * as QuickLRU from 'quick-lru';
 import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
 import { SUBGRAPH_URL } from '../../src/lib/block-info';
 import { thegraphClient } from './data-providers-clients';
@@ -94,7 +92,7 @@ async function fetchBlocksTimestamps({
   ): Promise<[{ number: string; timestamp: string }]> => {
     const subgraphURL = SUBGRAPH_URL[chainId];
     const query = `query ($sliceLength: Int, $blocks: [BigInt!]!) {
-      blocks(first: 100, where: {number_in: $blocks}) {
+      blocks(first: $sliceLength, where: {number_in: $blocks}) {
         number
         timestamp
       }
