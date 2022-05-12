@@ -134,3 +134,20 @@ export const fetchBlockTimestampForEvents = async (
     chainId: CHAIN_ID_MAINNET,
     blockNumbers: events.map(event => event.blockNumber),
   });
+
+// @testOnly
+export const BNReplacer = (key: string, value: any): any => {
+  if (!value) return value;
+  if (value instanceof BigNumber) {
+    return value.toFixed();
+  }
+  if(Array.isArray(value)) {
+    return value.map(v => BNReplacer("", v));
+  }
+  if (typeof value === 'object') {
+    const list = Object.entries(value).map(([k, v]) => [k, BNReplacer(k, v)]);
+
+    return Object.fromEntries(list);
+  }
+  return value;
+};
