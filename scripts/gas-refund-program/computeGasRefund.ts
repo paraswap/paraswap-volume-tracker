@@ -17,7 +17,7 @@ async function startComputingGasRefundAllChains() {
     dbTransactionNamespace: 'gas-refund-computation',
   });
 
-  //return Database.sequelize.transaction(async () => {
+  return Database.sequelize.transaction(async () => {
     await Promise.all(
       GRP_SUPPORTED_CHAINS.map(chainId =>
         acquireLock(generateLockKeyForTxTable(chainId)),
@@ -38,7 +38,7 @@ async function startComputingGasRefundAllChains() {
         releaseLock(generateLockKeyForTxTable(chainId)),
       ),
     );
-  //});
+  });
 }
 
 startComputingGasRefundAllChains()

@@ -39,11 +39,10 @@ export async function fetchRefundableTransactions({
 
   logger.info(`start indexing between ${startTimestamp} and ${endTimestamp}`);
 
-  const lastTimestampTxByContract =
-    await fetchLastTimestampTxByContract({
-      chainId,
-      epoch,
-    });
+  const lastTimestampTxByContract = await fetchLastTimestampTxByContract({
+    chainId,
+    epoch,
+  });
 
   const contractAddresses = getContractAddresses({ epoch, chainId });
 

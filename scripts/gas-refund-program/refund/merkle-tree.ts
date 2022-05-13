@@ -4,7 +4,7 @@ import { MerkleTree } from 'merkletreejs';
 import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
 
 export type MinGasRefundTransaction = Pick<
-GasRefundTransaction,
+  GasRefundTransaction,
   'refundedAmountPSP' | 'address'
 >;
 

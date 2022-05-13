@@ -31,7 +31,6 @@ export async function computeAndStoreMerkleTreeForChain({
   chainId: number;
   epoch: number;
 }) {
-  
   if (!skipCheck && (await merkleRootExists({ chainId, epoch })))
     return logger.warn(
       `merkle root for chainId=${chainId} epoch=${epoch} already exists`,
