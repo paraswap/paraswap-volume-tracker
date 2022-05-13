@@ -39,7 +39,7 @@ export async function computeAndStoreMerkleTreeForChain({
 
   // check if none transactions is idle before computing merkle tree
 
-  const gasRefundParticipations: {
+  const refundableTransactions: {
     address: string;
     refundedAmountPSP: string;
   }[] = await GasRefundTransaction.findAll({
@@ -61,7 +61,7 @@ export async function computeAndStoreMerkleTreeForChain({
   const merkleTree = await computeMerkleData({
     chainId,
     epoch,
-    gasRefundParticipations,
+    refundableTransactions,
   });
 
   if (saveFile) {

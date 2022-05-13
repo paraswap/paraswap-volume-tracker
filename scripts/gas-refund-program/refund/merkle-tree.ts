@@ -3,7 +3,7 @@ import { utils, logger } from 'ethers';
 import { MerkleTree } from 'merkletreejs';
 import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
 
-export type MinGasRefundParticipation = Pick<
+export type MinGasRefundTransaction = Pick<
 GasRefundTransaction,
   'refundedAmountPSP' | 'address'
 >;
@@ -11,17 +11,17 @@ GasRefundTransaction,
 export async function computeMerkleData({
   chainId,
   epoch,
-  gasRefundParticipations,
+  refundableTransactions,
 }: {
   chainId: number;
   epoch: number;
-  gasRefundParticipations: MinGasRefundParticipation[];
+  refundableTransactions: MinGasRefundTransaction[];
 }): Promise<MerkleTreeData> {
-  const totalAmount = gasRefundParticipations
+  const totalAmount = refundableTransactions
     .reduce((acc, curr) => (acc += BigInt(curr.refundedAmountPSP)), BigInt(0))
     .toString();
 
-  const hashedClaimabled = gasRefundParticipations.reduce<
+  const hashedClaimabled = refundableTransactions.reduce<
     Record<string, Claimable>
   >((acc, curr) => {
     const { address, refundedAmountPSP } = curr;
