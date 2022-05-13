@@ -37,7 +37,7 @@ export async function computeAndStoreMerkleTreeForChain({
       `merkle root for chainId=${chainId} epoch=${epoch} already exists`,
     );
 
-  // check if none transactions is idle before computing merkle tree
+  // @TODO: check if none transactions is idle before computing merkle tree
 
   const refundableTransactions: {
     address: string;
