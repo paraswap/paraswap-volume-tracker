@@ -39,12 +39,6 @@ const CovalentAddressesByChain: Record<number, string[]> = {
   [CHAIN_ID_MAINNET]: [...SPSPAddresses, SAFETY_MODULE_ADDRESS],
 };
 
-const FullContractAddressesByChain: Record<number, string[]> = {
-  [CHAIN_ID_MAINNET]: (CovalentAddressesByChain[CHAIN_ID_MAINNET] || []).concat(
-    AUGUSTUS_V5_ADDRESS,
-  ),
-};
-
 export const getContractAddresses = ({
   chainId,
   epoch,
@@ -55,7 +49,7 @@ export const getContractAddresses = ({
   if (epoch < GasRefundConsiderContractTXsStartEpoch)
     return [AUGUSTUS_V5_ADDRESS];
 
-  return FullContractAddressesByChain[chainId];
+  return (CovalentAddressesByChain[chainId] || []).concat(AUGUSTUS_V5_ADDRESS);
 };
 
 export const getAllTXs = async ({
