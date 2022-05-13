@@ -1,26 +1,45 @@
+import { Op } from 'sequelize';
 import { TransactionStatus } from '../../../src/lib/gas-refund';
 import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
-import { writeTransactions } from '../persistance/db-persistance';
+import {
+  fetchLastEpochProcessed,
+  writeTransactions,
+} from '../persistance/db-persistance';
 import {
   GRPMaxLimitGuardian,
   MAX_PSP_GLOBAL_BUDGET,
   MAX_USD_ADDRESS_BUDGET,
 } from './max-limit-guardian';
 
+/**
+ * This function guarantees that the order of transactions take into account for an address is always stable.
+ * This is particular important as we approach the local (by address) or the global limit.
+ * Because some transactions from some data source can arrive later, we need to reassess the status of all transactions for all chains for whole epoch.
+ *
+ * The solution is to:
+ * - load current guard state in memory
+ * - scan all transaction since last epoch processed in batch 
+ * - increase by address and globally with help of guardian
+ * - write back to database the status of the transaction
+ */
 export async function validateTransactions() {
   const guardian = GRPMaxLimitGuardian.getInstance();
 
-  // reload total spent per user
-  await guardian.loadStateFromDB();
+  const lastEpochProcessed = await fetchLastEpochProcessed();
 
-  // scan idle transactions sorted by timestamp and hash
+  // reload overal state till last epoch processed (edxclusive)
+  await guardian.loadStateFromDB(lastEpochProcessed);
+
   let offset = 0;
-  const pageSize = 100;
+  const pageSize = 1000;
 
   while (true) {
+    // scan transactions in batch sorted by timestamp and hash to guarantee stability
     const transactionsSlice = await GasRefundTransaction.findAll({
       where: {
-        status: TransactionStatus.IDLE,
+        epoch: {
+          [Op.gte]: lastEpochProcessed,
+        },
       },
       order: ['timestamp', 'hash'],
       limit: pageSize,
@@ -32,16 +51,21 @@ export async function validateTransactions() {
     offset += pageSize;
 
     for (const tx of transactionsSlice) {
-      const willCrossGlobalLimit = guardian.systemState.totalPSPRefunded // if max limit is reached all next one will be flagged rejected
-        .plus(tx.refundedAmountPSP)
-        .isGreaterThan(MAX_PSP_GLOBAL_BUDGET);
+      const isGlobalLimitReached =
+        guardian.systemState.totalPSPRefunded
+          .plus(tx.refundedAmountPSP)
+          .isGreaterThan(MAX_PSP_GLOBAL_BUDGET) ||
+        guardian.isMaxPSPGlobalBudgetSpent();
 
-      const willCrossLocalLimit = guardian
-        .totalRefundedAmountUSD(tx.address)
-        .plus(tx.refundedAmountUSD)
-        .isGreaterThan(MAX_USD_ADDRESS_BUDGET);
+      const isLocalLimitReached =
+        guardian
+          .totalRefundedAmountUSD(tx.address)
+          .plus(tx.refundedAmountUSD)
+          .isGreaterThan(MAX_USD_ADDRESS_BUDGET) ||
+        guardian.isAccountUSDBudgetSpent(tx.address);
 
-      if (willCrossLocalLimit || willCrossGlobalLimit) {
+      // once one limit is reached, reject tx. Note: this would let refund future transactions that are still within the limit
+      if (isLocalLimitReached || isGlobalLimitReached) {
         tx.status = TransactionStatus.REJECTED;
       } else {
         tx.status = TransactionStatus.VALIDATED;
@@ -56,5 +80,7 @@ export async function validateTransactions() {
     }
 
     await writeTransactions(transactionsSlice);
+
+    if (transactionsSlice.length < pageSize) break; // micro opt to avoid querying db for last page
   }
 }

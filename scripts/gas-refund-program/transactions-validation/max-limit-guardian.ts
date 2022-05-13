@@ -33,11 +33,11 @@ export class GRPMaxLimitGuardian {
     return this.instance;
   }
 
-  async loadStateFromDB() {
+  async loadStateFromDB(toEpoch?: number) {
     const [totalPSPRefunded, totalRefundedAmountUSDByAddress] =
       await Promise.all([
-        fetchTotalRefundedPSP(),
-        fetchTotalRefundedAmountUSDByAddress(),
+        fetchTotalRefundedPSP(toEpoch),
+        fetchTotalRefundedAmountUSDByAddress(toEpoch),
       ]);
 
     this.systemState = {
@@ -64,6 +64,13 @@ export class GRPMaxLimitGuardian {
 
   assertMaxPSPGlobalBudgetNotReached() {
     assert(!this.isMaxPSPGlobalBudgetSpent(), 'Max PSP global budget spent');
+  }
+
+  assertMaxUsdBudgetNotReachedForAccount(account: string) {
+    assert(
+      !this.isAccountUSDBudgetSpent(account),
+      'Max USD local budget spent',
+    );
   }
 
   increaseTotalAmountRefundedUSDForAccount(

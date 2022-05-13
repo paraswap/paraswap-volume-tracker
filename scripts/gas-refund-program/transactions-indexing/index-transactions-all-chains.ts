@@ -10,7 +10,7 @@ import {
   getLatestEpochProcessed,
   merkleRootExists,
 } from '../persistance/db-persistance';
-import { fetchRefundableTransactionsForChain } from './index-transactions-per-chain';
+import { fetchPricingAndTransactions } from './index-transactions-per-chain';
 
 const logger = global.LOGGER('GRP::fetchRefundableTransactionsAllChains');
 
@@ -46,7 +46,7 @@ export async function fetchRefundableTransactionsAllChains() {
           continue;
         }
 
-        await fetchRefundableTransactionsForChain({
+        await fetchPricingAndTransactions({
           chainId,
           epoch,
           startTimestamp: startCalcTime,

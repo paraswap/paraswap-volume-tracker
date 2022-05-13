@@ -3,46 +3,63 @@ import {
   GasRefundTransactionData,
   GasRefundParticipantData,
   TransactionStatus,
+  GasRefundGenesisEpoch,
 } from '../../../src/lib/gas-refund';
 import { GasRefundParticipation } from '../../../src/models/GasRefundParticipation';
 import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
 import { GasRefundDistribution } from '../../../src/models/GasRefundDistribution';
 import { MerkleData, MerkleTreeData } from '../types';
 import { sliceCalls } from '../utils';
-import { Sequelize } from 'sequelize';
+import { Sequelize, Op } from 'sequelize';
 import BigNumber from 'bignumber.js';
 
-export async function fetchVeryLastTimestampProcessed({
+export async function fetchLastTimestampTxByContract({
   chainId,
   epoch,
 }: {
   chainId: number;
   epoch: number;
-}): Promise<number> {
-  const lastTimestamp = await GasRefundTransaction.max<
-    number,
-    GasRefundTransaction
-  >('timestamp', {
-    where: { chainId, epoch },
-  });
+}): Promise<{ [contract: string]: number }> {
+  const totalRefundedAmountUSDAllAddresses =
+    (await GasRefundTransaction.findAll({
+      attributes: [
+        'contract',
+        [Sequelize.fn('MAX', Sequelize.col('timestamp')), 'latestTimestamp'],
+      ],
+      where: {
+        chainId,
+        epoch,
+      },
+      group: 'contract',
+      raw: true,
+    })) as unknown as { contract: string; latestTimestamp: number }[];
 
-  return lastTimestamp;
+  return Object.fromEntries(
+    totalRefundedAmountUSDAllAddresses.map(
+      ({ contract, latestTimestamp }) => [contract, latestTimestamp] as const,
+    ),
+  );
 }
 
-export async function fetchTotalRefundedPSP(): Promise<BigNumber> {
+export async function fetchTotalRefundedPSP(
+  toEpoch?: number,
+): Promise<BigNumber> {
   const totalPSPRefunded = await GasRefundTransaction.sum<
     string,
     GasRefundTransaction
   >('refundedAmountPSP', {
     where: {
       status: TransactionStatus.VALIDATED,
+      ...(toEpoch ? { epoch: { [Op.lt]: toEpoch } } : {}),
     },
   });
 
   return new BigNumber(totalPSPRefunded);
 }
 
-export async function fetchTotalRefundedAmountUSDByAddress(): Promise<{
+export async function fetchTotalRefundedAmountUSDByAddress(
+  toEpoch?: number,
+): Promise<{
   [address: string]: BigNumber;
 }> {
   const totalRefundedAmountUSDAllAddresses =
@@ -56,6 +73,7 @@ export async function fetchTotalRefundedAmountUSDByAddress(): Promise<{
       ],
       where: {
         status: TransactionStatus.VALIDATED,
+        ...(toEpoch ? { epoch: { [Op.lt]: toEpoch } } : {}),
       },
       group: 'address',
       raw: true,
@@ -109,6 +127,29 @@ export async function getLatestTransactionTimestamp() {
   const latestTransactionTimestamp = Math.min(...lastTxTimestampsAllChains);
 
   return latestTransactionTimestamp;
+}
+
+export async function fetchLastEpochProcessed(): Promise<number> {
+  const chainToEpoch = (await GasRefundTransaction.findAll({
+    attributes: [
+      'chainId',
+      [Sequelize.fn('max', Sequelize.col('epoch')), 'lastEpoch'],
+    ],
+    group: 'chainId',
+    raw: true,
+  })) as unknown as { chainId: number; lastEpoch: number }[];
+
+  const lastEpochProcessedAllChains = chainToEpoch.map(t => t.lastEpoch);
+
+  // if we didn't get exact same number as supported chains
+  // it might be due to data of one chain not being computed yet
+  // in such case prefer returning fallback to GasRefundGensisStartTime
+  if (lastEpochProcessedAllChains.length !== GRP_SUPPORTED_CHAINS.length)
+    return GasRefundGenesisEpoch;
+
+  const latestEpochProcessed = Math.min(...lastEpochProcessedAllChains);
+
+  return latestEpochProcessed;
 }
 
 export const writeTransactions = async (
