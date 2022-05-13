@@ -3,8 +3,8 @@ import { assert } from 'ts-essentials';
 import {
   fetchTotalRefundedAmountUSDByAddress,
   fetchTotalRefundedPSP,
-} from './persistance/db-persistance';
-import { ZERO_BN } from './utils';
+} from '../persistance/db-persistance';
+import { ZERO_BN } from '../utils';
 
 export const MAX_PSP_GLOBAL_BUDGET = new BigNumber(30_000_000).multipliedBy(
   10 ** 18,
@@ -20,8 +20,18 @@ export type GRPSystemState = {
  * This loads the current state of the system from database and resolve whether any limits are violated
  * some optimistic in memory updates are inferred to avoid querying database too often
  */
-class GRPSystemGuardian {
+export class GRPMaxLimitGuardian {
   systemState: GRPSystemState;
+
+  static instance: GRPMaxLimitGuardian;
+
+  static getInstance() {
+    if (!this.instance) {
+      this.instance = new GRPMaxLimitGuardian();
+    }
+
+    return this.instance;
+  }
 
   async loadStateFromDB() {
     const [totalPSPRefunded, totalRefundedAmountUSDByAddress] =
@@ -58,17 +68,15 @@ class GRPSystemGuardian {
 
   increaseTotalAmountRefundedUSDForAccount(
     account: string,
-    usdAmount: BigNumber,
+    usdAmount: BigNumber | string,
   ) {
     this.systemState.totalRefundedAmountUSDByAddress[account] =
       this.totalRefundedAmountUSD(account).plus(usdAmount);
   }
 
-  increaseTotalPSPRefunded(amount: BigNumber) {
+  increaseTotalPSPRefunded(amount: BigNumber | string) {
     this.systemState.totalPSPRefunded = (
       this.systemState.totalPSPRefunded || ZERO_BN
     ).plus(amount);
   }
 }
-
-export default new GRPSystemGuardian();

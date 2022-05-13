@@ -11,7 +11,8 @@ import { assert } from 'ts-essentials';
 import { Sequelize } from 'sequelize-typescript';
 import {
   GasRefundGenesisEpoch,
-  GRP_SUPPORTED_CHAINS
+  GRP_SUPPORTED_CHAINS,
+  TransactionStatus,
 } from '../../src/lib/gas-refund';
 import { GasRefundTransaction } from '../../src/models/GasRefundTransaction';
 import { saveMerkleTreeInFile } from './persistance/file-persistance';
@@ -30,31 +31,37 @@ export async function computeAndStoreMerkleTreeForChain({
   chainId: number;
   epoch: number;
 }) {
+  
   if (!skipCheck && (await merkleRootExists({ chainId, epoch })))
     return logger.warn(
       `merkle root for chainId=${chainId} epoch=${epoch} already exists`,
     );
 
-  const gasRefundParticipations =
-    (await GasRefundTransaction.findAll({
-      where: {
-        epoch,
-        chainId,
-      },
-      attributes: [
-        'address',
-        [
-          Sequelize.fn('SUM', Sequelize.col('refundedAmountPSP')),
-          'refundedAmountPSP',
-        ],
+  // check if none transactions is idle before computing merkle tree
+
+  const gasRefundParticipations: {
+    address: string;
+    refundedAmountPSP: string;
+  }[] = await GasRefundTransaction.findAll({
+    where: {
+      epoch,
+      chainId,
+      status: TransactionStatus.VALIDATED,
+    },
+    attributes: [
+      'address',
+      [
+        Sequelize.fn('SUM', Sequelize.col('refundedAmountPSP')),
+        'refundedAmountPSP',
       ],
-      group: ['address']
-    })) as unknown as { address: string; refundedAmountPSP: string }[];
+    ],
+    group: ['address'],
+  });
 
   const merkleTree = await computeMerkleData({
     chainId,
     epoch,
-    gasRefundParticipations
+    gasRefundParticipations,
   });
 
   if (saveFile) {

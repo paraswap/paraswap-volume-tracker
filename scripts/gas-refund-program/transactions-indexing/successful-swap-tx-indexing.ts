@@ -2,18 +2,18 @@ import { assert } from 'ts-essentials';
 import { BigNumber } from 'bignumber.js';
 import {
   fetchVeryLastTimestampProcessed,
-  writePendingEpochData
+  writeTransactions,
 } from '../persistance/db-persistance';
 import { getAllTXs } from './transaction-resolver';
 import {
   getRefundPercent,
   GRP_MIN_STAKE,
-  GasRefundTransactionData
+  GasRefundTransactionData,
+  TransactionStatus,
 } from '../../../src/lib/gas-refund';
 import * as _ from 'lodash';
 import { ONE_HOUR_SEC } from '../utils';
 import { PriceResolverFn } from '../token-pricing/psp-chaincurrency-pricing';
-import GRPSystemGuardian, { MAX_USD_ADDRESS_BUDGET } from '../system-guardian';
 import StakesTracker from '../staking/stakes-tracker';
 
 // empirically set to maximise on processing time without penalising memory and fetching constraigns
@@ -40,26 +40,21 @@ export async function computeSuccessfulSwapsTxFeesRefund({
     `swapTracker start indexing between ${startTimestamp} and ${endTimestamp}`,
   );
 
-  const veryLastTimestampProcessed = await fetchVeryLastTimestampProcessed({ chainId, epoch })
+  const veryLastTimestampProcessed = await fetchVeryLastTimestampProcessed({
+    chainId,
+    epoch,
+  });
 
   const _startTimestamp = Math.max(
     startTimestamp,
     veryLastTimestampProcessed + 1,
   );
 
-
   for (
     let _startTimestampSlice = _startTimestamp;
     _startTimestampSlice < endTimestamp;
     _startTimestampSlice += SLICE_DURATION
   ) {
-    if (GRPSystemGuardian.isMaxPSPGlobalBudgetSpent()) {
-      logger.warn(
-        `max psp global budget spent, preventing further processing & storing`,
-      );
-      break;
-    }
-
     const _endTimestampSlice = Math.min(
       _startTimestampSlice + SLICE_DURATION,
       endTimestamp,
@@ -75,7 +70,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
       startTimestamp: _startTimestampSlice,
       endTimestamp: _endTimestampSlice,
       chainId,
-      epochEndTimestamp: endTimestamp
+      epochEndTimestamp: endTimestamp,
     });
 
     logger.info(
@@ -100,19 +95,7 @@ export async function computeSuccessfulSwapsTxFeesRefund({
           return;
         }
 
-        const { txGasUsed, contract } = swap
-
-        if (GRPSystemGuardian.isMaxPSPGlobalBudgetSpent()) {
-          logger.warn(
-            `max psp global budget spent, preventing further processing & storing`,
-          );
-          return;
-        }
-
-        if (GRPSystemGuardian.isAccountUSDBudgetSpent(address)) {
-          logger.warn(`Max budget already spent for ${address}`);
-          return;
-        }
+        const { txGasUsed, contract } = swap;
 
         const currencyRate = resolvePrice(+swap.timestamp);
 
@@ -143,37 +126,11 @@ export async function computeSuccessfulSwapsTxFeesRefund({
           `Logic Error: failed to find refund percent for ${address}`,
         );
 
-        let currRefundedAmountPSP = currGasFeePSP.multipliedBy(refundPercent);
+        const currRefundedAmountPSP = currGasFeePSP.multipliedBy(refundPercent);
 
-        let currRefundedAmountUSD = currRefundedAmountPSP
+        const currRefundedAmountUSD = currRefundedAmountPSP
           .multipliedBy(currencyRate.pspPrice)
           .dividedBy(10 ** 18); // psp decimals always encoded in 18decimals
-
-        if (
-          GRPSystemGuardian.totalRefundedAmountUSD(address)
-            .plus(currRefundedAmountUSD)
-            .isGreaterThan(MAX_USD_ADDRESS_BUDGET)
-        ) {
-          currRefundedAmountUSD = MAX_USD_ADDRESS_BUDGET.minus(
-            GRPSystemGuardian.totalRefundedAmountUSD(address),
-          );
-
-          assert(
-            currRefundedAmountUSD.isGreaterThanOrEqualTo(0),
-            'Logic Error: quantity cannot be negative, this would mean we priorly refunded more than max',
-          );
-
-          currRefundedAmountPSP = currRefundedAmountUSD
-            .dividedBy(currencyRate.pspPrice)
-            .multipliedBy(10 ** 18);
-        }
-
-        GRPSystemGuardian.increaseTotalAmountRefundedUSDForAccount(
-          address,
-          currRefundedAmountUSD,
-        );
-
-        GRPSystemGuardian.increaseTotalPSPRefunded(currRefundedAmountPSP);
 
         const pendingGasRefundDatum: GasRefundTransactionData = {
           epoch,
@@ -191,18 +148,19 @@ export async function computeSuccessfulSwapsTxFeesRefund({
           totalStakeAmountPSP,
           refundedAmountPSP: currRefundedAmountPSP.toFixed(0),
           refundedAmountUSD: currRefundedAmountUSD.toFixed(), // purposefully not rounded to preserve dollar amount precision [IMPORTANT FOR CALCULCATIONS]
-          contract
+          contract,
+          status: TransactionStatus.IDLE,
         };
 
         pendingGasRefundTransactionData.push(pendingGasRefundDatum);
-      })
+      }),
     );
 
     if (pendingGasRefundTransactionData.length > 0) {
       logger.info(
         `updating ${pendingGasRefundTransactionData.length} pending gas refund data`,
       );
-      await writePendingEpochData(pendingGasRefundTransactionData);
+      await writeTransactions(pendingGasRefundTransactionData);
     }
   }
 }

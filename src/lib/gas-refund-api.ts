@@ -14,7 +14,7 @@ import {
   CHAIN_ID_POLYGON,
 } from './constants';
 import { EpochInfo } from './epoch-info';
-import { GasRefundGenesisEpoch } from './gas-refund';
+import { GasRefundGenesisEpoch, TransactionStatus } from './gas-refund';
 import { Provider } from './provider';
 
 const MerkleRedeemAbi = [
@@ -40,10 +40,10 @@ const MerkleRedeemAddress: { [chainId: number]: string } = {
   [CHAIN_ID_BINANCE]: '0x8fdcdAc765128F2A5CB2EB7Ed8990B2B24Cb66d7',
 };
 
-interface GasRefundClaim extends Pick<
-  GasRefundParticipation,
-  'epoch' | 'address' | 'merkleProofs'
-> { refundedAmountPSP: string };
+interface GasRefundClaim
+  extends Pick<GasRefundParticipation, 'epoch' | 'address' | 'merkleProofs'> {
+  refundedAmountPSP: string;
+}
 
 type BaseGasRefundClaimsResponse<T> = {
   totalClaimable: T;
@@ -51,7 +51,7 @@ type BaseGasRefundClaimsResponse<T> = {
 };
 type GasRefundClaimsResponseAcc = BaseGasRefundClaimsResponse<bigint>;
 type GasRefundClaimsResponse = BaseGasRefundClaimsResponse<string> & {
-  pendingClaimable: string
+  pendingClaimable: string;
 };
 
 export class GasRefundApi {
@@ -116,14 +116,17 @@ export class GasRefundApi {
           GROUP BY grt.address, grt.epoch
         ) AS refunds ON grp.address = refunds.address and grp.epoch = refunds.epoch
         WHERE grp.address=:address AND grp."chainId"=:chainId
-    `
-    const grpDataResult: GasRefundClaim[] = await Database.sequelize.query(sqlQuery, {
-      type: Sequelize.QueryTypes.SELECT,
-      replacements: {
+    `;
+    const grpDataResult: GasRefundClaim[] = await Database.sequelize.query(
+      sqlQuery,
+      {
+        type: Sequelize.QueryTypes.SELECT,
+        replacements: {
           address,
-          chainId: this.network
+          chainId: this.network,
+        },
       },
-    })
+    );
 
     return grpDataResult;
   }
@@ -155,15 +158,23 @@ export class GasRefundApi {
     return epochToClaimed;
   }
 
-  async _getCurrentEpochPendingRefundedAmount(address: string): Promise<string>{
+  async _getCurrentEpochPendingRefundedAmount(
+    address: string,
+  ): Promise<string> {
     const epoch = await this.epochInfo.getCurrentEpoch();
 
     const totalPSPRefunded = await GasRefundTransaction.sum<
       string,
       GasRefundTransaction
-    >('refundedAmountPSP', { where: { address, epoch }});
+    >('refundedAmountPSP', {
+      where: {
+        address,
+        epoch,
+        status: TransactionStatus.VALIDATED,
+      },
+    });
 
-    const refundedAmount = totalPSPRefunded.toString(10)
+    const refundedAmount = totalPSPRefunded.toString(10);
 
     return refundedAmount;
   }
@@ -180,7 +191,7 @@ export class GasRefundApi {
     const [merkleData, epochToClaimed, pendingClaimable] = await Promise.all([
       this._fetchMerkleData(address),
       this._getClaimStatus(address, startEpoch, endEpoch),
-      this._getCurrentEpochPendingRefundedAmount(address)
+      this._getCurrentEpochPendingRefundedAmount(address),
     ]);
 
     const { totalClaimable, claims } =
@@ -203,7 +214,7 @@ export class GasRefundApi {
     return {
       totalClaimable: totalClaimable.toString(),
       claims,
-      pendingClaimable
+      pendingClaimable,
     };
   }
 

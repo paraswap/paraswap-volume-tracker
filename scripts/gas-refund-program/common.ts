@@ -1,6 +1,7 @@
 import Database from '../../src/database';
 import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
 import { EpochInfo } from '../../src/lib/epoch-info';
+import { GasRefundTransaction } from '../../src/models/GasRefundTransaction';
 
 type Params = {
   dbTransactionNamespace?: string;
@@ -29,7 +30,13 @@ export async function resolveEpochCalcTimeInterval(epoch: number): Promise<{
 
   return {
     startCalcTime: epochStartTime,
-    endCalcTime: Math.min(SCRIPT_START_TIME_SEC - OFFSET_CALC_TIME, epochEndTime),
+    endCalcTime: Math.min(
+      SCRIPT_START_TIME_SEC - OFFSET_CALC_TIME,
+      epochEndTime,
+    ),
     isEpochEnded: SCRIPT_START_TIME_SEC >= epochEndTime + OFFSET_CALC_TIME,
   };
 }
+
+export const generateLockKeyForTxTable = (chainId: number) =>
+  `${GasRefundTransaction.tableName}_${chainId}`;

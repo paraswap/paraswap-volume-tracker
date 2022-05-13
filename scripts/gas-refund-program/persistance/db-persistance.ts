@@ -1,38 +1,16 @@
 import {
   GRP_SUPPORTED_CHAINS,
   GasRefundTransactionData,
-  GasRefundParticipantData
+  GasRefundParticipantData,
+  TransactionStatus,
 } from '../../../src/lib/gas-refund';
 import { GasRefundParticipation } from '../../../src/models/GasRefundParticipation';
 import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
 import { GasRefundDistribution } from '../../../src/models/GasRefundDistribution';
-import { MerkleData, MerkleTreeData, TxFeesByAddress } from '../types';
+import { MerkleData, MerkleTreeData } from '../types';
 import { sliceCalls } from '../utils';
 import { Sequelize } from 'sequelize';
 import BigNumber from 'bignumber.js';
-
-export const fetchPendingGasRefundData = async ({
-  chainId,
-  epoch,
-}: {
-  chainId: number;
-  epoch: number;
-}): Promise<TxFeesByAddress> => {
-  const pendingEpochData = (await GasRefundTransaction.findAll({
-    where: { chainId, epoch },
-    raw: true,
-  })) as GasRefundTransactionData[];
-
-  const pendingEpochDataByAddress = pendingEpochData.reduce<TxFeesByAddress>(
-    (acc, curr) => {
-      acc[curr.address] = curr;
-      return acc;
-    },
-    {},
-  );
-
-  return pendingEpochDataByAddress;
-};
 
 export async function fetchVeryLastTimestampProcessed({
   chainId,
@@ -55,7 +33,11 @@ export async function fetchTotalRefundedPSP(): Promise<BigNumber> {
   const totalPSPRefunded = await GasRefundTransaction.sum<
     string,
     GasRefundTransaction
-  >('refundedAmountPSP');
+  >('refundedAmountPSP', {
+    where: {
+      status: TransactionStatus.VALIDATED,
+    },
+  });
 
   return new BigNumber(totalPSPRefunded);
 }
@@ -72,6 +54,9 @@ export async function fetchTotalRefundedAmountUSDByAddress(): Promise<{
           'totalRefundedAmountUSD',
         ],
       ],
+      where: {
+        status: TransactionStatus.VALIDATED,
+      },
       group: 'address',
       raw: true,
     })) as unknown as { address: string; totalRefundedAmountUSD: string }[];
@@ -126,10 +111,10 @@ export async function getLatestTransactionTimestamp() {
   return latestTransactionTimestamp;
 }
 
-export const writePendingEpochData = async (
+export const writeTransactions = async (
   pendingEpochGasRefundData: GasRefundTransactionData[],
 ) => {
-   await GasRefundTransaction.bulkCreate(pendingEpochGasRefundData);
+  await GasRefundTransaction.bulkCreate(pendingEpochGasRefundData);
 };
 
 export const merkleRootExists = async ({
@@ -150,7 +135,7 @@ export const merkleRootExists = async ({
 export const saveMerkleTreeInDB = async ({
   chainId,
   epoch,
-  merkleTree
+  merkleTree,
 }: {
   epoch: number;
   chainId: number;

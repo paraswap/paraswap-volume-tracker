@@ -7,7 +7,7 @@ import {
   AutoIncrement,
   Index,
 } from 'sequelize-typescript';
-import { GasRefundTransactionData } from '../lib/gas-refund';
+import { GasRefundTransactionData, TransactionStatus } from '../lib/gas-refund';
 
 import {
   DataType_ADDRESS,
@@ -70,4 +70,8 @@ export class GasRefundTransaction extends Model<GasRefundTransactionData> {
   @Index
   @Column(DataType_ADDRESS)
   contract: string;
+
+  @Index
+  @Column(DataType.STRING)
+  status: TransactionStatus;
 }
