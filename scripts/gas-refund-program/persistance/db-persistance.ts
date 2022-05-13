@@ -153,9 +153,17 @@ export async function fetchLastEpochProcessed(): Promise<number> {
 }
 
 export const writeTransactions = async (
-  pendingEpochGasRefundData: GasRefundTransactionData[],
+  newRefundableTransactions: GasRefundTransactionData[],
 ) => {
-  await GasRefundTransaction.bulkCreate(pendingEpochGasRefundData);
+  await GasRefundTransaction.bulkCreate(newRefundableTransactions);
+};
+
+export const overrideTransactionStatus = async (
+  transactionsWithNewStatus: GasRefundTransactionData[],
+) => {
+  await GasRefundTransaction.bulkCreate(transactionsWithNewStatus, {
+    updateOnDuplicate: ['status'],
+  });
 };
 
 export const merkleRootExists = async ({

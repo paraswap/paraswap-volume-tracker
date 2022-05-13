@@ -3,7 +3,7 @@ import { TransactionStatus } from '../../../src/lib/gas-refund';
 import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
 import {
   fetchLastEpochProcessed,
-  writeTransactions,
+  overrideTransactionStatus,
 } from '../persistance/db-persistance';
 import {
   GRPMaxLimitGuardian,
@@ -18,7 +18,7 @@ import {
  *
  * The solution is to:
  * - load current guard state in memory
- * - scan all transaction since last epoch processed in batch 
+ * - scan all transaction since last epoch processed in batch
  * - increase by address and globally with help of guardian
  * - write back to database the status of the transaction
  */
@@ -44,13 +44,26 @@ export async function validateTransactions() {
       order: ['timestamp', 'hash'],
       limit: pageSize,
       offset,
+      attributes: [
+        'chainId',
+        'epoch',
+        'hash',
+        'address',
+        'status',
+        'refundedAmountPSP',
+        'refundedAmountUSD',
+      ],
     });
 
     if (!transactionsSlice.length) break;
 
     offset += pageSize;
 
+    const transactionsWithUpdatedStatus = [];
+
     for (const tx of transactionsSlice) {
+      let newStatus;
+
       const isGlobalLimitReached =
         guardian.systemState.totalPSPRefunded
           .plus(tx.refundedAmountPSP)
@@ -66,9 +79,9 @@ export async function validateTransactions() {
 
       // once one limit is reached, reject tx. Note: this would let refund future transactions that are still within the limit
       if (isLocalLimitReached || isGlobalLimitReached) {
-        tx.status = TransactionStatus.REJECTED;
+        newStatus = TransactionStatus.REJECTED;
       } else {
-        tx.status = TransactionStatus.VALIDATED;
+        newStatus = TransactionStatus.VALIDATED;
 
         guardian.increaseTotalAmountRefundedUSDForAccount(
           tx.address,
@@ -77,9 +90,16 @@ export async function validateTransactions() {
 
         guardian.increaseTotalPSPRefunded(tx.refundedAmountPSP);
       }
+
+      if (tx.status !== newStatus) {
+        transactionsWithUpdatedStatus.push({
+          ...tx,
+          status: newStatus,
+        });
+      }
     }
 
-    await writeTransactions(transactionsSlice);
+    await overrideTransactionStatus(transactionsWithUpdatedStatus);
 
     if (transactionsSlice.length < pageSize) break; // micro opt to avoid querying db for last page
   }
