@@ -1,4 +1,5 @@
 import { Op } from 'sequelize';
+import { assert } from 'ts-essentials';
 import {
   GasRefundGenesisEpoch,
   TransactionStatus,
@@ -112,4 +113,13 @@ export async function validateTransactions() {
 
     if (transactionsSlice.length < pageSize) break; // micro opt to avoid querying db for last page
   }
+
+  const numOfIdleTxs = await GasRefundTransaction.count({
+    where: { status: TransactionStatus.IDLE },
+  });
+
+  assert(
+    numOfIdleTxs === 0,
+    `there should be 0 idle transactions at the end of validation step`,
+  );
 }
