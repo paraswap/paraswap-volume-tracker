@@ -36,7 +36,13 @@ export async function computeAndStoreMerkleTreeForChain({
       `merkle root for chainId=${chainId} epoch=${epoch} already exists`,
     );
 
-  // @TODO: check if none transactions is idle before computing merkle tree
+  const numOfIdleTxs = await GasRefundTransaction.count({
+    where: { epoch, chainId, status: TransactionStatus.IDLE },
+  });
+  assert(
+    numOfIdleTxs === 0,
+    `there should be 0 idle transactions for epoch=${epoch} chainId=${chainId}`,
+  );
 
   const refundableTransactions: {
     address: string;
@@ -55,6 +61,7 @@ export async function computeAndStoreMerkleTreeForChain({
       ],
     ],
     group: ['address'],
+    raw: true,
   });
 
   const merkleTree = await computeMerkleData({
