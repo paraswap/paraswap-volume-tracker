@@ -6,9 +6,9 @@ import { generateLockKeyForTxTable, init } from './common';
 import { acquireLock, releaseLock } from '../../src/lib/lock-utils';
 import Database from '../../src/database';
 import StakesTracker from './staking/stakes-tracker';
-import { GRPBudgetGuardian } from './transactions-validation/budget-guardian';
-import { validateTransactions } from './transactions-validation';
-import { fetchRefundableTransactionsAllChains } from './transactions-indexing/index-transactions-all-chains';
+import { GRPBudgetGuardian } from './transactions-validation/GRPBudgetGuardian';
+import { validateTransactions } from './transactions-validation/validateTransactions';
+import { fetchRefundableTransactionsAllChains } from './transactions-indexing/fetchRefundableTransactionsAllChains';
 
 const logger = global.LOGGER('GRP');
 

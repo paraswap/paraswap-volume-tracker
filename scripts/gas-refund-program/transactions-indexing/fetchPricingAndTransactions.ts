@@ -3,7 +3,7 @@ import {
   constructPriceResolver,
   fetchDailyPSPChainCurrencyRate,
 } from '../token-pricing/psp-chaincurrency-pricing';
-import { fetchRefundableTransactions } from './successful-swap-tx-indexing';
+import { fetchRefundableTransactions } from './fetchRefundableTransactions';
 
 const logger = global.LOGGER('GRP:fetchRefundableTransactionsForChain');
 

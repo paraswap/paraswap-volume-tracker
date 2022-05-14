@@ -10,7 +10,7 @@ import {
   getLatestEpochProcessed,
   merkleRootExists,
 } from '../persistance/db-persistance';
-import { fetchPricingAndTransactions } from './index-transactions-per-chain';
+import { fetchPricingAndTransactions } from './fetchPricingAndTransactions';
 
 const logger = global.LOGGER('GRP::fetchRefundableTransactionsAllChains');
 

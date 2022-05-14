@@ -13,7 +13,7 @@ import {
   GRPBudgetGuardian,
   MAX_PSP_GLOBAL_BUDGET,
   MAX_USD_ADDRESS_BUDGET,
-} from './budget-guardian';
+} from './GRPBudgetGuardian';
 
 /**
  * This function guarantees that the order of transactions refunded to be always stable.
