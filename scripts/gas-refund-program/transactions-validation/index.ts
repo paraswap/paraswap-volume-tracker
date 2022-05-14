@@ -45,6 +45,7 @@ export async function validateTransactions() {
       limit: pageSize,
       offset,
       attributes: [
+        'id',
         'chainId',
         'epoch',
         'hash',
