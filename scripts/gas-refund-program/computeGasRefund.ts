@@ -6,7 +6,7 @@ import { generateLockKeyForTxTable, init } from './common';
 import { acquireLock, releaseLock } from '../../src/lib/lock-utils';
 import Database from '../../src/database';
 import StakesTracker from './staking/stakes-tracker';
-import { GRPMaxLimitGuardian } from './transactions-validation/max-limit-guardian';
+import { GRPBudgetGuardian } from './transactions-validation/budget-guardian';
 import { validateTransactions } from './transactions-validation';
 import { fetchRefundableTransactionsAllChains } from './transactions-indexing/index-transactions-all-chains';
 
@@ -24,8 +24,8 @@ async function startComputingGasRefundAllChains() {
       ),
     );
 
-    await GRPMaxLimitGuardian.getInstance().loadStateFromDB();
-    GRPMaxLimitGuardian.getInstance().assertMaxPSPGlobalBudgetNotReached();
+    await GRPBudgetGuardian.getInstance().loadStateFromDB();
+    GRPBudgetGuardian.getInstance().assertMaxPSPGlobalBudgetNotReached();
 
     await StakesTracker.getInstance().loadHistoricalStakes();
 

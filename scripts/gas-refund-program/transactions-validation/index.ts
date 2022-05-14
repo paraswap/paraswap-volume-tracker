@@ -1,34 +1,41 @@
 import { Op } from 'sequelize';
-import { TransactionStatus } from '../../../src/lib/gas-refund';
+import {
+  GasRefundGenesisEpoch,
+  TransactionStatus,
+} from '../../../src/lib/gas-refund';
 import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
 import {
-  fetchLastEpochProcessed,
+  fetchLastEpochRefunded,
   overrideTransactionStatus,
 } from '../persistance/db-persistance';
 import {
-  GRPMaxLimitGuardian,
+  GRPBudgetGuardian,
   MAX_PSP_GLOBAL_BUDGET,
   MAX_USD_ADDRESS_BUDGET,
-} from './max-limit-guardian';
+} from './budget-guardian';
 
 /**
- * This function guarantees that the order of transactions take into account for an address is always stable.
- * This is particular important as we approach the local (by address) or the global limit.
+ * This function guarantees that the order of transactions refunded to be always stable.
+ * This is particular important as we approach either per-address budget or global budget limit.
  * Because some transactions from some data source can arrive later, we need to reassess the status of all transactions for all chains for whole epoch.
  *
  * The solution is to:
- * - load current guard state in memory
+ * - load current budgetGuardian to get snapshot of budgets spent
  * - scan all transaction since last epoch processed in batch
- * - increase by address and globally with help of guardian
- * - write back to database the status of the transaction
+ * - flag each transaction as either validated or rejected if it reached the budget
+ * - update in memory budget accountability through budgetGuardian on validated transactions
+ * - write back status of tx in database
  */
 export async function validateTransactions() {
-  const guardian = GRPMaxLimitGuardian.getInstance();
+  const guardian = GRPBudgetGuardian.getInstance();
 
-  const lastEpochProcessed = await fetchLastEpochProcessed();
+  const lastEpochRefunded = await fetchLastEpochRefunded();
+  const startEpochForTxValidation = !lastEpochRefunded
+    ? GasRefundGenesisEpoch
+    : lastEpochRefunded + 1;
 
-  // reload overal state till last epoch processed (edxclusive)
-  await guardian.loadStateFromDB(lastEpochProcessed);
+  // reload budget guardian state till last epoch refunded (exclusive)
+  await guardian.loadStateFromDB(startEpochForTxValidation);
 
   let offset = 0;
   const pageSize = 1000;
@@ -38,12 +45,13 @@ export async function validateTransactions() {
     const transactionsSlice = await GasRefundTransaction.findAll({
       where: {
         epoch: {
-          [Op.gte]: lastEpochProcessed,
+          [Op.gte]: startEpochForTxValidation,
         },
       },
       order: ['timestamp', 'hash'],
       limit: pageSize,
       offset,
+      raw: true,
       attributes: [
         'id',
         'chainId',
@@ -66,7 +74,7 @@ export async function validateTransactions() {
       let newStatus;
 
       const isGlobalLimitReached =
-        guardian.systemState.totalPSPRefunded
+        guardian.state.totalPSPRefunded
           .plus(tx.refundedAmountPSP)
           .isGreaterThan(MAX_PSP_GLOBAL_BUDGET) ||
         guardian.isMaxPSPGlobalBudgetSpent();

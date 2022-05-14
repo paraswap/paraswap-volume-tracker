@@ -20,14 +20,14 @@ export type GRPSystemState = {
  * This loads the current state of the system from database and resolve whether any limits are violated
  * some optimistic in memory updates are inferred to avoid querying database too often
  */
-export class GRPMaxLimitGuardian {
-  systemState: GRPSystemState;
+export class GRPBudgetGuardian {
+  state: GRPSystemState;
 
-  static instance: GRPMaxLimitGuardian;
+  static instance: GRPBudgetGuardian;
 
   static getInstance() {
     if (!this.instance) {
-      this.instance = new GRPMaxLimitGuardian();
+      this.instance = new GRPBudgetGuardian();
     }
 
     return this.instance;
@@ -40,18 +40,18 @@ export class GRPMaxLimitGuardian {
         fetchTotalRefundedAmountUSDByAddress(toEpoch),
       ]);
 
-    this.systemState = {
+    this.state = {
       totalPSPRefunded,
       totalRefundedAmountUSDByAddress,
     };
   }
 
   totalRefundedAmountUSD(account: string) {
-    return this.systemState.totalRefundedAmountUSDByAddress[account] || ZERO_BN;
+    return this.state.totalRefundedAmountUSDByAddress[account] || ZERO_BN;
   }
 
   isMaxPSPGlobalBudgetSpent() {
-    return this.systemState.totalPSPRefunded.isGreaterThanOrEqualTo(
+    return this.state.totalPSPRefunded.isGreaterThanOrEqualTo(
       MAX_PSP_GLOBAL_BUDGET,
     );
   }
@@ -77,13 +77,13 @@ export class GRPMaxLimitGuardian {
     account: string,
     usdAmount: BigNumber | string,
   ) {
-    this.systemState.totalRefundedAmountUSDByAddress[account] =
+    this.state.totalRefundedAmountUSDByAddress[account] =
       this.totalRefundedAmountUSD(account).plus(usdAmount);
   }
 
   increaseTotalPSPRefunded(amount: BigNumber | string) {
-    this.systemState.totalPSPRefunded = (
-      this.systemState.totalPSPRefunded || ZERO_BN
-    ).plus(amount);
+    this.state.totalPSPRefunded = (this.state.totalPSPRefunded || ZERO_BN).plus(
+      amount,
+    );
   }
 }

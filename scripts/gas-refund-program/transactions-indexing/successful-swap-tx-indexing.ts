@@ -15,7 +15,7 @@ import * as _ from 'lodash';
 import { ONE_HOUR_SEC } from '../utils';
 import { PriceResolverFn } from '../token-pricing/psp-chaincurrency-pricing';
 import StakesTracker from '../staking/stakes-tracker';
-import { GRPMaxLimitGuardian } from '../transactions-validation/max-limit-guardian';
+import { GRPBudgetGuardian } from '../transactions-validation/budget-guardian';
 
 // empirically set to maximise on processing time without penalising memory and fetching constraigns
 const SLICE_DURATION = 6 * ONE_HOUR_SEC;
@@ -89,8 +89,8 @@ export async function fetchRefundableTransactions({
           const address = transaction.txOrigin;
 
           // invoke guardian
-          GRPMaxLimitGuardian.getInstance().assertMaxPSPGlobalBudgetNotReached();
-          GRPMaxLimitGuardian.getInstance().assertMaxUsdBudgetNotReachedForAccount(
+          GRPBudgetGuardian.getInstance().assertMaxPSPGlobalBudgetNotReached();
+          GRPBudgetGuardian.getInstance().assertMaxUsdBudgetNotReachedForAccount(
             address,
           );
 
