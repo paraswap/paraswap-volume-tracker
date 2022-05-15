@@ -154,11 +154,11 @@ export const writeTransactions = async (
   await GasRefundTransaction.bulkCreate(newRefundableTransactions);
 };
 
-export const overrideTransactionStatus = async (
+export const updateTransactionsStatusRefundedAmounts = async (
   transactionsWithNewStatus: GasRefundTransactionData[],
 ) => {
   await GasRefundTransaction.bulkCreate(transactionsWithNewStatus, {
-    updateOnDuplicate: ['status'],
+    updateOnDuplicate: ['status', 'refundedAmountUSD', 'refundedAmountPSP'],
   });
 };
 

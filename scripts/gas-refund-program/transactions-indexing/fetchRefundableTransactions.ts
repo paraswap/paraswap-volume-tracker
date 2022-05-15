@@ -88,12 +88,6 @@ export async function fetchRefundableTransactions({
         transactions.forEach(transaction => {
           const address = transaction.txOrigin;
 
-          // invoke guardian
-          GRPBudgetGuardian.getInstance().assertMaxPSPGlobalBudgetNotReached();
-          GRPBudgetGuardian.getInstance().assertMaxUsdBudgetNotReachedForAccount(
-            address,
-          );
-
           const swapperStake =
             StakesTracker.getInstance().computeStakedPSPBalance(
               address,

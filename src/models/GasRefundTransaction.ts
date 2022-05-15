@@ -53,7 +53,7 @@ export class GasRefundTransaction extends Model<GasRefundTransactionData> {
   gasUsedUSD: string; // @debug
 
   @Column(DataType.DECIMAL)
-  pspUsd: number; // @debug
+  pspUsd: number;
 
   @Column(DataType.DECIMAL)
   chainCurrencyUsd: number; // @debug

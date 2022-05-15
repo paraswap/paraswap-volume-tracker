@@ -66,13 +66,6 @@ export class GRPBudgetGuardian {
     assert(!this.isMaxPSPGlobalBudgetSpent(), 'Max PSP global budget spent');
   }
 
-  assertMaxUsdBudgetNotReachedForAccount(account: string) {
-    assert(
-      !this.isAccountUSDBudgetSpent(account),
-      'Max USD local budget spent',
-    );
-  }
-
   increaseTotalAmountRefundedUSDForAccount(
     account: string,
     usdAmount: BigNumber | string,

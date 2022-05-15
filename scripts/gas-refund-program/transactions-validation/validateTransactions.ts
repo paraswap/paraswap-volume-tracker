@@ -1,3 +1,4 @@
+import BigNumber from 'bignumber.js';
 import { Op } from 'sequelize';
 import { assert } from 'ts-essentials';
 import {
@@ -7,7 +8,7 @@ import {
 import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
 import {
   fetchLastEpochRefunded,
-  overrideTransactionStatus,
+  updateTransactionsStatusRefundedAmounts,
 } from '../persistance/db-persistance';
 import {
   GRPBudgetGuardian,
@@ -62,6 +63,7 @@ export async function validateTransactions() {
         'status',
         'refundedAmountPSP',
         'refundedAmountUSD',
+        'pspUsd',
       ],
     });
 
@@ -69,48 +71,81 @@ export async function validateTransactions() {
 
     offset += pageSize;
 
-    const transactionsWithUpdatedStatus = [];
+    const updatedTransactions = [];
 
     for (const tx of transactionsSlice) {
-      let newStatus;
+      let { status } = tx;
+      let refundedAmountPSP = new BigNumber(tx.refundedAmountPSP);
+      let refundedAmountUSD = new BigNumber(tx.refundedAmountUSD);
 
-      const isGlobalLimitReached =
-        guardian.state.totalPSPRefunded
-          .plus(tx.refundedAmountPSP)
-          .isGreaterThan(MAX_PSP_GLOBAL_BUDGET) ||
-        guardian.isMaxPSPGlobalBudgetSpent();
+      const isGlobalLimitReached = guardian.isMaxPSPGlobalBudgetSpent();
+      const isPerAccountLimitReached = guardian.isAccountUSDBudgetSpent(
+        tx.address,
+      );
 
-      const isLocalLimitReached =
-        guardian
-          .totalRefundedAmountUSD(tx.address)
-          .plus(tx.refundedAmountUSD)
-          .isGreaterThan(MAX_USD_ADDRESS_BUDGET) ||
-        guardian.isAccountUSDBudgetSpent(tx.address);
-
-      // once one limit is reached, reject tx. Note: this would let refund future transactions that are still within the limit
-      if (isLocalLimitReached || isGlobalLimitReached) {
-        newStatus = TransactionStatus.REJECTED;
+      if (isGlobalLimitReached || isPerAccountLimitReached) {
+        status = TransactionStatus.REJECTED;
       } else {
-        newStatus = TransactionStatus.VALIDATED;
+        status = TransactionStatus.VALIDATED;
+
+        if (
+          guardian.state.totalPSPRefunded
+            .plus(tx.refundedAmountPSP)
+            .isGreaterThan(MAX_PSP_GLOBAL_BUDGET)
+        ) {
+          // Note: updating refundedAmountUSD does not matter if global budget limit is reached
+          refundedAmountPSP = MAX_PSP_GLOBAL_BUDGET.minus(
+            guardian.state.totalPSPRefunded,
+          );
+
+          assert(
+            refundedAmountPSP.lt(tx.refundedAmountPSP),
+            'the capped amount should be lower than original one',
+          );
+        } else if (
+          guardian
+            .totalRefundedAmountUSD(tx.address)
+            .plus(tx.refundedAmountUSD)
+            .isGreaterThan(MAX_USD_ADDRESS_BUDGET)
+        ) {
+          refundedAmountUSD = MAX_USD_ADDRESS_BUDGET.minus(
+            guardian.totalRefundedAmountUSD(tx.address),
+          );
+
+          assert(
+            refundedAmountUSD.isGreaterThanOrEqualTo(0),
+            'Logic Error: quantity cannot be negative, this would mean we priorly refunded more than max',
+          );
+
+          refundedAmountPSP = refundedAmountUSD
+            .dividedBy(tx.pspUsd)
+            .multipliedBy(10 ** 18);
+        }
 
         guardian.increaseTotalAmountRefundedUSDForAccount(
           tx.address,
-          tx.refundedAmountUSD,
+          refundedAmountUSD,
         );
 
-        guardian.increaseTotalPSPRefunded(tx.refundedAmountPSP);
-      }
+        guardian.increaseTotalPSPRefunded(refundedAmountPSP);
 
-      if (tx.status !== newStatus) {
-        transactionsWithUpdatedStatus.push({
-          ...tx,
-          status: newStatus,
-        });
+        if (tx.status !== status) {
+          updatedTransactions.push({
+            ...tx,
+            ...(!refundedAmountPSP.isEqualTo(tx.refundedAmountPSP)
+              ? { refundedAmountPSP: refundedAmountPSP.toFixed(0) }
+              : {}),
+            ...(!refundedAmountUSD.isEqualTo(tx.refundedAmountUSD)
+              ? { refundedAmountUSD: refundedAmountUSD.toFixed() } // purposefully not rounded to preserve dollar amount precision [IMPORTANT FOR CALCULCATIONS]
+              : {}),
+            status,
+          });
+        }
       }
     }
 
-    if (transactionsWithUpdatedStatus.length > 0) {
-      await overrideTransactionStatus(transactionsWithUpdatedStatus);
+    if (updatedTransactions.length > 0) {
+      await updateTransactionsStatusRefundedAmounts(updatedTransactions);
     }
 
     if (transactionsSlice.length < pageSize) break; // micro opt to avoid querying db for last page
