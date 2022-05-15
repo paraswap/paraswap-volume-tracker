@@ -3,6 +3,7 @@ import { Op } from 'sequelize';
 import { assert } from 'ts-essentials';
 import {
   GasRefundGenesisEpoch,
+  getRefundPercent,
   TransactionStatus,
 } from '../../../src/lib/gas-refund';
 import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
@@ -61,8 +62,9 @@ export async function validateTransactions() {
         'hash',
         'address',
         'status',
-        'refundedAmountPSP',
-        'refundedAmountUSD',
+        'totalStakeAmountPSP',
+        'gasUsedChainCurrency',
+        'pspChainCurrency',
         'pspUsd',
       ],
     });
@@ -74,14 +76,34 @@ export async function validateTransactions() {
     const updatedTransactions = [];
 
     for (const tx of transactionsSlice) {
-      let { status } = tx;
-      let refundedAmountPSP = new BigNumber(tx.refundedAmountPSP);
-      let refundedAmountUSD = new BigNumber(tx.refundedAmountUSD);
+      let {
+        address,
+        status,
+        totalStakeAmountPSP,
+        gasUsedChainCurrency,
+        pspChainCurrency,
+        pspUsd,
+      } = tx;
+      const refundPercentage = getRefundPercent(totalStakeAmountPSP);
+
+      assert(refundPercentage, 'refundPercentage should be defined and > 0');
+
+      // recompute refundedAmountPSP/refundedAmountUSD as logic alters those values as we reach limits
+      const refundedAmountPSP = new BigNumber(gasUsedChainCurrency)
+        .dividedBy(pspChainCurrency)
+        .multipliedBy(refundPercentage)
+        .decimalPlaces(0);
+
+      const refundedAmountUSD = refundedAmountPSP
+        .multipliedBy(pspUsd)
+        .dividedBy(10 ** 18); // psp decimals always encoded in 18decimals
+
+      let cappedRefundedAmountPSP;
+      let cappedRefundedAmountUSD;
 
       const isGlobalLimitReached = guardian.isMaxPSPGlobalBudgetSpent();
-      const isPerAccountLimitReached = guardian.isAccountUSDBudgetSpent(
-        tx.address,
-      );
+      const isPerAccountLimitReached =
+        guardian.isAccountUSDBudgetSpent(address);
 
       if (isGlobalLimitReached || isPerAccountLimitReached) {
         status = TransactionStatus.REJECTED;
@@ -89,54 +111,59 @@ export async function validateTransactions() {
         status = TransactionStatus.VALIDATED;
 
         if (
+          guardian
+            .totalRefundedAmountUSD(address)
+            .plus(refundedAmountUSD)
+            .isGreaterThan(MAX_USD_ADDRESS_BUDGET)
+        ) {
+          cappedRefundedAmountUSD = MAX_USD_ADDRESS_BUDGET.minus(
+            guardian.totalRefundedAmountUSD(address),
+          );
+
+          assert(
+            cappedRefundedAmountUSD.isGreaterThanOrEqualTo(0),
+            'Logic Error: quantity cannot be negative, this would mean we priorly refunded more than max',
+          );
+
+          cappedRefundedAmountPSP = cappedRefundedAmountUSD
+            .dividedBy(pspUsd)
+            .multipliedBy(10 ** 18)
+            .decimalPlaces(0);
+        }
+
+        if (
           guardian.state.totalPSPRefunded
-            .plus(tx.refundedAmountPSP)
+            .plus(cappedRefundedAmountPSP || refundedAmountPSP)
             .isGreaterThan(MAX_PSP_GLOBAL_BUDGET)
         ) {
           // Note: updating refundedAmountUSD does not matter if global budget limit is reached
-          refundedAmountPSP = MAX_PSP_GLOBAL_BUDGET.minus(
+          cappedRefundedAmountPSP = MAX_PSP_GLOBAL_BUDGET.minus(
             guardian.state.totalPSPRefunded,
           );
 
           assert(
-            refundedAmountPSP.lt(tx.refundedAmountPSP),
+            cappedRefundedAmountPSP.lt(refundedAmountPSP),
             'the capped amount should be lower than original one',
           );
-        } else if (
-          guardian
-            .totalRefundedAmountUSD(tx.address)
-            .plus(tx.refundedAmountUSD)
-            .isGreaterThan(MAX_USD_ADDRESS_BUDGET)
-        ) {
-          refundedAmountUSD = MAX_USD_ADDRESS_BUDGET.minus(
-            guardian.totalRefundedAmountUSD(tx.address),
-          );
-
-          assert(
-            refundedAmountUSD.isGreaterThanOrEqualTo(0),
-            'Logic Error: quantity cannot be negative, this would mean we priorly refunded more than max',
-          );
-
-          refundedAmountPSP = refundedAmountUSD
-            .dividedBy(tx.pspUsd)
-            .multipliedBy(10 ** 18);
         }
 
         guardian.increaseTotalAmountRefundedUSDForAccount(
-          tx.address,
-          refundedAmountUSD,
+          address,
+          cappedRefundedAmountUSD || refundedAmountUSD,
         );
 
-        guardian.increaseTotalPSPRefunded(refundedAmountPSP);
+        guardian.increaseTotalPSPRefunded(
+          cappedRefundedAmountPSP || refundedAmountPSP,
+        );
 
         if (tx.status !== status) {
           updatedTransactions.push({
             ...tx,
-            ...(!refundedAmountPSP.isEqualTo(tx.refundedAmountPSP)
-              ? { refundedAmountPSP: refundedAmountPSP.toFixed(0) }
+            ...(!!cappedRefundedAmountPSP
+              ? { refundedAmountPSP: cappedRefundedAmountPSP.toFixed(0) }
               : {}),
-            ...(!refundedAmountUSD.isEqualTo(tx.refundedAmountUSD)
-              ? { refundedAmountUSD: refundedAmountUSD.toFixed() } // purposefully not rounded to preserve dollar amount precision [IMPORTANT FOR CALCULCATIONS]
+            ...(!!cappedRefundedAmountUSD
+              ? { refundedAmountUSD: cappedRefundedAmountUSD.toFixed() } // purposefully not rounded to preserve dollar amount precision [IMPORTANT FOR CALCULCATIONS]
               : {}),
             status,
           });
