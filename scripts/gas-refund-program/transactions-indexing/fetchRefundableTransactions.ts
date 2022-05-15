@@ -152,6 +152,7 @@ export async function fetchRefundableTransactions({
             block: +transaction.blockNumber,
             timestamp: +transaction.timestamp,
             gasUsed: txGasUsed,
+            gasPrice: transaction.txGasPrice,
             gasUsedChainCurrency: currGasUsedChainCur.toFixed(0),
             pspUsd: currencyRate.pspPrice,
             chainCurrencyUsd: currencyRate.chainPrice,

@@ -43,6 +43,9 @@ export class GasRefundTransaction extends Model<GasRefundTransactionData> {
   @Column(DataType.BIGINT)
   gasUsed: string; // @debug
 
+  @Column(DataType.BIGINT)
+  gasPrice: string; // debug
+
   @Column(DataType.DECIMAL)
   gasUsedChainCurrency: string; // @debug
 

@@ -91,6 +91,7 @@ export interface GasRefundTransactionData {
   timestamp: number;
   gasUsed: string;
   gasUsedChainCurrency: string;
+  gasPrice: string;
   gasUsedUSD: string;
   pspUsd: number;
   chainCurrencyUsd: number;
