@@ -66,6 +66,8 @@ export async function validateTransactions() {
         'gasUsedChainCurrency',
         'pspChainCurrency',
         'pspUsd',
+        'refundedAmountUSD',
+        'refundedAmountPSP',
       ],
     });
 
