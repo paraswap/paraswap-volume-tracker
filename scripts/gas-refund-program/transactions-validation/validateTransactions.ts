@@ -139,9 +139,14 @@ export async function validateTransactions() {
             .isGreaterThan(MAX_PSP_GLOBAL_BUDGET)
         ) {
           // Note: updating refundedAmountUSD does not matter if global budget limit is reached
-          cappedRefundedAmountPSP = MAX_PSP_GLOBAL_BUDGET.minus(
+          const cappedToMax = MAX_PSP_GLOBAL_BUDGET.minus(
             guardian.state.totalPSPRefunded,
           );
+
+          // if transaction has been capped earlier, tx min to avoid accidentally pushing per address limit
+          cappedRefundedAmountPSP = cappedRefundedAmountPSP
+            ? BigNumber.min(cappedRefundedAmountPSP, cappedToMax)
+            : cappedToMax;
 
           assert(
             cappedRefundedAmountPSP.lt(refundedAmountPSP),
