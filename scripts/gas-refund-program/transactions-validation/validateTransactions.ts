@@ -16,16 +16,16 @@ import {
 } from './GRPBudgetGuardian';
 
 /**
- * This function guarantees that the order of transactions refunded to be always stable.
- * This is particular important as we approach either per-address budget or global budget limit.
+ * This function guarantees that the order of transactions refunded will always be stable.
+ * This is particularly important as we approach either per-address or global budget limit.
  * Because some transactions from some data source can arrive later, we need to reassess the status of all transactions for all chains for whole epoch.
  *
  * The solution is to:
  * - load current budgetGuardian to get snapshot of budgets spent
- * - scan all transaction since last epoch processed in batch
+ * - scan all transaction since last epoch refunded in batch
  * - flag each transaction as either validated or rejected if it reached the budget
  * - update in memory budget accountability through budgetGuardian on validated transactions
- * - write back status of tx in database
+ * - write back status of tx in database if changed
  */
 export async function validateTransactions() {
   const guardian = GRPBudgetGuardian.getInstance();
