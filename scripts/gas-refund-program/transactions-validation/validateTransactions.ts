@@ -143,7 +143,7 @@ export async function validateTransactions() {
             guardian.state.totalPSPRefunded,
           );
 
-          // if transaction has been capped earlier, tx min to avoid accidentally pushing per address limit
+          // if transaction has been capped in upper handling, take min to avoid accidentally pushing per address limit
           cappedRefundedAmountPSP = cappedRefundedAmountPSP
             ? BigNumber.min(cappedRefundedAmountPSP, cappedToMax)
             : cappedToMax;
