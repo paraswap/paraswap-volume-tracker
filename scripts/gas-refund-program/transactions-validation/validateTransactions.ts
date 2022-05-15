@@ -109,7 +109,9 @@ export async function validateTransactions() {
       }
     }
 
-    await overrideTransactionStatus(transactionsWithUpdatedStatus);
+    if (transactionsWithUpdatedStatus.length > 0) {
+      await overrideTransactionStatus(transactionsWithUpdatedStatus);
+    }
 
     if (transactionsSlice.length < pageSize) break; // micro opt to avoid querying db for last page
   }
