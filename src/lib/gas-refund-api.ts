@@ -112,7 +112,7 @@ export class GasRefundApi {
         JOIN (
           SELECT grt."address", grt.epoch, SUM(grt."refundedAmountPSP") AS "refundedAmountPSP"
           FROM "GasRefundTransactions" grt
-          WHERE grt."chainId" = :chainId
+          WHERE grt."chainId" = :chainId and status='validated'
           GROUP BY grt.address, grt.epoch
         ) AS refunds ON grp.address = refunds.address and grp.epoch = refunds.epoch
         WHERE grp.address=:address AND grp."chainId"=:chainId
