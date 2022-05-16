@@ -37,6 +37,3 @@ export async function resolveEpochCalcTimeInterval(epoch: number): Promise<{
     isEpochEnded: SCRIPT_START_TIME_SEC >= epochEndTime + OFFSET_CALC_TIME,
   };
 }
-
-export const generateLockKeyForTxTable = (chainId: number) =>
-  `${GasRefundTransaction.tableName}_${chainId}`;

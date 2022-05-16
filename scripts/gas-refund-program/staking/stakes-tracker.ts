@@ -8,7 +8,7 @@ import {
   GasRefundSPSPStakesAlgoFlipEpoch,
 } from '../../../src/lib/gas-refund';
 import { OFFSET_CALC_TIME, SCRIPT_START_TIME_SEC } from '../common';
-import { getLatestTransactionTimestamp } from '../persistance/db-persistance';
+import { getLatestEpochRefundedAllChains } from '../persistance/db-persistance';
 import SafetyModuleStakesTracker from './safety-module-stakes-tracker';
 import SPSPStakesTracker from './spsp-stakes-tracker';
 
@@ -26,26 +26,28 @@ export default class StakesTracker {
     const blockInfo = BlockInfo.getInstance(CHAIN_ID_MAINNET);
     const epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET, true);
 
-    const latestTxTimestamp = await getLatestTransactionTimestamp();
+    // @FIXME: as this has to be aligned with the logic where we scan transactions
+    // we have to come up with a stronger implem to always make sure tx scanning time isn't lower than stakes fetching time
+    const latestEpochRefunded = await getLatestEpochRefundedAllChains();
 
-    const startTimeSPSP =
-      latestTxTimestamp ||
-      (await epochInfo.getEpochStartCalcTime(GasRefundGenesisEpoch));
+    const startTimeSPSP = await epochInfo.getEpochStartCalcTime(
+      latestEpochRefunded || GasRefundGenesisEpoch,
+    );
 
-    const startTimeSM =
-      latestTxTimestamp ||
-      (await epochInfo.getEpochStartCalcTime(GasRefundSafetyModuleStartEpoch));
+    const startTimeSM = await epochInfo.getEpochStartCalcTime(
+      latestEpochRefunded &&
+        latestEpochRefunded > GasRefundSafetyModuleStartEpoch
+        ? latestEpochRefunded
+        : GasRefundSafetyModuleStartEpoch,
+    );
 
     const endTime = SCRIPT_START_TIME_SEC - OFFSET_CALC_TIME;
 
     assert(
-       startTimeSPSP < endTime,
+      startTimeSPSP < endTime,
       'startTimeSPSP should be less than endTime',
     );
-    assert(
-      startTimeSM < endTime,
-      'startTimeSM should be less than endTime',
-    );
+    assert(startTimeSM < endTime, 'startTimeSM should be less than endTime');
 
     const [startBlockSPSP, startBlockSM, endBlock] = await Promise.all([
       blockInfo.getBlockAfterTimeStamp(startTimeSPSP),
@@ -58,11 +60,15 @@ export default class StakesTracker {
       'endBlock should be a number greater than 0',
     );
     assert(
-      typeof startBlockSPSP === 'number' && startBlockSPSP > 0 && startBlockSPSP < endBlock,
+      typeof startBlockSPSP === 'number' &&
+        startBlockSPSP > 0 &&
+        startBlockSPSP < endBlock,
       'startBlockSPSP should be a number and 0 < startBlockSPSP < endBlock',
     );
     assert(
-      typeof startBlockSM === 'number' && startBlockSM > 0 && startBlockSM < endBlock,
+      typeof startBlockSM === 'number' &&
+        startBlockSM > 0 &&
+        startBlockSM < endBlock,
       'startBlockSM should be a number and 0 < startBlockSM < endBlock',
     );
 

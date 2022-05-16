@@ -90,42 +90,34 @@ export async function fetchTotalRefundedAmountUSDByAddress(
   return totalRefundedAmountUSDByAddress;
 }
 
-export async function getLatestEpochProcessed(
-  chainId: number,
-): Promise<number> {
-  return GasRefundParticipation.max<number, GasRefundParticipation>('epoch', {
+export async function getLatestEpochRefunded(chainId: number): Promise<number> {
+  return GasRefundDistribution.max<number, GasRefundDistribution>('epoch', {
     where: {
       chainId,
     },
   });
 }
 
-export async function getLatestTransactionTimestamp() {
-  const chainToTxTimestamp = (await GasRefundTransaction.findAll({
+export async function getLatestEpochRefundedAllChains() {
+  const chainToEpoch = (await GasRefundDistribution.findAll({
     attributes: [
       'chainId',
-      [
-        Sequelize.fn('max', Sequelize.col('timestamp')),
-        'lastTimestampForChain',
-      ],
+      [Sequelize.fn('max', Sequelize.col('epoch')), 'latestEpochRefunded'],
     ],
     group: 'chainId',
     raw: true,
-  })) as unknown as { chainId: number; lastTimestampForChain: number }[];
+  })) as unknown as { chainId: number; latestEpochRefunded: number }[];
 
-  const lastTxTimestampsAllChains = chainToTxTimestamp.map(
-    t => t.lastTimestampForChain,
-  );
+  const latestEpochsRefunded = chainToEpoch.map(t => t.latestEpochRefunded);
 
   // if we didn't get exact same number as supported chains
   // it might be due to data of one chain not being computed yet
-  // in such case prefer returning 0 and fallback to GasRefundGensisStartTime
-  if (lastTxTimestampsAllChains.length !== GRP_SUPPORTED_CHAINS.length)
-    return 0;
+  // in such case prefer return undefined and let upper layer decide
+  if (latestEpochsRefunded.length !== GRP_SUPPORTED_CHAINS.length) return;
 
-  const latestTransactionTimestamp = Math.min(...lastTxTimestampsAllChains);
+  const latestEpochRefunded = Math.min(...latestEpochsRefunded);
 
-  return latestTransactionTimestamp;
+  return latestEpochRefunded;
 }
 
 export async function fetchLastEpochRefunded(): Promise<number | undefined> {

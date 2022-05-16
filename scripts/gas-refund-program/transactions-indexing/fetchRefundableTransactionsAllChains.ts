@@ -7,7 +7,7 @@ import {
 } from '../../../src/lib/gas-refund';
 import { resolveEpochCalcTimeInterval } from '../common';
 import {
-  getLatestEpochProcessed,
+  getLatestEpochRefunded,
   merkleRootExists,
 } from '../persistance/db-persistance';
 import { fetchPricingAndTransactions } from './fetchPricingAndTransactions';
@@ -19,9 +19,11 @@ export async function fetchRefundableTransactionsAllChains() {
 
   return Promise.all(
     GRP_SUPPORTED_CHAINS.map(async chainId => {
-      const lastEpochProcessed = await getLatestEpochProcessed(chainId);
+      const lastEpochRefunded = await getLatestEpochRefunded(chainId);
 
-      const startEpoch = lastEpochProcessed || GasRefundGenesisEpoch;
+      const startEpoch = lastEpochRefunded
+        ? lastEpochRefunded + 1
+        : GasRefundGenesisEpoch;
 
       assert(
         startEpoch >= GasRefundGenesisEpoch,
