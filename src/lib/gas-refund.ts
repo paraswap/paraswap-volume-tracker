@@ -71,10 +71,16 @@ type GasRefundLevelsDef = {
 
 export interface GasRefundParticipantData {
   epoch: number;
-  address: string
+  address: string;
   chainId: number;
   merkleProofs: string[];
   isCompleted: boolean;
+}
+
+export enum TransactionStatus {
+  IDLE = 'idle',
+  VALIDATED = 'validated',
+  REJECTED = 'rejected',
 }
 export interface GasRefundTransactionData {
   epoch: number;
@@ -85,6 +91,7 @@ export interface GasRefundTransactionData {
   timestamp: number;
   gasUsed: string;
   gasUsedChainCurrency: string;
+  gasPrice: string;
   gasUsedUSD: string;
   pspUsd: number;
   chainCurrencyUsd: number;
@@ -93,6 +100,7 @@ export interface GasRefundTransactionData {
   refundedAmountPSP: string;
   refundedAmountUSD: string;
   contract: string;
+  status: TransactionStatus;
 }
 
 //                                                  psp decimals
@@ -127,4 +135,3 @@ export const getRefundPercent = (stakedAmount: string): number | undefined =>
   gasRefundLevels.find(({ minStakedAmount }) =>
     new BigNumber(stakedAmount).gte(minStakedAmount),
   )?.refundPercent;
-

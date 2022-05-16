@@ -3,8 +3,8 @@ import { assert } from 'ts-essentials';
 import {
   fetchTotalRefundedAmountUSDByAddress,
   fetchTotalRefundedPSP,
-} from './persistance/db-persistance';
-import { ZERO_BN } from './utils';
+} from '../persistance/db-persistance';
+import { ZERO_BN } from '../utils';
 
 export const MAX_PSP_GLOBAL_BUDGET = new BigNumber(30_000_000).multipliedBy(
   10 ** 18,
@@ -20,28 +20,38 @@ export type GRPSystemState = {
  * This loads the current state of the system from database and resolve whether any limits are violated
  * some optimistic in memory updates are inferred to avoid querying database too often
  */
-class GRPSystemGuardian {
-  systemState: GRPSystemState;
+export class GRPBudgetGuardian {
+  state: GRPSystemState;
 
-  async loadStateFromDB() {
+  static instance: GRPBudgetGuardian;
+
+  static getInstance() {
+    if (!this.instance) {
+      this.instance = new GRPBudgetGuardian();
+    }
+
+    return this.instance;
+  }
+
+  async loadStateFromDB(toEpoch?: number) {
     const [totalPSPRefunded, totalRefundedAmountUSDByAddress] =
       await Promise.all([
-        fetchTotalRefundedPSP(),
-        fetchTotalRefundedAmountUSDByAddress(),
+        fetchTotalRefundedPSP(toEpoch),
+        fetchTotalRefundedAmountUSDByAddress(toEpoch),
       ]);
 
-    this.systemState = {
+    this.state = {
       totalPSPRefunded,
       totalRefundedAmountUSDByAddress,
     };
   }
 
   totalRefundedAmountUSD(account: string) {
-    return this.systemState.totalRefundedAmountUSDByAddress[account] || ZERO_BN;
+    return this.state.totalRefundedAmountUSDByAddress[account] || ZERO_BN;
   }
 
   isMaxPSPGlobalBudgetSpent() {
-    return this.systemState.totalPSPRefunded.isGreaterThanOrEqualTo(
+    return this.state.totalPSPRefunded.isGreaterThanOrEqualTo(
       MAX_PSP_GLOBAL_BUDGET,
     );
   }
@@ -58,17 +68,15 @@ class GRPSystemGuardian {
 
   increaseTotalAmountRefundedUSDForAccount(
     account: string,
-    usdAmount: BigNumber,
+    usdAmount: BigNumber | string,
   ) {
-    this.systemState.totalRefundedAmountUSDByAddress[account] =
+    this.state.totalRefundedAmountUSDByAddress[account] =
       this.totalRefundedAmountUSD(account).plus(usdAmount);
   }
 
-  increaseTotalPSPRefunded(amount: BigNumber) {
-    this.systemState.totalPSPRefunded = (
-      this.systemState.totalPSPRefunded || ZERO_BN
-    ).plus(amount);
+  increaseTotalPSPRefunded(amount: BigNumber | string) {
+    this.state.totalPSPRefunded = (this.state.totalPSPRefunded || ZERO_BN).plus(
+      amount,
+    );
   }
 }
-
-export default new GRPSystemGuardian();

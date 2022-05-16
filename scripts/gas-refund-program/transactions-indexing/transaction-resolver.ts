@@ -16,9 +16,15 @@ import { getTransactionGasUsed } from '../staking/covalent';
 import StakesTracker from '../staking/stakes-tracker';
 import { getSuccessfulSwaps } from './swaps-subgraph';
 import { GasRefundTransaction } from '../types';
-import { GasRefundConsiderContractTXsStartEpoch, GRP_MIN_STAKE } from '../../../src/lib/gas-refund';
-import GRPSystemGuardian from '../system-guardian';
-import { CHAIN_ID_MAINNET, SAFETY_MODULE_ADDRESS, AUGUSTUS_ADDRESS } from '../../../src/lib/constants';
+import {
+  GasRefundConsiderContractTXsStartEpoch,
+  GRP_MIN_STAKE,
+} from '../../../src/lib/gas-refund';
+import {
+  CHAIN_ID_MAINNET,
+  SAFETY_MODULE_ADDRESS,
+  AUGUSTUS_V5_ADDRESS,
+} from '../../../src/lib/constants';
 
 type GetAllTXsInput = {
   startTimestamp: number;
@@ -26,43 +32,78 @@ type GetAllTXsInput = {
   chainId: number;
   epoch: number;
   epochEndTimestamp: number;
-}
+  contractAddress: string;
+};
 
-export const getAllTXs = async ({ epoch, chainId, startTimestamp, endTimestamp, epochEndTimestamp }: GetAllTXsInput): Promise<GasRefundTransaction[]> => {
+const CovalentAddressesByChain: Record<number, string[]> = {
+  [CHAIN_ID_MAINNET]: [...SPSPAddresses, SAFETY_MODULE_ADDRESS],
+};
 
-  const chainWhiteListedAddresses: Record<number, string[]> = {
-    [CHAIN_ID_MAINNET]: [...SPSPAddresses, SAFETY_MODULE_ADDRESS]
-  }
-  const whiteListedAddresses = chainWhiteListedAddresses?.[chainId] ?? []
+export const getContractAddresses = ({
+  chainId,
+  epoch,
+}: {
+  chainId: number;
+  epoch: number;
+}) => {
+  if (epoch < GasRefundConsiderContractTXsStartEpoch)
+    return [AUGUSTUS_V5_ADDRESS];
 
+  return (CovalentAddressesByChain[chainId] || []).concat(AUGUSTUS_V5_ADDRESS);
+};
+
+export const getAllTXs = async ({
+  epoch,
+  chainId,
+  startTimestamp,
+  endTimestamp,
+  epochEndTimestamp,
+  contractAddress,
+}: GetAllTXsInput): Promise<GasRefundTransaction[]> => {
   // fetch swaps and contract (staking pools, safety module) txs
-  const allTXs = (await Promise.all([
-    getSwapTXs({epoch, chainId, startTimestamp, endTimestamp, epochEndTimestamp}),
-    getContractsTXs({epoch, chainId, startTimestamp, endTimestamp, whiteListedAddresses })
-  ])).flat()
-
-  // sort to be chronological
-  const allTXsChronological = allTXs.sort((a, b) => +(a.timestamp) - +(b.timestamp));
-
-  return allTXsChronological;
-}
-
+  return contractAddress === AUGUSTUS_V5_ADDRESS
+    ? getSwapTXs({
+        epoch,
+        chainId,
+        startTimestamp,
+        endTimestamp,
+        epochEndTimestamp,
+      })
+    : getTransactionForContract({
+        epoch,
+        chainId,
+        startTimestamp,
+        endTimestamp,
+        contractAddress,
+      });
+};
 
 /**
  * this will take an epoch, a chain, and two timespan values (min/max).
  * it will use subgraph for now (and augment gas data via a covalent call),
  * but later resolve to covalent after a certain epoch.
-*/
+ */
 type GetSwapTXsInput = {
   epoch: number;
   chainId: number;
   startTimestamp: number;
   endTimestamp: number;
   epochEndTimestamp: number;
-}
-export const getSwapTXs = async ({ epoch, chainId, startTimestamp, endTimestamp, epochEndTimestamp }: GetSwapTXsInput): Promise<GasRefundTransaction[]> => {
+};
+export const getSwapTXs = async ({
+  epoch,
+  chainId,
+  startTimestamp,
+  endTimestamp,
+  epochEndTimestamp,
+}: GetSwapTXsInput): Promise<GasRefundTransaction[]> => {
   // get swaps from the graph
-  const swaps = await getSuccessfulSwaps({ startTimestamp, endTimestamp, chainId, epoch });
+  const swaps = await getSuccessfulSwaps({
+    startTimestamp,
+    endTimestamp,
+    chainId,
+    epoch,
+  });
 
   // check the swapper is a staker, and likewise hasn't used up their budget, to avoid subsequently wasting resources looking up gas unnecessarily
   const swapsOfQualifyingStakers = swaps.filter(swap => {
@@ -70,40 +111,36 @@ export const getSwapTXs = async ({ epoch, chainId, startTimestamp, endTimestamp,
       swap.txOrigin,
       +swap.timestamp,
       epoch,
-      epochEndTimestamp
+      epochEndTimestamp,
     );
     // tx address must be a staker && must not be over their budget in order to be processed
-    return swapperStake.isGreaterThanOrEqualTo(GRP_MIN_STAKE) && !GRPSystemGuardian.isAccountUSDBudgetSpent(swap.txOrigin);
+    return swapperStake.isGreaterThanOrEqualTo(GRP_MIN_STAKE);
   });
 
   // augment with gas used and the pertaining contract the tx occured on
   const swapsWithGasUsedNormalised: GasRefundTransaction[] = await Promise.all(
-    swapsOfQualifyingStakers.map(async ({
-      txHash,
-      txOrigin,
-      txGasPrice,
-      timestamp,
-      blockNumber
-    }) => {
-      const txGasUsed = await getTransactionGasUsed({
-        chainId,
-        txHash,
-      });
+    swapsOfQualifyingStakers.map(
+      async ({ txHash, txOrigin, txGasPrice, timestamp, blockNumber }) => {
+        const txGasUsed = await getTransactionGasUsed({
+          chainId,
+          txHash,
+        });
 
-      return {
-        txHash,
-        txOrigin,
-        txGasPrice,
-        timestamp,
-        blockNumber,
-        txGasUsed: txGasUsed.toString(),
-        contract: AUGUSTUS_ADDRESS
-      }
-    })
+        return {
+          txHash,
+          txOrigin,
+          txGasPrice,
+          timestamp,
+          blockNumber,
+          txGasUsed: txGasUsed.toString(),
+          contract: AUGUSTUS_V5_ADDRESS,
+        };
+      },
+    ),
   );
 
   return swapsWithGasUsedNormalised;
-}
+};
 
 /**
  * staking and unstaking txs.
@@ -115,32 +152,26 @@ type GetContractsTXsInput = {
   chainId: number;
   startTimestamp: number;
   endTimestamp: number;
-  whiteListedAddresses: string[]
-}
-export const getContractsTXs = async ({
+  contractAddress: string;
+};
+export const getTransactionForContract = async ({
   epoch,
   startTimestamp,
   endTimestamp,
   chainId,
-  whiteListedAddresses
+  contractAddress,
 }: GetContractsTXsInput): Promise<GasRefundTransaction[]> => {
   // fail fast if this is a deadend
-  if (epoch < GasRefundConsiderContractTXsStartEpoch || !whiteListedAddresses || whiteListedAddresses.length === 0) {
-    return []
+  if (epoch < GasRefundConsiderContractTXsStartEpoch) {
+    return [];
   }
 
-  const getTxsFromAllContracts = whiteListedAddresses.map(contract => covalentGetTXsForContract({
+  const txsFromAllContracts = (await covalentGetTXsForContract({
     startTimestamp,
     endTimestamp,
     chainId,
-    contract
-  }));
-  const txsAcrossContracts = await Promise.all(getTxsFromAllContracts);
+    contract: contractAddress,
+  })) as unknown as GasRefundTransaction[];
 
-  const txsFromAllContracts = [].concat.apply([], txsAcrossContracts) as GasRefundTransaction[];
-
-  // sort to be chronological
-  const chronologicalTxs = txsFromAllContracts.sort((a, b) => +(a.timestamp) - +(b.timestamp));
-
-  return chronologicalTxs;
-}
+  return txsFromAllContracts;
+};

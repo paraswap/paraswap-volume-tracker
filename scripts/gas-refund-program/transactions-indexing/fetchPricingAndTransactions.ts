@@ -3,12 +3,11 @@ import {
   constructPriceResolver,
   fetchDailyPSPChainCurrencyRate,
 } from '../token-pricing/psp-chaincurrency-pricing';
-import { computeSuccessfulSwapsTxFeesRefund as computeGasRefundSuccessSwaps } from './successful-swap-tx-indexing';
+import { fetchRefundableTransactions } from './fetchRefundableTransactions';
 
-const logger = global.LOGGER('GRP:computeGasRefundAllTxs');
+const logger = global.LOGGER('GRP:fetchRefundableTransactionsForChain');
 
-// @TODO: index more transactions (failed swap tx, staking tx)
-export async function computeGasRefundAllTxs({
+export async function fetchPricingAndTransactions({
   chainId,
   startTimestamp,
   endTimestamp,
@@ -42,7 +41,7 @@ export async function computeGasRefundAllTxs({
     `start indexing transaction and accumulate tx fees and refund for chainId=${chainId}`,
   );
 
-  await computeGasRefundSuccessSwaps({
+  await fetchRefundableTransactions({
     chainId,
     startTimestamp,
     endTimestamp,
