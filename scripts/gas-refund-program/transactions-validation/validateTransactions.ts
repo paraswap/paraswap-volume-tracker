@@ -162,19 +162,19 @@ export async function validateTransactions() {
         guardian.increaseTotalPSPRefunded(
           cappedRefundedAmountPSP || refundedAmountPSP,
         );
+      }
 
-        if (tx.status !== status) {
-          updatedTransactions.push({
-            ...tx,
-            ...(!!cappedRefundedAmountPSP
-              ? { refundedAmountPSP: cappedRefundedAmountPSP.toFixed(0) }
-              : {}),
-            ...(!!cappedRefundedAmountUSD
-              ? { refundedAmountUSD: cappedRefundedAmountUSD.toFixed() } // purposefully not rounded to preserve dollar amount precision [IMPORTANT FOR CALCULCATIONS]
-              : {}),
-            status,
-          });
-        }
+      if (tx.status !== status) {
+        updatedTransactions.push({
+          ...tx,
+          ...(!!cappedRefundedAmountPSP
+            ? { refundedAmountPSP: cappedRefundedAmountPSP.toFixed(0) }
+            : {}),
+          ...(!!cappedRefundedAmountUSD
+            ? { refundedAmountUSD: cappedRefundedAmountUSD.toFixed() } // purposefully not rounded to preserve dollar amount precision [IMPORTANT FOR CALCULCATIONS]
+            : {}),
+          status,
+        });
       }
     }
 
