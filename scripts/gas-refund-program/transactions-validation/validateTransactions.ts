@@ -78,7 +78,7 @@ export async function validateTransactions() {
     const updatedTransactions = [];
 
     for (const tx of transactionsSlice) {
-      let {
+      const {
         address,
         status,
         totalStakeAmountPSP,
@@ -86,6 +86,8 @@ export async function validateTransactions() {
         pspChainCurrency,
         pspUsd,
       } = tx;
+      let newStatus;
+      
       const refundPercentage = getRefundPercent(totalStakeAmountPSP);
 
       assert(refundPercentage, 'refundPercentage should be defined and > 0');
@@ -108,9 +110,9 @@ export async function validateTransactions() {
         guardian.isAccountUSDBudgetSpent(address);
 
       if (isGlobalLimitReached || isPerAccountLimitReached) {
-        status = TransactionStatus.REJECTED;
+        newStatus = TransactionStatus.REJECTED;
       } else {
-        status = TransactionStatus.VALIDATED;
+        newStatus = TransactionStatus.VALIDATED;
 
         if (
           guardian
@@ -164,7 +166,7 @@ export async function validateTransactions() {
         );
       }
 
-      if (tx.status !== status) {
+      if (status !== newStatus) {
         updatedTransactions.push({
           ...tx,
           ...(!!cappedRefundedAmountPSP
@@ -173,7 +175,7 @@ export async function validateTransactions() {
           ...(!!cappedRefundedAmountUSD
             ? { refundedAmountUSD: cappedRefundedAmountUSD.toFixed() } // purposefully not rounded to preserve dollar amount precision [IMPORTANT FOR CALCULCATIONS]
             : {}),
-          status,
+          status: newStatus,
         });
       }
     }
