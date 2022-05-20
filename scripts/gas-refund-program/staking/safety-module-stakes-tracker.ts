@@ -5,7 +5,7 @@ import {
   CHAIN_ID_MAINNET,
   NULL_ADDRESS,
   PSP_ADDRESS,
-  SAFETY_MODULE_ADDRESS
+  SAFETY_MODULE_ADDRESS,
 } from '../../../src/lib/constants';
 import { Provider } from '../../../src/lib/provider';
 import * as ERC20ABI from '../../../src/lib/abi/erc20.abi.json';
@@ -404,5 +404,12 @@ export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
     const stkPSP2PSPRate = this.compute_StkPSPBPT_to_PSP_Rate(timestamp);
 
     return stkPSPBPT.multipliedBy(stkPSP2PSPRate);
+  }
+
+  getStakersAddresses(): string[] {
+    return [
+      ...Object.keys(this.initState.stkPSPBptUsersBalances),
+      ...Object.keys(this.differentialStates.stkPSPBptUsersBalances),
+    ];
   }
 }

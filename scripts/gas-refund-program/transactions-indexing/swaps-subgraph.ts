@@ -11,11 +11,16 @@ import {
   GasRefundTxOriginCheckStartEpoch,
 } from '../../../src/lib/gas-refund';
 import { thegraphClient } from '../data-providers-clients';
-import { queryPaginatedData, QueryPaginatedDataParams } from '../utils';
+import StakesTracker from '../staking/stakes-tracker';
+import {
+  queryPaginatedData,
+  QueryPaginatedDataParams,
+  sliceCalls,
+} from '../utils';
 
 // Note: txGasUsed from thegraph is unsafe as it's actually txGasLimit https://github.com/graphprotocol/graph-node/issues/2619
 const SwapsQuery = `
-query ($number_gte: BigInt, $number_lt: BigInt, $first: Int, $skip: Int) {
+query ($number_gte: BigInt, $number_lt: BigInt, $first: Int, $skip: Int, $txOrigins: [Bytes!]!) {
 	swaps(
 		first: $first
     skip: $skip
@@ -24,6 +29,7 @@ query ($number_gte: BigInt, $number_lt: BigInt, $first: Int, $skip: Int) {
 		where: {
 			timestamp_gte: $number_gte
 			timestamp_lt: $number_lt
+      txOrigin_in: $txOrigins
 		}
 	) {
     txHash
@@ -64,25 +70,43 @@ export async function getSuccessfulSwaps({
 }: GetSuccessSwapsInput): Promise<SwapData[]> {
   const subgraphURL = SubgraphURLs[chainId];
 
-  const fetchSwaps = async ({ skip, pageSize }: QueryPaginatedDataParams) => {
-    const variables = {
-      number_gte: startTimestamp,
-      number_lt: endTimestamp,
-      skip,
-      pageSize,
+  const fetchPaginatedSwaps = async ({
+    skip,
+    pageSize,
+  }: QueryPaginatedDataParams) => {
+    const fetchSwapsSlicedByTxOrigins = async (txOriginsSlice: string[]) => {
+      const variables = {
+        number_gte: startTimestamp,
+        number_lt: endTimestamp,
+        skip,
+        pageSize,
+        txOrigins: txOriginsSlice,
+      };
+
+      const { data } = await thegraphClient.post<SwapsGQLRespose>(subgraphURL, {
+        query: SwapsQuery,
+        variables,
+      });
+
+      const swaps = data.data.swaps;
+
+      return swaps;
     };
 
-    const { data } = await thegraphClient.post<SwapsGQLRespose>(subgraphURL, {
-      query: SwapsQuery,
-      variables,
-    });
-
-    const swaps = data.data.swaps;
+    const swaps = (
+      await Promise.all(
+        sliceCalls({
+          inputArray: StakesTracker.getInstance().getStakersAddresses(),
+          execute: fetchSwapsSlicedByTxOrigins,
+          sliceLength: 100,
+        }),
+      )
+    ).flat();
 
     return swaps;
   };
 
-  const swaps = await queryPaginatedData(fetchSwaps, 100);
+  const swaps = await queryPaginatedData(fetchPaginatedSwaps, 100);
 
   if (epoch < GasRefundTxOriginCheckStartEpoch) {
     return swaps;
