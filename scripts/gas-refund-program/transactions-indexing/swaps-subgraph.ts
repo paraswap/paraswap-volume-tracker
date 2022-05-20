@@ -93,12 +93,14 @@ export async function getSuccessfulSwaps({
       return swaps;
     };
 
+    const stakersAddresses = StakesTracker.getInstance().getStakersAddresses();
+
     const swaps = (
       await Promise.all(
         sliceCalls({
-          inputArray: StakesTracker.getInstance().getStakersAddresses(),
+          inputArray: stakersAddresses,
           execute: fetchSwapsSlicedByTxOrigins,
-          sliceLength: 100,
+          sliceLength: 1000,
         }),
       )
     ).flat();
