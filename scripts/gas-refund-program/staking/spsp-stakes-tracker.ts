@@ -547,4 +547,15 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
 
     return totalPSPBalance;
   }
+
+  getStakersAddresses(): string[] {
+    return [
+      ...Object.values(this.initState.sPSPBalanceByAccount).flatMap(
+        sPSPBalanceForPool => Object.keys(sPSPBalanceForPool),
+      ),
+      ...Object.values(this.differentialStates.sPSPBalanceByAccount).flatMap(
+        sPSPBalanceForPool => Object.keys(sPSPBalanceForPool),
+      ),
+    ];
+  }
 }

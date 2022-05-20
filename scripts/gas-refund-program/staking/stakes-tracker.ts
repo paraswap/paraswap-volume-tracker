@@ -1,3 +1,4 @@
+import * as _ from 'lodash';
 import { assert } from 'ts-essentials';
 import { BlockInfo } from '../../../src/lib/block-info';
 import { CHAIN_ID_MAINNET } from '../../../src/lib/constants';
@@ -112,5 +113,12 @@ export default class StakesTracker {
       );
 
     return pspStakedInSPSP.plus(pspStakedInSM);
+  }
+
+  getStakersAddresses(): string[] {
+    return _.uniq([
+      ...SPSPStakesTracker.getInstance().getStakersAddresses(),
+      ...SafetyModuleStakesTracker.getInstance().getStakersAddresses(),
+    ]);
   }
 }
