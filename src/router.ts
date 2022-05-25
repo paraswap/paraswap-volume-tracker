@@ -4,10 +4,15 @@ import VolumeTracker from './lib/volume-tracker';
 import { MarketMakerAddresses } from './lib/volume-tracker';
 import { PoolInfo } from './lib/pool-info';
 import { Claim } from './models/Claim';
-import { DEFAULT_CHAIN_ID, STAKING_CHAIN_IDS_SET, CHAIN_ID_MAINNET } from './lib/constants';
+import {
+  DEFAULT_CHAIN_ID,
+  STAKING_CHAIN_IDS_SET,
+  CHAIN_ID_MAINNET,
+} from './lib/constants';
 import { GasRefundApi } from './lib/gas-refund-api';
 import { EpochInfo } from './lib/epoch-info';
 import { GRP_SUPPORTED_CHAINS } from './lib/gas-refund';
+import { StakingService } from './lib/staking';
 
 const logger = global.LOGGER();
 
@@ -139,6 +144,20 @@ export default class Router {
       } catch (e) {
         logger.error(req.path, e);
         res.status(403).send({ error: 'MarketMakerAddresses Error' });
+      }
+    });
+
+    router.get('/stakes/:account', async (req, res) => {
+      try {
+        const account = req.params.account;
+        const PSPStakedInAllPrograms =
+          await StakingService.getInstance().getPSPStakesAllPrograms(account);
+
+        return res.json(PSPStakedInAllPrograms);
+      } catch (e) {
+        return res
+          .status(403)
+          .send({ error: 'stakes could not been retrieved for user' });
       }
     });
 

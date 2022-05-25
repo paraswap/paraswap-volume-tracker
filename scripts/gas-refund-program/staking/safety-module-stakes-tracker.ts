@@ -2,14 +2,17 @@ import BigNumber from 'bignumber.js';
 import { BigNumber as EthersBN, CallOverrides, Contract, Event } from 'ethers';
 import { assert } from 'ts-essentials';
 import {
+  BalancerVaultAddress,
+  Balancer_80PSP_20WETH_address,
+  Balancer_80PSP_20WETH_poolId,
   CHAIN_ID_MAINNET,
   NULL_ADDRESS,
   PSP_ADDRESS,
-  SAFETY_MODULE_ADDRESS
+  SAFETY_MODULE_ADDRESS,
 } from '../../../src/lib/constants';
 import { Provider } from '../../../src/lib/provider';
 import * as ERC20ABI from '../../../src/lib/abi/erc20.abi.json';
-import * as BVaultABI from './balancer-vault-abi.json';
+import * as BVaultABI from '../../../src/lib/abi/balancer-vault.abi.json';
 import { getTokenHolders } from './covalent';
 import { fetchBlockTimestampForEvents, ZERO_BN } from '../utils';
 import {
@@ -18,14 +21,6 @@ import {
   timeseriesComparator,
 } from '../timeseries';
 import AbstractStakeTracker from './abstract-stakes-tracker';
-
-const BalancerVaultAddress = '0xba12222222228d8ba445958a75a0704d566bf2c8';
-const Balancer_80PSP_20WETH_poolId =
-  '0xcb0e14e96f2cefa8550ad8e4aea344f211e5061d00020000000000000000011a';
-const Balancer_80PSP_20WETH_address = Balancer_80PSP_20WETH_poolId.substring(
-  0,
-  42,
-); // or 0xcb0e14e96f2cefa8550ad8e4aea344f211e5061d
 
 interface MinERC20 extends Contract {
   totalSupply(overrides?: CallOverrides): Promise<EthersBN>;
