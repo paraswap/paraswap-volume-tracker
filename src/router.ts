@@ -150,11 +150,12 @@ export default class Router {
     router.get('/stakes/:account', async (req, res) => {
       try {
         const account = req.params.account;
-        const PSPStakedInAllPrograms =
+        const totalPSPStakedInAllStakingPrograms =
           await StakingService.getInstance().getPSPStakesAllPrograms(account);
 
-        return res.json(PSPStakedInAllPrograms);
+        return res.json(totalPSPStakedInAllStakingPrograms);
       } catch (e) {
+        logger.error(req.path, e)
         return res
           .status(403)
           .send({ error: 'stakes could not been retrieved for user' });
