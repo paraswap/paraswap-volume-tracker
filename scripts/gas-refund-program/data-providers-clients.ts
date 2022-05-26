@@ -6,6 +6,7 @@ export const coingeckoClient = constructHttpClient({
     timeout: 5_000,
   },
   rateLimitOptions: {
+    maxRPS: undefined,
     maxRequests: 1,
     perMilliseconds: 10_000,
   },
