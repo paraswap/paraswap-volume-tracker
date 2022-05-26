@@ -141,8 +141,8 @@ export const BNReplacer = (key: string, value: any): any => {
   if (value instanceof BigNumber) {
     return value.toFixed();
   }
-  if(Array.isArray(value)) {
-    return value.map(v => BNReplacer("", v));
+  if (Array.isArray(value)) {
+    return value.map(v => BNReplacer('', v));
   }
   if (typeof value === 'object') {
     const list = Object.entries(value).map(([k, v]) => [k, BNReplacer(k, v)]);
@@ -151,3 +151,7 @@ export const BNReplacer = (key: string, value: any): any => {
   }
   return value;
 };
+
+export const xor = (a: any, b: any): boolean => !!(Number(!!a) ^ Number(!!b));
+
+export const xnor = (a: any, b: any): boolean => !xor(a, b);
