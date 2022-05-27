@@ -11,7 +11,7 @@ import {
   fetchLastEpochRefunded,
   updateTransactionsStatusRefundedAmounts,
 } from '../persistance/db-persistance';
-import { xnor } from '../utils';
+import { xnor } from '../../../src/lib/utils/helpers';
 import {
   GRPBudgetGuardian,
   MAX_PSP_GLOBAL_BUDGET,

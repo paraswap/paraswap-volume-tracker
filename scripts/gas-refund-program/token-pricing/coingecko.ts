@@ -6,7 +6,7 @@ import {
 } from '../../../src/lib/constants';
 import { HistoricalPrice } from '../types';
 import { coingeckoClient } from '../../../src/lib/utils/data-providers-clients';
-import { startOfDayMilliSec } from '../utils';
+import { startOfDayMilliSec } from '../../../src/lib/utils/helpers';
 import { assert } from 'ts-essentials';
 
 export const PSP_COINGECKO_COIN_ID = 'paraswap';

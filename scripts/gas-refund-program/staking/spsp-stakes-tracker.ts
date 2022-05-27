@@ -13,7 +13,7 @@ import {
   ONE_HOUR_SEC,
   startOfHourSec,
   ZERO_BN,
-} from '../utils';
+} from '../../../src/lib/utils/helpers';
 import { reduceTimeSeries, TimeSeries } from '../timeseries';
 import AbstractStakeTracker from './abstract-stakes-tracker';
 import { assert } from 'ts-essentials';

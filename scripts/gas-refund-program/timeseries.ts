@@ -1,5 +1,5 @@
 import BigNumber from 'bignumber.js';
-import { ZERO_BN } from './utils';
+import { ZERO_BN } from '../../src/lib/utils/helpers';
 
 export type TimeSeriesItem = { timestamp: number; value: BigNumber };
 export type TimeSeries = TimeSeriesItem[];

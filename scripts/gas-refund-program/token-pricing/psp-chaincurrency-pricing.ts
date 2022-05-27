@@ -8,7 +8,7 @@ import {
   PSP_COINGECKO_COIN_ID,
   sampleDailyAvgPricesStartOfDay,
 } from './coingecko';
-import { startOfDayMilliSec } from '../utils';
+import { startOfDayMilliSec } from '../../../src/lib/utils/helpers';
 
 const fetchHistoricalPriceCoingeckoCached = pMemoize(
   fetchHistoricalPriceCoingecko,

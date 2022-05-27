@@ -10,7 +10,7 @@
  * the caller of functions in this util don't need to care about how the data
  * is resolved, that is the response of the code in this file.
  */
-import { SPSPAddresses } from '../staking/spsp-stakes-tracker';
+import { SPSPAddresses } from '../../../src/lib/staking/spsp-helper';
 import { covalentGetTXsForContract } from './txs-covalent';
 import { getTransactionGasUsed } from '../../../src/lib/utils/covalent';
 import StakesTracker from '../staking/stakes-tracker';

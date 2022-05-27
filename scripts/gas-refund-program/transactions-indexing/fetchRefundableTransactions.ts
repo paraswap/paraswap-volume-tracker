@@ -12,7 +12,7 @@ import {
   TransactionStatus,
 } from '../../../src/lib/gas-refund';
 import * as _ from 'lodash';
-import { ONE_HOUR_SEC } from '../utils';
+import { ONE_HOUR_SEC } from '../../../src/lib/utils/helpers';
 import { PriceResolverFn } from '../token-pricing/psp-chaincurrency-pricing';
 import StakesTracker from '../staking/stakes-tracker';
 import { GRPBudgetGuardian } from '../transactions-validation/GRPBudgetGuardian';

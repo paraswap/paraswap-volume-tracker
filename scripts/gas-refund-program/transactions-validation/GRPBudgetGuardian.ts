@@ -4,7 +4,7 @@ import {
   fetchTotalRefundedAmountUSDByAddress,
   fetchTotalRefundedPSP,
 } from '../persistance/db-persistance';
-import { ZERO_BN } from '../utils';
+import { ZERO_BN } from '../../../src/lib/utils/helpers';
 
 export const MAX_PSP_GLOBAL_BUDGET = new BigNumber(30_000_000).multipliedBy(
   10 ** 18,
