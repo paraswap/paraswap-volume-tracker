@@ -11,6 +11,7 @@ import {
   fetchLastEpochRefunded,
   updateTransactionsStatusRefundedAmounts,
 } from '../persistance/db-persistance';
+import { xnor } from '../utils';
 import {
   GRPBudgetGuardian,
   MAX_PSP_GLOBAL_BUDGET,
@@ -87,7 +88,7 @@ export async function validateTransactions() {
         pspUsd,
       } = tx;
       let newStatus;
-      
+
       const refundPercentage = getRefundPercent(totalStakeAmountPSP);
 
       assert(refundPercentage, 'refundPercentage should be defined and > 0');
@@ -166,7 +167,12 @@ export async function validateTransactions() {
         );
       }
 
-      if (status !== newStatus) {
+      assert(
+        xnor(cappedRefundedAmountPSP, cappedRefundedAmountUSD),
+        'Either both cappedRefundedAmountPSP and cappedRefundedAmountUSD should be falsy or truthy',
+      );
+
+      if (status !== newStatus || !!cappedRefundedAmountPSP) {
         updatedTransactions.push({
           ...tx,
           ...(!!cappedRefundedAmountPSP

@@ -95,3 +95,7 @@ export const BNReplacer = (key: string, value: any): any => {
   }
   return value;
 };
+
+export const xor = (a: any, b: any): boolean => !!(Number(!!a) ^ Number(!!b));
+
+export const xnor = (a: any, b: any): boolean => !xor(a, b);
