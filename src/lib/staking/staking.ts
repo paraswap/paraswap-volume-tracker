@@ -1,6 +1,6 @@
 import { SAFETY_MODULE_ADDRESS } from '../constants';
 import { SPSPHelper } from './spsp-helper';
-import { StkPSPBPTHelper } from './stkpspbpt-helper';
+import { SafetyModuleHelper } from './safety-module-helper';
 import { assert } from 'ts-essentials';
 import { PSPStakesAllStakers, PSPStakesForStaker } from './types';
 
@@ -20,7 +20,7 @@ export class StakingService {
     const [totalPSPStakedInSPSP, totalPSPStakedInSafetyModule] =
       await Promise.all([
         SPSPHelper.getInstance().getPSPStakedInSPSPs(account),
-        StkPSPBPTHelper.getInstance().getPSPStakedInSafetyModule(account),
+        SafetyModuleHelper.getInstance().getPSPStakedInSafetyModule(account),
       ]);
 
     return {
@@ -45,7 +45,7 @@ export class StakingService {
   }> => {
     const [sPSPStakers, stkPSPBPtStakers] = await Promise.all([
       SPSPHelper.getInstance().fetchPSPStakedInSPSP(blockNumber),
-      StkPSPBPTHelper.getInstance().fetchPSPStakedInStkPSPBpt(blockNumber),
+      SafetyModuleHelper.getInstance().fetchPSPStakedInStkPSPBpt(blockNumber),
     ]);
 
     const pspStakersWithStakes: PSPStakesAllStakers<bigint> = {};

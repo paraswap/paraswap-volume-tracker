@@ -17,14 +17,14 @@ import { Interface } from '@ethersproject/abi';
 import { getTokenHolders } from '../utils/covalent';
 import { DataByAccount, StkPSPBPtState } from './types';
 
-export class StkPSPBPTHelper {
-  private static instance: StkPSPBPTHelper;
+export class SafetyModuleHelper {
+  private static instance: SafetyModuleHelper;
 
   static getInstance() {
-    if (!StkPSPBPTHelper.instance) {
-      StkPSPBPTHelper.instance = new StkPSPBPTHelper();
+    if (!SafetyModuleHelper.instance) {
+      SafetyModuleHelper.instance = new SafetyModuleHelper();
     }
-    return StkPSPBPTHelper.instance;
+    return SafetyModuleHelper.instance;
   }
 
   chainId = CHAIN_ID_MAINNET; // all staking programs are only available on ethereum mainnet
