@@ -159,7 +159,7 @@ export default class Router {
         logger.error(req.path, e);
         return res
           .status(403)
-          .send({ error: 'stakes could not been retrieved for user' });
+          .send({ error: 'stakes could not be retrieved for user' });
       }
     });
 

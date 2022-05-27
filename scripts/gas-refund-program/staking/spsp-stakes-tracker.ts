@@ -15,16 +15,14 @@ import {
   ZERO_BN,
 } from '../utils';
 import { reduceTimeSeries, TimeSeries } from '../timeseries';
-import { PoolConfigsMap } from '../../../src/lib/pool-info';
 import AbstractStakeTracker from './abstract-stakes-tracker';
 import { assert } from 'ts-essentials';
-import { SPSPHelper } from '../../../src/lib/staking/spsp-helper';
+import {
+  SPSPAddresses,
+  SPSPHelper,
+} from '../../../src/lib/staking/spsp-helper';
 
 const logger = global.LOGGER('SPSPStakesTracker');
-
-export const SPSPAddresses = PoolConfigsMap[CHAIN_ID_MAINNET].filter(
-  p => p.isActive,
-).map(p => p.address.toLowerCase());
 
 const SPSPAddressesSet = new Set(SPSPAddresses);
 
