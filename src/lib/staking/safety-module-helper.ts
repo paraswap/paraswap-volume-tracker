@@ -124,12 +124,12 @@ export class SafetyModuleHelper {
       ...(!!initBlock && { blockHeight: String(initBlock) }),
     });
 
-    const stkPSPBptUsersBalances = stakes.reduce<{
-      [address: string]: bigint;
-    }>((acc, curr) => {
-      acc[curr.address.toLowerCase()] = BigInt(curr.balance);
-      return acc;
-    }, {});
+    const stkPSPBptUsersBalances = Object.fromEntries(
+      stakes.map(stake => [
+        stake.address.toLowerCase(),
+        BigInt(stake.balance.toString()),
+      ]),
+    );
 
     return stkPSPBptUsersBalances;
   }
