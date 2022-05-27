@@ -101,7 +101,7 @@ export class SPSPHelper {
     );
 
     return {
-      totalPSPStaked: totalPSPStaked.toString(),
+      pspStaked: totalPSPStaked.toString(),
       breakdownByStakingContract: stakesByPool,
     };
   }

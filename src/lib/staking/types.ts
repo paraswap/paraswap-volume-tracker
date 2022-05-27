@@ -12,16 +12,13 @@ export type DataByAccountByPool<T> = {
   };
 };
 
-export type PSPStakesForStaker<T> = {
-  totalPSPStaked: T;
-  breakdownByStakingContract: { [contractAddress: string]: T };
+export type PSPStakesForStaker<T, U = T> = {
+  pspStaked: T;
+  breakdownByStakingContract: { [contractAddress: string]: U };
 };
 
-export type PSPStakesAllStakers<T> = {
-  [accountAddress: string]: {
-    pspStaked: T;
-    breakdownByStakingContract: { [contractAddress: string]: string };
-  };
+export type PSPStakesByStaker<T, U = T> = {
+  [accountAddress: string]: PSPStakesForStaker<T, U>;
 };
 
 export type SPSPStakesByAccount<T> = {

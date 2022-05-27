@@ -2,7 +2,7 @@ import { CHAIN_ID_MAINNET, SAFETY_MODULE_ADDRESS } from '../constants';
 import { SPSPHelper } from './spsp-helper';
 import { SafetyModuleHelper } from './safety-module-helper';
 import { assert } from 'ts-essentials';
-import { PSPStakesAllStakers, PSPStakesForStaker } from './types';
+import { PSPStakesByStaker, PSPStakesForStaker } from './types';
 import { Provider } from '../provider';
 
 export class StakingService {
@@ -24,8 +24,8 @@ export class StakingService {
     ]);
 
     return {
-      totalPSPStaked: (
-        BigInt(spsp.totalPSPStaked) + BigInt(safetyModule.totalPSPStaked)
+      pspStaked: (
+        BigInt(spsp.pspStaked) + BigInt(safetyModule.pspStaked)
       ).toString(),
 
       breakdownByStakingContract: {
@@ -42,7 +42,7 @@ export class StakingService {
     totalPSPStaked: string;
     totalPSPStakedSPSP: string;
     totalPSPStakedStkPSPBpt: string;
-    pspStakersWithStake: PSPStakesAllStakers<string>;
+    pspStakersWithStake: PSPStakesByStaker<string>;
   }> => {
     const blockNumber =
       _blockNumber ||
@@ -53,7 +53,7 @@ export class StakingService {
       SafetyModuleHelper.getInstance().fetchPSPStakedInStkPSPBpt(blockNumber),
     ]);
 
-    const pspStakersWithStakes: PSPStakesAllStakers<bigint> = {};
+    const pspStakersWithStakes: PSPStakesByStaker<bigint, string> = {};
     let totalPSPStaked = BigInt(0);
     let totalPSPStakedSPSP = BigInt(0);
     let totalPSPStakedStkPSPBpt = BigInt(0);

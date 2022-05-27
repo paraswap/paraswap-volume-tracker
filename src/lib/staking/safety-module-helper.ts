@@ -76,7 +76,7 @@ export class SafetyModuleHelper {
       (stkPSPBPtTotalSupply * bptTotalSupply);
 
     return {
-      totalPSPStaked: totalPSPStaked.toString(),
+      pspStaked: totalPSPStaked.toString(),
       breakdownByStakingContract: {
         ...(!!totalPSPStaked && {
           [SAFETY_MODULE_ADDRESS]: totalPSPStaked.toString(),
