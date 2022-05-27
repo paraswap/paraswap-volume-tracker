@@ -12,7 +12,7 @@ import {
   SAFETY_MODULE_ADDRESS,
 } from '../constants';
 import { Provider } from '../provider';
-import { Contract } from 'ethers';
+import { Contract, BigNumber as EthersBN } from 'ethers';
 import { Interface } from '@ethersproject/abi';
 import { getTokenHolders } from '../utils/covalent';
 import { DataByAccount, StkPSPBPtState } from './types';
@@ -29,6 +29,7 @@ export class SafetyModuleHelper {
 
   chainId = CHAIN_ID_MAINNET; // all staking programs are only available on ethereum mainnet
   multicallContract: Contract;
+  safetyModuleAsERC20: Contract;
   bVaultIface: Interface;
   erc20Iface: Interface;
 
@@ -41,72 +42,32 @@ export class SafetyModuleHelper {
       provider,
     );
 
+    this.safetyModuleAsERC20 = new Contract(
+      SAFETY_MODULE_ADDRESS,
+      ERC20ABI,
+      provider,
+    );
+
     this.bVaultIface = new Interface(BVaultABI);
     this.erc20Iface = new Interface(ERC20ABI);
   }
 
   // this computes the staked PSP in the safety module for one account. This method is safe regarding to slashing.
   getPSPStakedInSafetyModule = async (account: string): Promise<bigint> => {
-    const multicallData = [
+    const [
       {
-        target: SAFETY_MODULE_ADDRESS,
-        callData: this.erc20Iface.encodeFunctionData('balanceOf', [account]),
+        bptBalanceOfStkPSPBpt,
+        pspBalance,
+        stkPSPBPtTotalSupply,
+        bptTotalSupply,
       },
-      {
-        target: SAFETY_MODULE_ADDRESS,
-        callData: this.erc20Iface.encodeFunctionData('totalSupply', []),
-      },
-      {
-        target: Balancer_80PSP_20WETH_address,
-        callData: this.erc20Iface.encodeFunctionData('balanceOf', [
-          SAFETY_MODULE_ADDRESS,
-        ]),
-      },
-      {
-        target: Balancer_80PSP_20WETH_address,
-        callData: this.erc20Iface.encodeFunctionData('totalSupply', []),
-      },
-      {
-        target: BalancerVaultAddress,
-        callData: this.bVaultIface.encodeFunctionData('getPoolTokenInfo', [
-          Balancer_80PSP_20WETH_poolId,
-          PSP_ADDRESS[this.chainId],
-        ]),
-      },
-    ];
+      stkPSPBalanceBN,
+    ] = await Promise.all([
+      this.fetchStkPSPBPtState(),
+      this.safetyModuleAsERC20.balanceOf(account) as Promise<EthersBN>,
+    ]);
 
-    const rawResults: MulticallEncodedData =
-      await this.multicallContract.functions.aggregate(multicallData);
-
-    const stkPSPBalance = BigInt(
-      this.erc20Iface
-        .decodeFunctionResult('balanceOf', rawResults.returnData[0])
-        .toString(),
-    );
-
-    const stkPSPBPtTotalSupply = BigInt(
-      this.erc20Iface
-        .decodeFunctionResult('totalSupply', rawResults.returnData[1])
-        .toString(),
-    );
-
-    const bptBalanceOfStkPSPBpt = BigInt(
-      this.erc20Iface
-        .decodeFunctionResult('balanceOf', rawResults.returnData[2])
-        .toString(),
-    );
-
-    const bptTotalSupply = BigInt(
-      this.erc20Iface
-        .decodeFunctionResult('totalSupply', rawResults.returnData[3])
-        .toString(),
-    );
-
-    const pspBalance = BigInt(
-      this.bVaultIface
-        .decodeFunctionResult('getPoolTokenInfo', rawResults.returnData[4])[0]
-        .toString(),
-    );
+    const stkPSPBalance = stkPSPBalanceBN.toBigInt();
 
     return (
       (stkPSPBalance * bptBalanceOfStkPSPBpt * pspBalance) /
