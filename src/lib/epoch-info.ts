@@ -84,7 +84,7 @@ export class EpochInfo {
     return this.instances[network];
   }
 
-  getEpochInfo = () => retry(() => this.getEpochDetails(), { retries: 5 });
+  getEpochInfo = () => retry(() => this.getEpochDetails(), { retries: 5, timeout: 120_000 });
 
   startEpochInfoPolling = () =>
     setInterval(this.getEpochInfo, EpochPollingTime);
