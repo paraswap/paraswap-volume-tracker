@@ -5,7 +5,7 @@ import {
   CHAIN_ID_POLYGON,
 } from '../../../src/lib/constants';
 import { HistoricalPrice } from '../types';
-import { coingeckoClient } from '../data-providers-clients';
+import { coingeckoClient } from '../../../src/lib/utils/data-providers-clients';
 import { startOfDayMilliSec } from '../utils';
 import { assert } from 'ts-essentials';
 

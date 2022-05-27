@@ -1,9 +1,9 @@
-import * as ERC20ABI from './abi/erc20.abi.json';
-import * as BVaultABI from './abi/balancer-vault.abi.json';
-import * as SPSPABI from './abi/spsp.abi.json';
-import * as MultiCallerABI from './abi/multicaller.abi.json';
+import * as ERC20ABI from '../abi/erc20.abi.json';
+import * as BVaultABI from '../abi/balancer-vault.abi.json';
+import * as SPSPABI from '../abi/spsp.abi.json';
+import * as MultiCallerABI from '../abi/multicaller.abi.json';
 import { Contract } from 'ethers';
-import { PoolConfigsMap } from './pool-info';
+import { PoolConfigsMap } from '../pool-info';
 import {
   BalancerVaultAddress,
   Balancer_80PSP_20WETH_address,
@@ -13,9 +13,10 @@ import {
   PSP_ADDRESS,
   MulticallEncodedData,
   Balancer_80PSP_20WETH_poolId,
-} from './constants';
-import { Provider } from './provider';
+} from '../constants';
+import { Provider } from '../provider';
 import { Interface } from '@ethersproject/abi';
+import { getPSPStakedInSPSPs } from './spsp-helper';
 
 export type Stakes<T> = {
   totalPSPStaked: T;
@@ -59,25 +60,6 @@ export class StakingService {
     this.bVaultIface = new Interface(BVaultABI);
     this.erc20Iface = new Interface(ERC20ABI);
   }
-
-  // PSPBalanceOf on all pools then reduce
-  getPSPStakedInSPSPs = async (account: string): Promise<bigint> => {
-    const multicallData = SPSPAddresses.map(address => ({
-      target: address,
-      callData: this.sPSPIFace.encodeFunctionData('PSPBalance', [account]),
-    }));
-
-    const rawResult: MulticallEncodedData =
-      await this.multicallContract.functions.aggregate(multicallData);
-
-    const allStakes = rawResult.returnData.map(r =>
-      BigInt(this.sPSPIFace.decodeFunctionResult('PSPBalance', r).toString()),
-    );
-
-    const totalStakes = allStakes.reduce((acc, curr) => acc + curr, BigInt(0));
-
-    return totalStakes;
-  };
 
   // this computes the staked PSP in the safety module. This method is safe regarding to slashing
   getPSPStakedInSafetyModule = async (account: string): Promise<bigint> => {
@@ -153,7 +135,7 @@ export class StakingService {
   ): Promise<Stakes<string>> => {
     const [totalPSPStakedInSPSP, totalPSPStakedInSafetyModule] =
       await Promise.all([
-        this.getPSPStakedInSPSPs(account),
+        getPSPStakedInSPSPs(account),
         this.getPSPStakedInSafetyModule(account),
       ]);
 

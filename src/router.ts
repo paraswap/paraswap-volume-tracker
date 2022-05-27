@@ -12,7 +12,8 @@ import {
 import { GasRefundApi } from './lib/gas-refund-api';
 import { EpochInfo } from './lib/epoch-info';
 import { GRP_SUPPORTED_CHAINS } from './lib/gas-refund';
-import { StakingService } from './lib/staking';
+import { StakingService } from './lib/staking/staking';
+import { fetchPSPStakedInSPSP } from './lib/staking/spsp-helper';
 
 const logger = global.LOGGER();
 
@@ -155,10 +156,19 @@ export default class Router {
 
         return res.json(totalPSPStakedInAllStakingPrograms);
       } catch (e) {
-        logger.error(req.path, e)
+        logger.error(req.path, e);
         return res
           .status(403)
           .send({ error: 'stakes could not been retrieved for user' });
+      }
+    });
+
+    router.get('/stakes', async (req, res) => {
+      try {
+        const stakes = await fetchPSPStakedInSPSP();
+        return res.json(stakes);
+      } catch (e) {
+        console.error(e);
       }
     });
 
@@ -185,30 +195,27 @@ export default class Router {
       },
     );
 
-    router.get(
-      '/gas-refund/user-data/:network/:address',
-      async (req, res) => {
-        const address = req.params.address.toLowerCase();
+    router.get('/gas-refund/user-data/:network/:address', async (req, res) => {
+      const address = req.params.address.toLowerCase();
 
-        try {
-          const network = Number(req.params.network);
-          if (!GRP_SUPPORTED_CHAINS.includes(network))
-            return res
-              .status(403)
-              .send({ error: `Unsupported network: ${network}` });
-          const gasRefundApi = GasRefundApi.getInstance(network);
-          const gasRefundDataAddress =
-            await gasRefundApi.getAllGasRefundDataForAddress(address);
+      try {
+        const network = Number(req.params.network);
+        if (!GRP_SUPPORTED_CHAINS.includes(network))
+          return res
+            .status(403)
+            .send({ error: `Unsupported network: ${network}` });
+        const gasRefundApi = GasRefundApi.getInstance(network);
+        const gasRefundDataAddress =
+          await gasRefundApi.getAllGasRefundDataForAddress(address);
 
-          return res.json(gasRefundDataAddress);
-        } catch (e) {
-          logger.error(req.path, e);
-          res.status(403).send({
-            error: `GasRefundError: could not retrieve merkle data for ${address}`,
-          });
-        }
-      },
-    );
+        return res.json(gasRefundDataAddress);
+      } catch (e) {
+        logger.error(req.path, e);
+        res.status(403).send({
+          error: `GasRefundError: could not retrieve merkle data for ${address}`,
+        });
+      }
+    });
 
     // @TODO: remove
     router.get('/gas-refund/describe', async (req, res) => {

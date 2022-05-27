@@ -12,7 +12,7 @@
  */
 import { SPSPAddresses } from '../staking/spsp-stakes-tracker';
 import { covalentGetTXsForContract } from './txs-covalent';
-import { getTransactionGasUsed } from '../staking/covalent';
+import { getTransactionGasUsed } from '../../../src/lib/utils/covalent';
 import StakesTracker from '../staking/stakes-tracker';
 import { getSuccessfulSwaps } from './swaps-subgraph';
 import { GasRefundTransaction } from '../types';

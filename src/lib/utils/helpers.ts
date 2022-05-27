@@ -1,16 +1,72 @@
 import BigNumber from 'bignumber.js';
 import { Event } from 'ethers';
 import * as _ from 'lodash';
-import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
-import { SUBGRAPH_URL } from '../../src/lib/block-info';
-import { thegraphClient } from '../../src/lib/utils/data-providers-clients';
+import { CHAIN_ID_MAINNET } from '../constants';
+import { SUBGRAPH_URL } from '../block-info';
+import { thegraphClient } from './data-providers-clients';
 import { assert } from 'console';
-import { sliceCalls } from '../../src/lib/utils/helpers';
 
 export const ONE_HOUR_SEC = 60 * 60;
 const DAY_SEC_MSEC = 1000 * ONE_HOUR_SEC * 24;
 
 export const ZERO_BN = new BigNumber(0);
+
+interface SliceCallsInput<T, U> {
+  inputArray: T[];
+  execute: (inputSlice: T[], sliceIndex: number) => U;
+  sliceLength: number;
+}
+
+export function sliceCalls<T, U>({
+  inputArray,
+  execute,
+  sliceLength,
+}: SliceCallsInput<T, U>): [U, ...U[]] {
+  if (sliceLength >= inputArray.length) return [execute(inputArray, 0)];
+  const results: U[] = [];
+
+  for (
+    let i = 0, sliceIndex = 0;
+    i < inputArray.length;
+    i += sliceLength, ++sliceIndex
+  ) {
+    const inputSlice = inputArray.slice(i, i + sliceLength);
+    const resultOfSlice = execute(inputSlice, sliceIndex);
+    results.push(resultOfSlice);
+  }
+
+  return results as [U, ...U[]];
+}
+
+export type QueryPaginatedDataParams = {
+  skip: number;
+  pageNumber: number;
+  pageSize: number;
+};
+export async function queryPaginatedData<T>(
+  query: ({
+    skip,
+    pageNumber,
+    pageSize,
+  }: QueryPaginatedDataParams) => Promise<T[]>,
+  pageSize: number,
+): Promise<T[]> {
+  let items: T[] = [];
+  let skip = 0;
+  let pageNumber = 0;
+
+  while (true) {
+    const _items = await query({ skip, pageNumber, pageSize });
+    items = items.concat(_items);
+    if (_items.length < pageSize) {
+      break;
+    }
+    skip = skip + pageSize;
+    pageNumber++;
+  }
+
+  return items;
+}
 
 export const startOfHourSec = (unixTimestamp: number) => {
   return Math.floor(unixTimestamp / ONE_HOUR_SEC) * ONE_HOUR_SEC;

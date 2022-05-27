@@ -13,7 +13,7 @@ import {
 import { Provider } from '../../../src/lib/provider';
 import * as ERC20ABI from '../../../src/lib/abi/erc20.abi.json';
 import * as BVaultABI from '../../../src/lib/abi/balancer-vault.abi.json';
-import { getTokenHolders } from './covalent';
+import { getTokenHolders } from '../../../src/lib/utils/covalent';
 import { fetchBlockTimestampForEvents, ZERO_BN } from '../utils';
 import {
   reduceTimeSeries,
