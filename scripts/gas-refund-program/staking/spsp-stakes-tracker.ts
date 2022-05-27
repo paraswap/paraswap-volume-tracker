@@ -18,11 +18,7 @@ import { reduceTimeSeries, TimeSeries } from '../timeseries';
 import { PoolConfigsMap } from '../../../src/lib/pool-info';
 import AbstractStakeTracker from './abstract-stakes-tracker';
 import { assert } from 'ts-essentials';
-import {
-  computePSPStakedInSPSP,
-  fetchSPSPsStakers,
-  fetchSPSPsState,
-} from '../../../src/lib/staking/spsp-helper';
+import { SPSPHelper } from '../../../src/lib/staking/spsp-helper';
 
 const logger = global.LOGGER('SPSPStakesTracker');
 
@@ -117,20 +113,24 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
     logger.info('Loading initial state');
     const initBlock = this.startBlock - 1;
     await Promise.all([
-      fetchSPSPsStakers(initBlock).then(sPSPBalanceByAccount => {
-        this.initState.sPSPBalanceByAccount = sPSPBalanceByAccount;
-      }),
-      fetchSPSPsState(initBlock).then(
-        ({
-          totalSupplyByPool,
-          pspBalanceByPool,
-          pspsLockedByPool: pspsLockedbyPool,
-        }) => {
-          this.initState.totalSupply = totalSupplyByPool;
-          this.initState.pspBalance = pspBalanceByPool;
-          this.initState.pspsLocked = pspsLockedbyPool;
-        },
-      ),
+      SPSPHelper.getInstance()
+        .fetchSPSPsStakers(initBlock)
+        .then(sPSPBalanceByAccount => {
+          this.initState.sPSPBalanceByAccount = sPSPBalanceByAccount;
+        }),
+      SPSPHelper.getInstance()
+        .fetchSPSPsState(initBlock)
+        .then(
+          ({
+            totalSupplyByPool,
+            pspBalanceByPool,
+            pspsLockedByPool: pspsLockedbyPool,
+          }) => {
+            this.initState.totalSupply = totalSupplyByPool;
+            this.initState.pspBalance = pspBalanceByPool;
+            this.initState.pspsLocked = pspsLockedbyPool;
+          },
+        ),
     ]);
     logger.info('Completed loading initial state');
   }
@@ -378,7 +378,7 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
         this.differentialStates.pspBalance[poolAddress],
       );
 
-      const stakedPSPBalance = computePSPStakedInSPSP({
+      const stakedPSPBalance = SPSPHelper.getInstance().computePSPStakedInSPSP({
         sPSPShare: sPSPAmount,
         totalSPSP,
         pspBalance,
