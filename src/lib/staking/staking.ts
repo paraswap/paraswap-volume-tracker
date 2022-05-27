@@ -18,20 +18,19 @@ export class StakingService {
   getPSPStakesAllPrograms = async (
     account: string,
   ): Promise<PSPStakesForStaker<string>> => {
-    const [totalPSPStakedInSPSP, totalPSPStakedInSafetyModule] =
-      await Promise.all([
-        SPSPHelper.getInstance().getPSPStakedInSPSPs(account),
-        SafetyModuleHelper.getInstance().getPSPStakedInSafetyModule(account),
-      ]);
+    const [spsp, safetyModule] = await Promise.all([
+      SPSPHelper.getInstance().getPSPStakedInSPSPs(account),
+      SafetyModuleHelper.getInstance().getPSPStakedInSafetyModule(account),
+    ]);
 
     return {
       totalPSPStaked: (
-        totalPSPStakedInSPSP + totalPSPStakedInSafetyModule
+        BigInt(spsp.totalPSPStaked) + BigInt(safetyModule.totalPSPStaked)
       ).toString(),
 
-      descr: {
-        totalPSPStakedInSPSP: totalPSPStakedInSPSP.toString(),
-        totalPSPStakedInSafetyModule: totalPSPStakedInSafetyModule.toString(),
+      breakdownByStakingContract: {
+        ...spsp.breakdownByStakingContract,
+        ...safetyModule.breakdownByStakingContract,
       },
     };
   };
@@ -81,7 +80,7 @@ export class StakingService {
         }
         pspStakersWithStakes[account].breakdownByStakingContract = {
           ...pspStakersWithStakes[account].breakdownByStakingContract,
-          ...pspStakedInSPSP.descr.totalPSPStakedBySPSP,
+          ...pspStakedInSPSP.breakdownByStakingContract,
         };
       },
     );

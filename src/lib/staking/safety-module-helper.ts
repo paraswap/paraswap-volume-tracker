@@ -15,7 +15,7 @@ import { Provider } from '../provider';
 import { Contract, BigNumber as EthersBN } from 'ethers';
 import { Interface } from '@ethersproject/abi';
 import { getTokenHolders } from '../utils/covalent';
-import { DataByAccount, StkPSPBPtState } from './types';
+import { DataByAccount, PSPStakesForStaker, StkPSPBPtState } from './types';
 
 export class SafetyModuleHelper {
   private static instance: SafetyModuleHelper;
@@ -53,7 +53,9 @@ export class SafetyModuleHelper {
   }
 
   // this computes the staked PSP in the safety module for one account. This method is safe regarding to slashing.
-  getPSPStakedInSafetyModule = async (account: string): Promise<bigint> => {
+  getPSPStakedInSafetyModule = async (
+    account: string,
+  ): Promise<PSPStakesForStaker<string>> => {
     const [
       {
         bptBalanceOfStkPSPBpt,
@@ -69,10 +71,18 @@ export class SafetyModuleHelper {
 
     const stkPSPBalance = stkPSPBalanceBN.toBigInt();
 
-    return (
+    const totalPSPStaked =
       (stkPSPBalance * bptBalanceOfStkPSPBpt * pspBalance) /
-      (stkPSPBPtTotalSupply * bptTotalSupply)
-    );
+      (stkPSPBPtTotalSupply * bptTotalSupply);
+
+    return {
+      totalPSPStaked: totalPSPStaked.toString(),
+      breakdownByStakingContract: {
+        ...(!!totalPSPStaked && {
+          [SAFETY_MODULE_ADDRESS]: totalPSPStaked.toString(),
+        }),
+      },
+    };
   };
 
   /// functions to fetch multiple stakers data efficiently

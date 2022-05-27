@@ -14,7 +14,12 @@ import * as MultiCallerABI from '../abi/multicaller.abi.json';
 import { getTokenHolders } from '../utils/covalent';
 import { PoolConfigsMap } from '../pool-info';
 import { BNReplacer, ZERO_BN } from '../utils/helpers';
-import { DataByAccountByPool, DataByPool, SPSPStakesByAccount } from './types';
+import {
+  DataByAccountByPool,
+  DataByPool,
+  PSPStakesForStaker,
+  SPSPStakesByAccount,
+} from './types';
 
 const logger = global.LOGGER('SPSPHelper');
 
@@ -61,7 +66,9 @@ export class SPSPHelper {
   }
 
   // function to fetch one staker data efficiently
-  async getPSPStakedInSPSPs(account: string): Promise<bigint> {
+  async getPSPStakedInSPSPs(
+    account: string,
+  ): Promise<PSPStakesForStaker<string>> {
     const multicallData = SPSPAddresses.map(address => ({
       target: address,
       callData: this.SPSPPrototypeContract.interface.encodeFunctionData(
@@ -73,17 +80,30 @@ export class SPSPHelper {
     const rawResult: MulticallEncodedData =
       await this.multicallContract.functions.aggregate(multicallData);
 
-    const allStakes = rawResult.returnData.map(r =>
-      BigInt(
-        this.SPSPPrototypeContract.interface
-          .decodeFunctionResult('PSPBalance', r)
-          .toString(),
-      ),
+    const stakesByPool = Object.fromEntries(
+      rawResult.returnData
+        .map(
+          (r, i) =>
+            [
+              SPSPAddresses[i],
+
+              this.SPSPPrototypeContract.interface
+                .decodeFunctionResult('PSPBalance', r)
+                .toString(),
+            ] as const,
+        )
+        .filter(([, stake]) => stake !== '0'),
     );
 
-    const totalStakes = allStakes.reduce((acc, curr) => acc + curr, BigInt(0));
+    const totalPSPStaked = Object.values(stakesByPool).reduce(
+      (acc, stake) => acc + BigInt(stake),
+      BigInt(0),
+    );
 
-    return totalStakes;
+    return {
+      totalPSPStaked: totalPSPStaked.toString(),
+      breakdownByStakingContract: stakesByPool,
+    };
   }
 
   /// functions to fetch multiple stakers data efficiently
@@ -235,9 +255,7 @@ export class SPSPHelper {
             if (!acc[accountAddress]) {
               acc[accountAddress] = {
                 totalPSPStakedAllSPSPS: new BigNumber(0),
-                descr: {
-                  totalPSPStakedBySPSP: {},
-                },
+                breakdownByStakingContract: {},
               };
             }
 
@@ -248,7 +266,7 @@ export class SPSPHelper {
               totalSPSP: totalSupply,
             }).decimalPlaces(0, BigNumber.ROUND_DOWN); // @TODO: move inside func but handle backward compat first
 
-            acc[accountAddress].descr.totalPSPStakedBySPSP[poolAddress] =
+            acc[accountAddress].breakdownByStakingContract[poolAddress] =
               stakedPSP;
 
             acc[accountAddress].totalPSPStakedAllSPSPS =

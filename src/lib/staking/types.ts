@@ -14,10 +14,7 @@ export type DataByAccountByPool<T> = {
 
 export type PSPStakesForStaker<T> = {
   totalPSPStaked: T;
-  descr: {
-    totalPSPStakedInSPSP: T;
-    totalPSPStakedInSafetyModule: T;
-  };
+  breakdownByStakingContract: { [contractAddress: string]: T };
 };
 
 export type PSPStakesAllStakers<T> = {
@@ -30,9 +27,7 @@ export type PSPStakesAllStakers<T> = {
 export type SPSPStakesByAccount<T> = {
   [accountAddress: string]: {
     totalPSPStakedAllSPSPS: T;
-    descr: {
-      totalPSPStakedBySPSP: DataByPool<T>;
-    };
+    breakdownByStakingContract: { [contractAddress: string]: T };
   };
 };
 
