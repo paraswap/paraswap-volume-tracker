@@ -77,12 +77,12 @@ export class SafetyModuleHelper {
 
   /// functions to fetch multiple stakers data efficiently
   async fetchStkPSPBptStakers(
-    initBlock?: number,
+    blockNumber?: number,
   ): Promise<DataByAccount<bigint>> {
     const stakes = await getTokenHolders({
       token: SAFETY_MODULE_ADDRESS,
       chainId: CHAIN_ID_MAINNET,
-      ...(!!initBlock && { blockHeight: String(initBlock) }),
+      ...(!!blockNumber && { blockHeight: String(blockNumber) }),
     });
 
     const stkPSPBptUsersBalances = Object.fromEntries(
@@ -96,7 +96,7 @@ export class SafetyModuleHelper {
   }
 
   async fetchStkPSPBPtState(
-    initBlock?: number,
+    blockNumber?: number,
   ): Promise<StkPSPBPtState<bigint>> {
     const multicallData = [
       {
@@ -124,7 +124,7 @@ export class SafetyModuleHelper {
 
     const rawResults: MulticallEncodedData =
       await this.multicallContract.functions.aggregate(multicallData, {
-        blockTag: initBlock,
+        blockTag: blockNumber,
       });
 
     const stkPSPBPtTotalSupply = BigInt(

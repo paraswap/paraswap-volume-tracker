@@ -92,7 +92,7 @@ export class SPSPHelper {
     pspBalanceByPool: DataByPool<BigNumber>;
     pspsLockedByPool: DataByPool<BigNumber>;
   }> {
-    logger.info(`Loading initial SPSP global states at block ${blockNumber}`);
+    logger.info(`Loading SPSP global states at block ${blockNumber}`);
 
     const totalSupplyByPool: DataByPool<BigNumber> = {};
     const pspBalanceByPool: DataByPool<BigNumber> = {};
@@ -144,9 +144,7 @@ export class SPSPHelper {
       pspsLockedByPool[pool] = new BigNumber(pspsLocked);
     }, {});
 
-    logger.info(
-      `Completed loading initial SPSP global states at block ${blockNumber}`,
-    );
+    logger.info(`Completed loading SPSP global states at block ${blockNumber}`);
 
     return { totalSupplyByPool, pspBalanceByPool, pspsLockedByPool };
   }
@@ -154,10 +152,8 @@ export class SPSPHelper {
   async fetchSPSPsStakers(
     blockNumber?: number,
   ): Promise<DataByAccountByPool<BigNumber>> {
-    const chainId = CHAIN_ID_MAINNET;
-
     logger.info(
-      `fetchSPSPsStakers: Loading initial sPSP balances at block ${blockNumber}`,
+      `fetchSPSPsStakers: Loading sPSP balances at block ${blockNumber}`,
     );
     const sPSPBalanceByAccount = Object.fromEntries(
       await Promise.all(
@@ -165,7 +161,7 @@ export class SPSPHelper {
           // @WARNING pagination doesn't seem to work, so ask a large pageSize
           const options = {
             token: poolAddress,
-            chainId,
+            chainId: this.chainId,
             ...(!!blockNumber && { blockHeight: String(blockNumber) }),
           };
 
@@ -186,7 +182,7 @@ export class SPSPHelper {
       ),
     );
     logger.info(
-      `fetchSPSPsStakers: Completed loading initial sPSP balances at block ${blockNumber}`,
+      `fetchSPSPsStakers: Completed loading sPSP balances at block ${blockNumber}`,
     );
 
     return sPSPBalanceByAccount;
