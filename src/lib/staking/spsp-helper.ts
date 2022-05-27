@@ -14,6 +14,7 @@ import * as MultiCallerABI from '../abi/multicaller.abi.json';
 import { getTokenHolders } from '../utils/covalent';
 import { PoolConfigsMap } from '../pool-info';
 import { BNReplacer, ZERO_BN } from '../utils/helpers';
+import { DataByAccountByPool, DataByPool, SPSPStakesByAccount } from './types';
 
 const logger = global.LOGGER('SPSPHelper');
 
@@ -24,244 +25,256 @@ export const SPSPAddresses = PoolConfigsMap[CHAIN_ID_MAINNET].filter(
   p => p.isActive,
 ).map(p => p.address.toLowerCase());
 
-const multicallContract = new Contract(
-  MULTICALL_ADDRESS[chainId],
-  MultiCallerABI,
-  provider,
-);
+export class SPSPHelper {
+  private static instance: SPSPHelper;
 
-const SPSPPrototypeContract = new Contract(
-  NULL_ADDRESS,
-  SPSPABI,
-  Provider.getJsonRpcProvider(CHAIN_ID_MAINNET),
-);
+  static getInstance() {
+    if (!SPSPHelper.instance) {
+      SPSPHelper.instance = new SPSPHelper();
+    }
+    return SPSPHelper.instance;
+  }
 
-const PSPContract = new Contract(
-  PSP_ADDRESS[CHAIN_ID_MAINNET],
-  ERC20ABI,
-  Provider.getJsonRpcProvider(CHAIN_ID_MAINNET),
-);
+  chainId = CHAIN_ID_MAINNET; // all staking programs are only available on ethereum mainnet
+  multicallContract: Contract;
+  SPSPPrototypeContract: Contract;
+  PSPContract: Contract;
 
-type DataByPool<T> = {
-  [poolAddress: string]: T;
-};
+  constructor() {
+    this.multicallContract = new Contract(
+      MULTICALL_ADDRESS[chainId],
+      MultiCallerABI,
+      provider,
+    );
 
-type DataByAccountByPool<T> = {
-  [poolAddress: string]: {
-    [accountAddress: string]: T;
-  };
-};
+    this.SPSPPrototypeContract = new Contract(
+      NULL_ADDRESS,
+      SPSPABI,
+      Provider.getJsonRpcProvider(this.chainId),
+    );
 
-// function to fetch one staker data efficiently
-export async function getPSPStakedInSPSPs(account: string): Promise<bigint> {
-  const multicallData = SPSPAddresses.map(address => ({
-    target: address,
-    callData: SPSPPrototypeContract.interface.encodeFunctionData('PSPBalance', [
-      account,
-    ]),
-  }));
+    this.PSPContract = new Contract(
+      PSP_ADDRESS[this.chainId],
+      ERC20ABI,
+      Provider.getJsonRpcProvider(this.chainId),
+    );
+  }
 
-  const rawResult: MulticallEncodedData =
-    await multicallContract.functions.aggregate(multicallData);
+  // function to fetch one staker data efficiently
+  async getPSPStakedInSPSPs(account: string): Promise<bigint> {
+    const multicallData = SPSPAddresses.map(address => ({
+      target: address,
+      callData: this.SPSPPrototypeContract.interface.encodeFunctionData(
+        'PSPBalance',
+        [account],
+      ),
+    }));
 
-  const allStakes = rawResult.returnData.map(r =>
-    BigInt(
-      SPSPPrototypeContract.interface
-        .decodeFunctionResult('PSPBalance', r)
-        .toString(),
-    ),
-  );
+    const rawResult: MulticallEncodedData =
+      await this.multicallContract.functions.aggregate(multicallData);
 
-  const totalStakes = allStakes.reduce((acc, curr) => acc + curr, BigInt(0));
+    const allStakes = rawResult.returnData.map(r =>
+      BigInt(
+        this.SPSPPrototypeContract.interface
+          .decodeFunctionResult('PSPBalance', r)
+          .toString(),
+      ),
+    );
 
-  return totalStakes;
-}
+    const totalStakes = allStakes.reduce((acc, curr) => acc + curr, BigInt(0));
 
-/// functions to fetch multiple stakers data efficiently
+    return totalStakes;
+  }
 
-export async function fetchSPSPsState(blockNumber?: number): Promise<{
-  totalSupplyByPool: DataByPool<BigNumber>;
-  pspBalanceByPool: DataByPool<BigNumber>;
-  pspsLockedByPool: DataByPool<BigNumber>;
-}> {
-  logger.info(`Loading initial SPSP global states at block ${blockNumber}`);
+  /// functions to fetch multiple stakers data efficiently
+  async fetchSPSPsState(blockNumber?: number): Promise<{
+    totalSupplyByPool: DataByPool<BigNumber>;
+    pspBalanceByPool: DataByPool<BigNumber>;
+    pspsLockedByPool: DataByPool<BigNumber>;
+  }> {
+    logger.info(`Loading initial SPSP global states at block ${blockNumber}`);
 
-  const totalSupplyByPool: DataByPool<BigNumber> = {};
-  const pspBalanceByPool: DataByPool<BigNumber> = {};
-  const pspsLockedByPool: DataByPool<BigNumber> = {};
+    const totalSupplyByPool: DataByPool<BigNumber> = {};
+    const pspBalanceByPool: DataByPool<BigNumber> = {};
+    const pspsLockedByPool: DataByPool<BigNumber> = {};
 
-  const multicallData = SPSPAddresses.flatMap(pool => [
-    {
-      target: pool,
-      callData:
-        SPSPPrototypeContract.interface.encodeFunctionData('totalSupply'),
-    },
-    {
-      target: pool,
-      callData:
-        SPSPPrototypeContract.interface.encodeFunctionData('pspsLocked'),
-    },
-    {
-      target: PSP_ADDRESS[chainId],
-      callData: PSPContract.interface.encodeFunctionData('balanceOf', [pool]),
-    },
-  ]);
-
-  const rawResult = await multicallContract.functions.aggregate(multicallData, {
-    blockTag: blockNumber,
-  });
-
-  SPSPAddresses.forEach((pool, i) => {
-    const totalSupply = SPSPPrototypeContract.interface
-      .decodeFunctionResult('totalSupply', rawResult.returnData[3 * i])
-      .toString();
-
-    const pspsLocked = SPSPPrototypeContract.interface
-      .decodeFunctionResult('pspsLocked', rawResult.returnData[3 * i + 1])
-      .toString();
-
-    const pspBalance = PSPContract.interface
-      .decodeFunctionResult('balanceOf', rawResult.returnData[3 * i + 2])
-      .toString();
-
-    totalSupplyByPool[pool] = new BigNumber(totalSupply);
-    pspBalanceByPool[pool] = new BigNumber(pspBalance);
-    pspsLockedByPool[pool] = new BigNumber(pspsLocked);
-  }, {});
-
-  logger.info(
-    `Completed loading initial SPSP global states at block ${blockNumber}`,
-  );
-
-  return { totalSupplyByPool, pspBalanceByPool, pspsLockedByPool };
-}
-
-export async function fetchSPSPsStakers(
-  blockNumber?: number,
-): Promise<DataByAccountByPool<BigNumber>> {
-  const chainId = CHAIN_ID_MAINNET;
-
-  logger.info(
-    `fetchSPSPsStakers: Loading initial sPSP balances at block ${blockNumber}`,
-  );
-  const sPSPBalanceByAccount = Object.fromEntries(
-    await Promise.all(
-      SPSPAddresses.map(async poolAddress => {
-        // @WARNING pagination doesn't seem to work, so ask a large pageSize
-        const options = {
-          token: poolAddress,
-          chainId,
-          ...(!!blockNumber && { blockHeight: String(blockNumber) }),
-        };
-
-        const stakes = await getTokenHolders(options);
-
-        const stakesByAccount = Object.fromEntries(
-          stakes.map(
-            item =>
-              [
-                item.address,
-                new BigNumber(item.balance), // wei
-              ] as const,
+    const multicallData = SPSPAddresses.flatMap(pool => [
+      {
+        target: pool,
+        callData:
+          this.SPSPPrototypeContract.interface.encodeFunctionData(
+            'totalSupply',
           ),
+      },
+      {
+        target: pool,
+        callData:
+          this.SPSPPrototypeContract.interface.encodeFunctionData('pspsLocked'),
+      },
+      {
+        target: PSP_ADDRESS[chainId],
+        callData: this.PSPContract.interface.encodeFunctionData('balanceOf', [
+          pool,
+        ]),
+      },
+    ]);
+
+    const rawResult = await this.multicallContract.functions.aggregate(
+      multicallData,
+      {
+        blockTag: blockNumber,
+      },
+    );
+
+    SPSPAddresses.forEach((pool, i) => {
+      const totalSupply = this.SPSPPrototypeContract.interface
+        .decodeFunctionResult('totalSupply', rawResult.returnData[3 * i])
+        .toString();
+
+      const pspsLocked = this.SPSPPrototypeContract.interface
+        .decodeFunctionResult('pspsLocked', rawResult.returnData[3 * i + 1])
+        .toString();
+
+      const pspBalance = this.PSPContract.interface
+        .decodeFunctionResult('balanceOf', rawResult.returnData[3 * i + 2])
+        .toString();
+
+      totalSupplyByPool[pool] = new BigNumber(totalSupply);
+      pspBalanceByPool[pool] = new BigNumber(pspBalance);
+      pspsLockedByPool[pool] = new BigNumber(pspsLocked);
+    }, {});
+
+    logger.info(
+      `Completed loading initial SPSP global states at block ${blockNumber}`,
+    );
+
+    return { totalSupplyByPool, pspBalanceByPool, pspsLockedByPool };
+  }
+
+  async fetchSPSPsStakers(
+    blockNumber?: number,
+  ): Promise<DataByAccountByPool<BigNumber>> {
+    const chainId = CHAIN_ID_MAINNET;
+
+    logger.info(
+      `fetchSPSPsStakers: Loading initial sPSP balances at block ${blockNumber}`,
+    );
+    const sPSPBalanceByAccount = Object.fromEntries(
+      await Promise.all(
+        SPSPAddresses.map(async poolAddress => {
+          // @WARNING pagination doesn't seem to work, so ask a large pageSize
+          const options = {
+            token: poolAddress,
+            chainId,
+            ...(!!blockNumber && { blockHeight: String(blockNumber) }),
+          };
+
+          const stakes = await getTokenHolders(options);
+
+          const stakesByAccount = Object.fromEntries(
+            stakes.map(
+              item =>
+                [
+                  item.address,
+                  new BigNumber(item.balance), // wei
+                ] as const,
+            ),
+          );
+
+          return [poolAddress, stakesByAccount] as const;
+        }),
+      ),
+    );
+    logger.info(
+      `fetchSPSPsStakers: Completed loading initial sPSP balances at block ${blockNumber}`,
+    );
+
+    return sPSPBalanceByAccount;
+  }
+
+  computePSPStakedInSPSP({
+    sPSPShare,
+    pspBalance,
+    pspsLocked,
+    totalSPSP,
+  }: {
+    sPSPShare: BigNumber;
+    pspBalance: BigNumber;
+    pspsLocked: BigNumber;
+    totalSPSP: BigNumber;
+  }): BigNumber {
+    const pspBalanceAvailable = pspBalance.minus(pspsLocked);
+
+    const stakedPSPBalance = sPSPShare
+      .multipliedBy(pspBalanceAvailable)
+      .dividedBy(totalSPSP);
+
+    return stakedPSPBalance;
+  }
+
+  async fetchPSPStakedInSPSP(blockNumber?: number): Promise<{
+    totalPSPStaked: string;
+    stakesByAccount: SPSPStakesByAccount<string>;
+  }> {
+    const [
+      sPSPBalanceByAccountByPool,
+      { totalSupplyByPool, pspBalanceByPool, pspsLockedByPool },
+    ] = await Promise.all([
+      this.fetchSPSPsStakers(blockNumber),
+      this.fetchSPSPsState(blockNumber),
+    ]);
+
+    let totalPSPStaked = ZERO_BN;
+
+    const stakesByAccount: SPSPStakesByAccount<BigNumber> = Object.entries(
+      sPSPBalanceByAccountByPool,
+    ).reduce<SPSPStakesByAccount<BigNumber>>(
+      (acc, [poolAddress, stakesByAccountForPool]) => {
+        const totalSupply = totalSupplyByPool[poolAddress];
+        const pspBalance = pspBalanceByPool[poolAddress];
+        const pspsLocked = pspsLockedByPool[poolAddress];
+
+        Object.entries(stakesByAccountForPool).forEach(
+          ([accountAddress, sPSPShare]) => {
+            if (!acc[accountAddress]) {
+              acc[accountAddress] = {
+                totalPSPStakedAllSPSPS: new BigNumber(0),
+                descr: {
+                  totalPSPStakedBySPSP: {},
+                },
+              };
+            }
+
+            const stakedPSP = this.computePSPStakedInSPSP({
+              sPSPShare,
+              pspBalance,
+              pspsLocked,
+              totalSPSP: totalSupply,
+            }).decimalPlaces(0, BigNumber.ROUND_DOWN); // @TODO: move inside func but handle backward compat first
+
+            acc[accountAddress].descr.totalPSPStakedBySPSP[poolAddress] =
+              stakedPSP;
+
+            acc[accountAddress].totalPSPStakedAllSPSPS =
+              acc[accountAddress].totalPSPStakedAllSPSPS.plus(stakedPSP);
+
+            totalPSPStaked = totalPSPStaked.plus(stakedPSP);
+          },
         );
 
-        return [poolAddress, stakesByAccount] as const;
-      }),
-    ),
-  );
-  logger.info(
-    `fetchSPSPsStakers: Completed loading initial sPSP balances at block ${blockNumber}`,
-  );
+        return acc;
+      },
+      {},
+    );
 
-  return sPSPBalanceByAccount;
-}
+    const stringifiedStakesByAccount = JSON.stringify(
+      stakesByAccount,
+      BNReplacer,
+    );
 
-export function computePSPStakedInSPSP({
-  sPSPShare,
-  pspBalance,
-  pspsLocked,
-  totalSPSP,
-}: {
-  sPSPShare: BigNumber;
-  pspBalance: BigNumber;
-  pspsLocked: BigNumber;
-  totalSPSP: BigNumber;
-}): BigNumber {
-  const pspBalanceAvailable = pspBalance.minus(pspsLocked);
-
-  const stakedPSPBalance = sPSPShare
-    .multipliedBy(pspBalanceAvailable)
-    .dividedBy(totalSPSP);
-
-  return stakedPSPBalance;
-}
-
-type StakesByAccount<T> = {
-  [accountAddress: string]: {
-    totalPSPStakedAllSPSPS: T;
-    totalPSPStakedBySPSP: DataByPool<T>;
-  };
-};
-export async function fetchPSPStakedInSPSP(blockNumber?: number): Promise<{
-  totalPSPStaked: string;
-  stakesByAccount: StakesByAccount<string>;
-}> {
-  const [
-    sPSPBalanceByAccountByPool,
-    { totalSupplyByPool, pspBalanceByPool, pspsLockedByPool },
-  ] = await Promise.all([
-    fetchSPSPsStakers(blockNumber),
-    fetchSPSPsState(blockNumber),
-  ]);
-
-  let totalPSPStaked = ZERO_BN;
-
-  const stakesByAccount: StakesByAccount<BigNumber> = Object.entries(
-    sPSPBalanceByAccountByPool,
-  ).reduce<StakesByAccount<BigNumber>>(
-    (acc, [poolAddress, stakesByAccountForPool]) => {
-      const totalSupply = totalSupplyByPool[poolAddress];
-      const pspBalance = pspBalanceByPool[poolAddress];
-      const pspsLocked = pspsLockedByPool[poolAddress];
-
-      Object.entries(stakesByAccountForPool).forEach(
-        ([accountAddress, sPSPShare]) => {
-          if (!acc[accountAddress]) {
-            acc[accountAddress] = {
-              totalPSPStakedAllSPSPS: new BigNumber(0),
-              totalPSPStakedBySPSP: {},
-            };
-          }
-
-          const stakedPSP = computePSPStakedInSPSP({
-            sPSPShare,
-            pspBalance,
-            pspsLocked,
-            totalSPSP: totalSupply,
-          }).decimalPlaces(0); // @TODO: move inside func when sure about backward compat with script
-
-          acc[accountAddress].totalPSPStakedBySPSP[poolAddress] = stakedPSP;
-
-          acc[accountAddress].totalPSPStakedAllSPSPS =
-            acc[accountAddress].totalPSPStakedAllSPSPS.plus(stakedPSP);
-
-          totalPSPStaked = totalPSPStaked.plus(stakedPSP);
-        },
-      );
-
-      return acc;
-    },
-    {},
-  );
-
-  const partiallySerStakesByAccount = JSON.stringify(
-    stakesByAccount,
-    BNReplacer,
-  );
-
-  return {
-    totalPSPStaked: totalPSPStaked.toFixed(0),
-    stakesByAccount: JSON.parse(partiallySerStakesByAccount),
-  };
+    return {
+      totalPSPStaked: totalPSPStaked.toFixed(0),
+      stakesByAccount: JSON.parse(stringifiedStakesByAccount),
+    };
+  }
 }
