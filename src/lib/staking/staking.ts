@@ -42,7 +42,7 @@ export class StakingService {
     blockNumber: number;
     totalPSPStaked: string;
     totalPSPStakedSPSP: string;
-    totalPSPStakedStkPSPBPt: string;
+    totalPSPStakedStkPSPBpt: string;
     pspStakersWithStake: PSPStakesAllStakers<string>;
   }> => {
     const blockNumber =
@@ -57,7 +57,7 @@ export class StakingService {
     const pspStakersWithStakes: PSPStakesAllStakers<bigint> = {};
     let totalPSPStaked = BigInt(0);
     let totalPSPStakedSPSP = BigInt(0);
-    let totalPSPStakedStkPSPBPt = BigInt(0);
+    let totalPSPStakedStkPSPBpt = BigInt(0);
 
     Object.entries(sPSPStakers.stakesByAccount).forEach(
       ([account, pspStakedInSPSP]) => {
@@ -98,7 +98,7 @@ export class StakingService {
 
         pspStakersWithStakes[account].pspStaked += pspStakedInStkPSPBPt;
         totalPSPStaked += pspStakedInStkPSPBPt;
-        totalPSPStakedStkPSPBPt += pspStakedInStkPSPBPt;
+        totalPSPStakedStkPSPBpt += pspStakedInStkPSPBPt;
 
         // description
         if (!pspStakersWithStakes[account].breakdownByStakingContract) {
@@ -131,7 +131,7 @@ export class StakingService {
       blockNumber,
       totalPSPStaked: totalPSPStaked.toString(),
       totalPSPStakedSPSP: totalPSPStakedSPSP.toString(),
-      totalPSPStakedStkPSPBPt: totalPSPStakedStkPSPBPt.toString(),
+      totalPSPStakedStkPSPBpt: totalPSPStakedStkPSPBpt.toString(),
       pspStakersWithStake: pspStakersWithStakesSer,
     };
   };
