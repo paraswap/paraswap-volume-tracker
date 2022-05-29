@@ -3,6 +3,7 @@ import { Op } from 'sequelize';
 import { assert } from 'ts-essentials';
 import {
   GasRefundGenesisEpoch,
+  GasRefundPrecisionGlitchRefundedAmountsEpoch,
   getRefundPercent,
   TransactionStatus,
 } from '../../../src/lib/gas-refund';
@@ -94,14 +95,19 @@ export async function validateTransactions() {
       assert(refundPercentage, 'refundPercentage should be defined and > 0');
 
       // recompute refundedAmountPSP/refundedAmountUSD as logic alters those values as we reach limits
-      const refundedAmountPSP = new BigNumber(gasUsedChainCurrency)
+      let _refundedAmountPSP = new BigNumber(gasUsedChainCurrency)
         .dividedBy(pspChainCurrency)
-        .multipliedBy(refundPercentage)
-        .decimalPlaces(0);
+        .multipliedBy(refundPercentage); // keep it decimals to avoid rounding errors
 
-      const refundedAmountUSD = refundedAmountPSP
+      if (tx.epoch === GasRefundPrecisionGlitchRefundedAmountsEpoch) {
+        _refundedAmountPSP = _refundedAmountPSP.decimalPlaces(0);
+      }
+
+      const refundedAmountUSD = _refundedAmountPSP
         .multipliedBy(pspUsd)
         .dividedBy(10 ** 18); // psp decimals always encoded in 18decimals
+
+      const refundedAmountPSP = _refundedAmountPSP.decimalPlaces(0); // truncate decimals to align with values in db
 
       let cappedRefundedAmountPSP;
       let cappedRefundedAmountUSD;

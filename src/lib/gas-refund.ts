@@ -20,6 +20,7 @@ export const GasRefundDeduplicationStartEpoch = 12;
 export const GasRefundTxOriginCheckStartEpoch = 12;
 export const GasRefundSPSPStakesAlgoFlipEpoch = 12;
 export const GasRefundConsiderContractTXsStartEpoch = 12;
+export const GasRefundPrecisionGlitchRefundedAmountsEpoch = 12;
 
 interface BaseGasRefundData {
   epoch: number;
