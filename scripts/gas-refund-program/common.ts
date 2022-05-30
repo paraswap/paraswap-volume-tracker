@@ -27,13 +27,15 @@ export async function resolveEpochCalcTimeInterval(epoch: number): Promise<{
     epochInfo.getEpochDuration(),
   ]);
   const epochEndTime = epochStartTime + epochDuration; // safer than getEpochEndCalcTime as it fails for current epoch
+  const isEpochEnded = SCRIPT_START_TIME_SEC >= epochEndTime + OFFSET_CALC_TIME;
+  const endCalcTime = Math.min(
+    SCRIPT_START_TIME_SEC - OFFSET_CALC_TIME,
+    epochEndTime,
+  );
 
   return {
     startCalcTime: epochStartTime,
-    endCalcTime: Math.min(
-      SCRIPT_START_TIME_SEC - OFFSET_CALC_TIME,
-      epochEndTime,
-    ),
-    isEpochEnded: SCRIPT_START_TIME_SEC >= epochEndTime + OFFSET_CALC_TIME,
+    endCalcTime,
+    isEpochEnded,
   };
 }
