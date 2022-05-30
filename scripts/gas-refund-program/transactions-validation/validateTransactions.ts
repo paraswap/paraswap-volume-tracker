@@ -3,6 +3,7 @@ import { Op } from 'sequelize';
 import { assert } from 'ts-essentials';
 import {
   GasRefundGenesisEpoch,
+  GasRefundPrecisionGlitchRefundedAmountsEpoch,
   getRefundPercent,
   TransactionStatus,
 } from '../../../src/lib/gas-refund';
@@ -11,6 +12,7 @@ import {
   fetchLastEpochRefunded,
   updateTransactionsStatusRefundedAmounts,
 } from '../persistance/db-persistance';
+import { xnor } from '../../../src/lib/utils/helpers';
 import {
   GRPBudgetGuardian,
   MAX_PSP_GLOBAL_BUDGET,
@@ -87,20 +89,25 @@ export async function validateTransactions() {
         pspUsd,
       } = tx;
       let newStatus;
-      
+
       const refundPercentage = getRefundPercent(totalStakeAmountPSP);
 
       assert(refundPercentage, 'refundPercentage should be defined and > 0');
 
       // recompute refundedAmountPSP/refundedAmountUSD as logic alters those values as we reach limits
-      const refundedAmountPSP = new BigNumber(gasUsedChainCurrency)
+      let _refundedAmountPSP = new BigNumber(gasUsedChainCurrency)
         .dividedBy(pspChainCurrency)
-        .multipliedBy(refundPercentage)
-        .decimalPlaces(0);
+        .multipliedBy(refundPercentage); // keep it decimals to avoid rounding errors
 
-      const refundedAmountUSD = refundedAmountPSP
+      if (tx.epoch === GasRefundPrecisionGlitchRefundedAmountsEpoch) {
+        _refundedAmountPSP = _refundedAmountPSP.decimalPlaces(0);
+      }
+
+      const refundedAmountUSD = _refundedAmountPSP
         .multipliedBy(pspUsd)
         .dividedBy(10 ** 18); // psp decimals always encoded in 18decimals
+
+      const refundedAmountPSP = _refundedAmountPSP.decimalPlaces(0); // truncate decimals to align with values in db
 
       let cappedRefundedAmountPSP;
       let cappedRefundedAmountUSD;
@@ -166,7 +173,12 @@ export async function validateTransactions() {
         );
       }
 
-      if (status !== newStatus) {
+      assert(
+        xnor(cappedRefundedAmountPSP, cappedRefundedAmountUSD),
+        'Either both cappedRefundedAmountPSP and cappedRefundedAmountUSD should be falsy or truthy',
+      );
+
+      if (status !== newStatus || !!cappedRefundedAmountPSP) {
         updatedTransactions.push({
           ...tx,
           ...(!!cappedRefundedAmountPSP

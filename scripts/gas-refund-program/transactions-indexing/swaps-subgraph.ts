@@ -10,8 +10,11 @@ import {
   GasRefundDeduplicationStartEpoch,
   GasRefundTxOriginCheckStartEpoch,
 } from '../../../src/lib/gas-refund';
-import { thegraphClient } from '../data-providers-clients';
-import { queryPaginatedData, QueryPaginatedDataParams } from '../utils';
+import {
+  queryPaginatedData,
+  QueryPaginatedDataParams,
+} from '../../../src/lib/utils/helpers';
+import { thegraphClient } from '../../../src/lib/utils/data-providers-clients';
 
 // Note: txGasUsed from thegraph is unsafe as it's actually txGasLimit https://github.com/graphprotocol/graph-node/issues/2619
 const SwapsQuery = `

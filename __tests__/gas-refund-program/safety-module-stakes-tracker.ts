@@ -2,7 +2,7 @@ import '../../src/lib/log4js';
 import * as dotenv from 'dotenv';
 dotenv.config();
 import SafetyModuleStakeTracker from '../../scripts/gas-refund-program/staking/safety-module-stakes-tracker';
-import { BNReplacer } from '../../scripts/gas-refund-program/utils';
+import { BNReplacer } from '../../src/lib/utils/helpers';
 
 describe('SafetyModuleStakesTracker', () => {
   describe('snashot test for backward compat', () => {

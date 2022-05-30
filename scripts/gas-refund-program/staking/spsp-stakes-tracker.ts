@@ -2,31 +2,27 @@ import BigNumber from 'bignumber.js';
 import { BigNumber as EthersBN, Contract, Event, EventFilter } from 'ethers';
 import {
   CHAIN_ID_MAINNET,
-  MULTICALL_ADDRESS,
   NULL_ADDRESS,
   PSP_ADDRESS,
 } from '../../../src/lib/constants';
 import { Provider } from '../../../src/lib/provider';
 import * as ERC20ABI from '../../../src/lib/abi/erc20.abi.json';
 import * as SPSPABI from '../../../src/lib/abi/spsp.abi.json';
-import * as MultiCallerABI from '../../../src/lib/abi/multicaller.abi.json';
-import { getTokenHolders } from './covalent';
 import {
   fetchBlockTimestampForEvents,
   ONE_HOUR_SEC,
   startOfHourSec,
   ZERO_BN,
-} from '../utils';
+} from '../../../src/lib/utils/helpers';
 import { reduceTimeSeries, TimeSeries } from '../timeseries';
-import { PoolConfigsMap } from '../../../src/lib/pool-info';
 import AbstractStakeTracker from './abstract-stakes-tracker';
 import { assert } from 'ts-essentials';
+import {
+  SPSPAddresses,
+  SPSPHelper,
+} from '../../../src/lib/staking/spsp-helper';
 
 const logger = global.LOGGER('SPSPStakesTracker');
-
-export const SPSPAddresses = PoolConfigsMap[CHAIN_ID_MAINNET].filter(
-  p => p.isActive,
-).map(p => p.address.toLowerCase());
 
 const SPSPAddressesSet = new Set(SPSPAddresses);
 
@@ -115,8 +111,24 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
     logger.info('Loading initial state');
     const initBlock = this.startBlock - 1;
     await Promise.all([
-      this.fetchSPSPsState(initBlock),
-      this.fetchSPSPsStakers(initBlock),
+      SPSPHelper.getInstance()
+        .fetchSPSPsStakers(initBlock)
+        .then(sPSPBalanceByAccount => {
+          this.initState.sPSPBalanceByAccount = sPSPBalanceByAccount;
+        }),
+      SPSPHelper.getInstance()
+        .fetchSPSPsState(initBlock)
+        .then(
+          ({
+            totalSupplyByPool,
+            pspBalanceByPool,
+            pspsLockedByPool: pspsLockedbyPool,
+          }) => {
+            this.initState.totalSupply = totalSupplyByPool;
+            this.initState.pspBalance = pspBalanceByPool;
+            this.initState.pspsLocked = pspsLockedbyPool;
+          },
+        ),
     ]);
     logger.info('Completed loading initial state');
   }
@@ -128,100 +140,6 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
       this.resolvePSPBalanceChanges(),
     ]);
     logger.info('Completed loading state changes');
-  }
-
-  async fetchSPSPsState(blockNumber: number) {
-    logger.info(`Loading initial SPSP global states at block ${blockNumber}`);
-
-    const chainId = CHAIN_ID_MAINNET;
-    const provider = Provider.getJsonRpcProvider(chainId);
-    const multicallContract = new Contract(
-      MULTICALL_ADDRESS[chainId],
-      MultiCallerABI,
-      provider,
-    );
-    const multicallData = SPSPAddresses.flatMap(pool => [
-      {
-        target: pool,
-        callData:
-          SPSPPrototypeContract.interface.encodeFunctionData('totalSupply'),
-      },
-      {
-        target: pool,
-        callData:
-          SPSPPrototypeContract.interface.encodeFunctionData('pspsLocked'),
-      },
-      {
-        target: PSP_ADDRESS[chainId],
-        callData: PSPContract.interface.encodeFunctionData('balanceOf', [pool]),
-      },
-    ]);
-
-    const rawResult = await multicallContract.functions.aggregate(
-      multicallData,
-      {
-        blockTag: blockNumber,
-      },
-    );
-
-    SPSPAddresses.forEach((pool, i) => {
-      const totalSupply = SPSPPrototypeContract.interface
-        .decodeFunctionResult('totalSupply', rawResult.returnData[3 * i])
-        .toString();
-
-      const pspsLocked = SPSPPrototypeContract.interface
-        .decodeFunctionResult('pspsLocked', rawResult.returnData[3 * i + 1])
-        .toString();
-
-      const pspBalance = PSPContract.interface
-        .decodeFunctionResult('balanceOf', rawResult.returnData[3 * i + 2])
-        .toString();
-
-      this.initState.totalSupply[pool] = new BigNumber(totalSupply);
-      this.initState.pspBalance[pool] = new BigNumber(pspBalance);
-      this.initState.pspsLocked[pool] = new BigNumber(pspsLocked);
-    }, {});
-
-    logger.info(
-      `Completed loading initial SPSP global states at block ${blockNumber}`,
-    );
-  }
-
-  async fetchSPSPsStakers(blockNumber: number) {
-    const chainId = CHAIN_ID_MAINNET;
-
-    logger.info(
-      `fetchSPSPsStakers: Loading initial sPSP balances at block ${blockNumber}`,
-    );
-    this.initState.sPSPBalanceByAccount = Object.fromEntries(
-      await Promise.all(
-        SPSPAddresses.map(async poolAddress => {
-          // @WARNING pagination doesn't seem to work, so ask a large pageSize
-          const options = {
-            token: poolAddress,
-            chainId,
-            blockHeight: String(blockNumber),
-          };
-
-          const stakes = await getTokenHolders(options);
-
-          const stakesByAccount = Object.fromEntries(
-            stakes.map(
-              item =>
-                [
-                  item.address,
-                  new BigNumber(item.balance), // wei
-                ] as const,
-            ),
-          );
-
-          return [poolAddress, stakesByAccount] as const;
-        }),
-      ),
-    );
-    logger.info(
-      `fetchSPSPsStakers: Completed loading initial sPSP balances at block ${blockNumber}`,
-    );
   }
 
   async resolveInternalPoolChanges() {
@@ -458,11 +376,12 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
         this.differentialStates.pspBalance[poolAddress],
       );
 
-      const pspBalanceAvailable = pspBalance.minus(pspsLocked);
-
-      const stakedPSPBalance = sPSPAmount
-        .multipliedBy(pspBalanceAvailable)
-        .dividedBy(totalSPSP);
+      const stakedPSPBalance = SPSPHelper.getInstance().computePSPStakedInSPSP({
+        sPSPShare: sPSPAmount,
+        totalSPSP,
+        pspBalance,
+        pspsLocked,
+      });
 
       return acc.plus(stakedPSPBalance);
     }, ZERO_BN);

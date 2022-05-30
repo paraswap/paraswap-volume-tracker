@@ -8,10 +8,10 @@ import { GasRefundParticipation } from '../../../src/models/GasRefundParticipati
 import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
 import { GasRefundDistribution } from '../../../src/models/GasRefundDistribution';
 import { MerkleData, MerkleTreeData } from '../types';
-import { sliceCalls } from '../utils';
 import { Sequelize, Op } from 'sequelize';
 import BigNumber from 'bignumber.js';
 import { assert } from 'ts-essentials';
+import { sliceCalls } from '../../../src/lib/utils/helpers';
 
 export async function fetchLastTimestampTxByContract({
   chainId,

@@ -1,9 +1,9 @@
 import { assert } from 'ts-essentials';
 import { URLSearchParams } from 'url';
-import { covalentClient } from '../data-providers-clients';
-import { queryPaginatedData, QueryPaginatedDataParams } from '../utils';
+import { queryPaginatedData, QueryPaginatedDataParams } from './helpers';
+import { covalentClient } from './data-providers-clients';
 
-const COVALENT_API_KEY = process.env.COVALENT_API_KEY || 'ckey_docs'; // public, is rate-limited
+const COVALENT_API_KEY = process.env.COVALENT_API_KEY || 'ckey_docs'; // public, is rate-limited and unreliable
 
 interface TokenHoldersOptions {
   token: string;

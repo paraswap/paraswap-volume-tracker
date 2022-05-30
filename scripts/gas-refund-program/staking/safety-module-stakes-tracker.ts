@@ -2,30 +2,28 @@ import BigNumber from 'bignumber.js';
 import { BigNumber as EthersBN, CallOverrides, Contract, Event } from 'ethers';
 import { assert } from 'ts-essentials';
 import {
+  BalancerVaultAddress,
+  Balancer_80PSP_20WETH_address,
+  Balancer_80PSP_20WETH_poolId,
   CHAIN_ID_MAINNET,
   NULL_ADDRESS,
   PSP_ADDRESS,
-  SAFETY_MODULE_ADDRESS
+  SAFETY_MODULE_ADDRESS,
 } from '../../../src/lib/constants';
 import { Provider } from '../../../src/lib/provider';
 import * as ERC20ABI from '../../../src/lib/abi/erc20.abi.json';
-import * as BVaultABI from './balancer-vault-abi.json';
-import { getTokenHolders } from './covalent';
-import { fetchBlockTimestampForEvents, ZERO_BN } from '../utils';
+import * as BVaultABI from '../../../src/lib/abi/balancer-vault.abi.json';
+import {
+  fetchBlockTimestampForEvents,
+  ZERO_BN,
+} from '../../../src/lib/utils/helpers';
 import {
   reduceTimeSeries,
   TimeSeries,
   timeseriesComparator,
 } from '../timeseries';
 import AbstractStakeTracker from './abstract-stakes-tracker';
-
-const BalancerVaultAddress = '0xba12222222228d8ba445958a75a0704d566bf2c8';
-const Balancer_80PSP_20WETH_poolId =
-  '0xcb0e14e96f2cefa8550ad8e4aea344f211e5061d00020000000000000000011a';
-const Balancer_80PSP_20WETH_address = Balancer_80PSP_20WETH_poolId.substring(
-  0,
-  42,
-); // or 0xcb0e14e96f2cefa8550ad8e4aea344f211e5061d
+import { SafetyModuleHelper } from '../../../src/lib/staking/safety-module-helper';
 
 interface MinERC20 extends Contract {
   totalSupply(overrides?: CallOverrides): Promise<EthersBN>;
@@ -132,9 +130,34 @@ export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
   async loadInitialState() {
     const initBlock = this.startBlock - 1;
     await Promise.all([
-      this.fetchPSPBPtPoolState(initBlock),
-      this.fetchBPTotalSupply(initBlock),
-      this.fetchStkPSPBptStakers(initBlock),
+      SafetyModuleHelper.getInstance()
+        .fetchStkPSPBptStakers(initBlock)
+        .then(stakes => {
+          this.initState.stkPSPBptUsersBalances = Object.fromEntries(
+            Object.entries(stakes).map(([address, stake]) => [
+              address,
+              new BigNumber(stake.toString()),
+            ]),
+          );
+        }),
+      SafetyModuleHelper.getInstance()
+        .fetchStkPSPBPtState(initBlock)
+        .then(
+          ({
+            bptTotalSupply,
+            pspBalance,
+
+            //stkPSPBPtTotalSupply, // FIXME: see computeStakedPSPBalance
+            //bptBalanceOfStkPSPBpt, // FIXME: see computeStakedPSPBalance
+          }) => {
+            this.initState.bptPoolTotalSupply = new BigNumber(
+              bptTotalSupply.toString(),
+            );
+            this.initState.bptPoolPSPBalance = new BigNumber(
+              pspBalance.toString(),
+            );
+          },
+        ),
     ]);
   }
 
@@ -145,37 +168,6 @@ export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
       this.resolveBPTPoolPSPBalanceChangesFromLP(),
       this.resolveBPTPoolPSPBalanceChangesFromSwaps(),
     ]);
-  }
-
-  async fetchPSPBPtPoolState(initBlock: number) {
-    const [pspBalance] = await bVaultContract.getPoolTokenInfo(
-      Balancer_80PSP_20WETH_poolId,
-      PSP_ADDRESS[CHAIN_ID_MAINNET],
-      {
-        blockTag: initBlock,
-      },
-    );
-    this.initState.bptPoolPSPBalance = new BigNumber(pspBalance.toString());
-  }
-
-  async fetchBPTotalSupply(initBlock: number) {
-    const totalSupply = await bptAsEERC20.totalSupply({ blockTag: initBlock });
-    this.initState.bptPoolTotalSupply = new BigNumber(totalSupply.toString());
-  }
-
-  async fetchStkPSPBptStakers(initBlock: number) {
-    const stakes = await getTokenHolders({
-      token: SAFETY_MODULE_ADDRESS,
-      chainId: CHAIN_ID_MAINNET,
-      blockHeight: String(initBlock),
-    });
-
-    this.initState.stkPSPBptUsersBalances = stakes.reduce<{
-      [address: string]: BigNumber;
-    }>((acc, curr) => {
-      acc[curr.address.toLowerCase()] = new BigNumber(curr.balance);
-      return acc;
-    }, {});
   }
 
   async resolveStkPSPBptChanges() {
@@ -394,6 +386,7 @@ export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
     return this.compute_BPT_to_PSP_Rate(timestamp);
   }
 
+  // @FIXME: current formula assumes all PSP in the balancer pool are detained by stkPSPBpt. Fix background compat
   computeStakedPSPBalance(_account: string, timestamp: number) {
     const account = _account.toLowerCase();
     const stkPSPBPT = reduceTimeSeries(

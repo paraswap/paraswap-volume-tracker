@@ -1,8 +1,8 @@
 import BigNumber from 'bignumber.js';
 import { Event } from 'ethers';
 import * as _ from 'lodash';
-import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
-import { SUBGRAPH_URL } from '../../src/lib/block-info';
+import { CHAIN_ID_MAINNET } from '../constants';
+import { SUBGRAPH_URL } from '../block-info';
 import { thegraphClient } from './data-providers-clients';
 import { assert } from 'console';
 
@@ -141,8 +141,8 @@ export const BNReplacer = (key: string, value: any): any => {
   if (value instanceof BigNumber) {
     return value.toFixed();
   }
-  if(Array.isArray(value)) {
-    return value.map(v => BNReplacer("", v));
+  if (Array.isArray(value)) {
+    return value.map(v => BNReplacer('', v));
   }
   if (typeof value === 'object') {
     const list = Object.entries(value).map(([k, v]) => [k, BNReplacer(k, v)]);
@@ -151,3 +151,7 @@ export const BNReplacer = (key: string, value: any): any => {
   }
   return value;
 };
+
+export const xor = (a: any, b: any): boolean => !!(Number(!!a) ^ Number(!!b));
+
+export const xnor = (a: any, b: any): boolean => !xor(a, b);
