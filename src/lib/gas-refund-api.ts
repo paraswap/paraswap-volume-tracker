@@ -16,11 +16,7 @@ import {
 import { EpochInfo } from './epoch-info';
 import { GasRefundGenesisEpoch, TransactionStatus } from './gas-refund';
 import { Provider } from './provider';
-
-const MerkleRedeemAbi = [
-  'function seedAllocations(uint _week, bytes32 _merkleRoot, uint _totalAllocation)',
-  'function claimStatus(address _liquidityProvider, uint _begin, uint _end) external view returns (bool[] memory)',
-];
+import * as MerkleRedeemAbi from '../lib/abi/merkle-redeem.abi.json';
 
 interface MerkleRedeem extends Contract {
   callStatic: {
@@ -52,6 +48,11 @@ type BaseGasRefundClaimsResponse<T> = {
 type GasRefundClaimsResponseAcc = BaseGasRefundClaimsResponse<bigint>;
 type GasRefundClaimsResponse = BaseGasRefundClaimsResponse<string> & {
   pendingClaimable: string;
+  txParams: {
+    to: string;
+    data: string | null;
+    chainId: number;
+  };
 };
 
 export class GasRefundApi {
@@ -212,10 +213,33 @@ export class GasRefundApi {
         },
       );
 
+    const data = !claims.length
+      ? null
+      : claims.length == 1
+      ? this.merkleRedem.interface.encodeFunctionData('claimWeek', [
+          address,
+          claims[0].epoch,
+          claims[0].amount,
+          claims[0].merkleProofs,
+        ])
+      : this.merkleRedem.interface.encodeFunctionData('claimWeeks', [
+          address,
+          claims.map(({ epoch, merkleProofs, amount }) => ({
+            week: epoch,
+            balance: amount,
+            merkleProof: merkleProofs,
+          })),
+        ]);
+
     return {
       totalClaimable: totalClaimable.toString(),
       claims,
       pendingClaimable,
+      txParams: {
+        to: this.merkleRedem.address,
+        data,
+        chainId: this.network,
+      },
     };
   }
 
