@@ -171,6 +171,7 @@ export class GasRefundApi {
         address,
         epoch,
         status: TransactionStatus.VALIDATED,
+        chainId: this.network,
       },
     });
 
