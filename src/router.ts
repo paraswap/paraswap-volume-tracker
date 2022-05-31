@@ -240,29 +240,22 @@ export default class Router {
 
     router.get('/onboarding/eligible-addresses', async (req, res) => {
       try {
-        const blockNumber = !!req.query.blockNumber
-          ? Number(req.query.blockNumber as string)
-          : undefined;
-
-        assert(
-          !blockNumber || !isNaN(blockNumber),
-          'blockNumber should be either undefined or a number',
-        );
-
         const addresses =
-          await OnBoardingService.getInstance().getEligibleAddresses(
-            blockNumber,
-          );
+          await OnBoardingService.getInstance().getEligibleAddresses();
+
         return res.json(addresses);
       } catch (e) {
-        logger.error(req.path, e);
+        logger.error(
+          req.path,
+          JSON.stringify({ msg: e.message, stack: e.stack }),
+        );
         res.status(403).send({
           error: `onboarding: could not retrieve list of addressees`,
         });
       }
     });
 
-    router.post('/onboarding/submit-account', async (req, res) => {
+    router.post('/onboarding/submit-verified', async (req, res) => {
       try {
         assert(
           process.env.SUBMIT_ACCOUNT_API_KEY,
@@ -276,7 +269,7 @@ export default class Router {
 
         if (!validateAccount(account)) throw new AccountNonValidError(account);
 
-        await OnBoardingService.getInstance().submitAccount(account);
+        await OnBoardingService.getInstance().submitVerifiedAccount(account);
 
         return res.status(201).send('Ok');
       } catch (e) {

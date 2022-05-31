@@ -1,30 +1,27 @@
 import axios from 'axios';
 import { assert } from 'ts-essentials';
 import { StakingService } from './staking/staking';
+import { coingeckoClient } from '../lib/utils/data-providers-clients';
 
 const logger = global.LOGGER('OnboardingService');
 const { MAIL_SERVICE_BASE_URL, MAIL_SERVICE_API_KEY } = process.env;
 
-const PSP_THRESHOLD = BigInt(2750) * BigInt(10 ** 18);
-
 type Account = {
   email: string;
-  isEligible: boolean;
 };
 
 export const validateAccount = (payload: any): payload is Account => {
   return (
     !!payload &&
     typeof payload === 'object' &&
-    typeof payload['email'] === 'string' &&
-    typeof payload['isEligible'] === 'boolean'
+    typeof payload['email'] === 'string'
   );
 };
 
 export class AccountNonValidError extends Error {
   constructor(payload: any) {
     super(
-      `ValidationError: Invalid account format. Expecting {email: string, isEligibile: boolean}, received: ${JSON.stringify(
+      `ValidationError: Invalid account format. Expecting {email: string}, received: ${JSON.stringify(
         payload,
       )}`,
     );
@@ -47,6 +44,23 @@ export class DuplicatedAccountError extends Error {
   }
 }
 
+export async function fetchSpotPSPUsdPrice(): Promise<number> {
+  const url = `https://api.coingecko.com/api/v3/coins/paraswap?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`;
+  const {
+    data: {
+      market_data: {
+        current_price: { usd },
+      },
+    },
+  } = await coingeckoClient.get<{
+    market_data: { current_price: { usd: number } };
+  }>(url);
+
+  return usd;
+}
+
+const ELIGIBILITY_USD_STAKE_THRESHOLD = 100;
+
 export class OnBoardingService {
   static instance: OnBoardingService;
 
@@ -57,16 +71,18 @@ export class OnBoardingService {
     return this.instance;
   }
 
-  async getEligibleAddresses(blockNumber?: number): Promise<string[]> {
+  async getEligibleAddresses(): Promise<string[]> {
+    const pspPriceUsd = await fetchSpotPSPUsdPrice();
     const stakersWithStakes =
-      await StakingService.getInstance().getAllPSPStakersAllPrograms(
-        blockNumber,
-      );
+      await StakingService.getInstance().getAllPSPStakersAllPrograms();
 
     const eligibleAddresses = Object.entries(
       stakersWithStakes.pspStakersWithStake,
     ).reduce<string[]>((acc, [address, { pspStaked }]) => {
-      if (BigInt(pspStaked) >= PSP_THRESHOLD) {
+      const stakeInUsd =
+        Number(BigInt(pspStaked) / BigInt(10 ** 18)) * pspPriceUsd;
+
+      if (stakeInUsd >= ELIGIBILITY_USD_STAKE_THRESHOLD) {
         acc.push(address);
       }
 
@@ -76,24 +92,19 @@ export class OnBoardingService {
     return eligibleAddresses;
   }
 
-  async submitAccount(account: Account) {
+  async submitVerifiedAccount(account: Account) {
     assert(MAIL_SERVICE_BASE_URL, 'set MAIL_SERVICE_BASE_URL env var');
     assert(MAIL_SERVICE_API_KEY, 'set MAIL_SERVICE_API_KEY env var');
 
     const apiUrl = `${MAIL_SERVICE_BASE_URL}/betas/17942/testers?api_key=${MAIL_SERVICE_API_KEY}`;
 
-    const { isEligible, email } = account;
+    const { email } = account;
 
-    const accountMail = isEligible
-      ? {
-          email,
-          status: 'imported',
-          groups: 'PSP stakers',
-        }
-      : {
-          email,
-          status: 'applied',
-        };
+    const accountMail = {
+      email,
+      status: 'imported',
+      groups: 'PSP stakers',
+    };
 
     try {
       await axios.post(apiUrl, accountMail);
