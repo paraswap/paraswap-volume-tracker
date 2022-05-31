@@ -14,6 +14,11 @@ import { EpochInfo } from './lib/epoch-info';
 import { GRP_SUPPORTED_CHAINS } from './lib/gas-refund';
 import { StakingService } from './lib/staking/staking';
 import { assert } from 'ts-essentials';
+import {
+  OnBoardingService,
+  validateAccount,
+  AccountNonValidError,
+} from './lib/onboarding-api';
 
 const logger = global.LOGGER();
 
@@ -229,6 +234,55 @@ export default class Router {
         logger.error(req.path, e);
         res.status(403).send({
           error: `GasRefundError: could not retrieve merkle data for ${address}`,
+        });
+      }
+    });
+
+    router.get('/onboarding/eligible-addresses', async (req, res) => {
+      try {
+        const blockNumber = !!req.query.blockNumber
+          ? Number(req.query.blockNumber as string)
+          : undefined;
+
+        assert(
+          !blockNumber || !isNaN(blockNumber),
+          'blockNumber should be either undefined or a number',
+        );
+
+        const addresses =
+          await OnBoardingService.getInstance().getEligibleAddresses(
+            blockNumber,
+          );
+        return res.json(addresses);
+      } catch (e) {
+        logger.error(req.path, e);
+        res.status(403).send({
+          error: `onboarding: could not retrieve list of addressees`,
+        });
+      }
+    });
+
+    router.post('/onboarding/submit-account', async (req, res) => {
+      try {
+        assert(
+          process.env.SUBMIT_ACCOUNT_API_KEY,
+          'set SUBMIT_ACCOUNT_API_KEY env var',
+        );
+
+        if (req.headers['x-auth-token'] !== process.env.SUBMIT_ACCOUNT_API_KEY)
+          return res.status(401).send({ error: 'wrong token' });
+
+        const account = req.body;
+
+        if (!validateAccount(account)) throw new AccountNonValidError(account);
+
+        await OnBoardingService.getInstance().submitAccount(account);
+
+        return res.status(201).send('Ok');
+      } catch (e) {
+        logger.error(req.path, e);
+        res.status(403).send({
+          error: e.message,
         });
       }
     });
