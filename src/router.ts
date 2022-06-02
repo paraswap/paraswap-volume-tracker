@@ -14,11 +14,7 @@ import { EpochInfo } from './lib/epoch-info';
 import { GRP_SUPPORTED_CHAINS } from './lib/gas-refund';
 import { StakingService } from './lib/staking/staking';
 import { assert } from 'ts-essentials';
-import {
-  OnBoardingService,
-  validateAccount,
-  AccountNonValidError,
-} from './lib/onboarding-api';
+import OnboardingRouter from './lib/onboarding/router';
 
 const logger = global.LOGGER();
 
@@ -238,47 +234,7 @@ export default class Router {
       }
     });
 
-    router.get('/onboarding/eligible-addresses', async (req, res) => {
-      try {
-        const addresses =
-          await OnBoardingService.getInstance().getEligibleAddresses();
-
-        return res.json(addresses);
-      } catch (e) {
-        logger.error(
-          req.path,
-          JSON.stringify({ msg: e.message, stack: e.stack }),
-        );
-        res.status(403).send({
-          error: `onboarding: could not retrieve list of addressees`,
-        });
-      }
-    });
-
-    router.post('/onboarding/submit-verified', async (req, res) => {
-      try {
-        assert(
-          process.env.SUBMIT_ACCOUNT_API_KEY,
-          'set SUBMIT_ACCOUNT_API_KEY env var',
-        );
-
-        if (req.headers['x-auth-token'] !== process.env.SUBMIT_ACCOUNT_API_KEY)
-          return res.status(401).send({ error: 'wrong token' });
-
-        const account = req.body;
-
-        if (!validateAccount(account)) throw new AccountNonValidError(account);
-
-        await OnBoardingService.getInstance().submitVerifiedAccount(account);
-
-        return res.status(201).send('Ok');
-      } catch (e) {
-        logger.error(req.path, e);
-        res.status(403).send({
-          error: e.message,
-        });
-      }
-    });
+    router.use('/onboarding', OnboardingRouter);
 
     return router;
   }

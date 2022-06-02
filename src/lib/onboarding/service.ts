@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { assert } from 'ts-essentials';
-import { StakingService } from './staking/staking';
-import { coingeckoClient } from '../lib/utils/data-providers-clients';
+import { StakingService } from '../staking/staking';
+import { coingeckoClient } from '../utils/data-providers-clients';
 
 const logger = global.LOGGER('OnboardingService');
 const { MAIL_SERVICE_BASE_URL, MAIL_SERVICE_API_KEY } = process.env;
