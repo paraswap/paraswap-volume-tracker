@@ -4,9 +4,10 @@ import {
   OnBoardingService,
   validateAccount,
   AccountNonValidError,
+  AccountNotFoundError,
 } from './service';
 
-const router = express.Router({});
+const router = express.Router();
 const logger = global.LOGGER('OnboardingRouter');
 
 router.get('/eligible-addresses', async (req, res) => {
@@ -43,6 +44,43 @@ router.post('/submit-verified', async (req, res) => {
   } catch (e) {
     logger.error(req.path, e);
     res.status(403).send({
+      error: e.message,
+    });
+  }
+});
+
+router.post('/waiting-list', async (req, res) => {
+  try {
+    const account = req.body;
+
+    if (!validateAccount(account)) throw new AccountNonValidError(account);
+
+    const registeredAccount =
+      await OnBoardingService.getInstance().submitAccountForWaitingList(
+        account,
+      );
+
+    return res.json(registeredAccount);
+  } catch (e) {
+    logger.error(req.path, e);
+    res.status(403).send({
+      error: e.message,
+    });
+  }
+});
+
+router.get('/waiting-list/:uuid', async (req, res) => {
+  try {
+    const uuid = req.params.uuid;
+
+    const registeredAccount =
+      await OnBoardingService.getInstance().getAccountByUUID(uuid);
+
+    return res.json(registeredAccount);
+  } catch (e) {
+    logger.error(req.path, e);
+
+    res.status(e instanceof AccountNotFoundError ? 404 : 403).send({
       error: e.message,
     });
   }
