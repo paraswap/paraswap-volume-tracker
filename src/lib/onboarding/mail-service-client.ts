@@ -1,7 +1,7 @@
-import axios from 'axios';
-import { setupCache } from 'axios-cache-adapter';
 import * as _ from 'lodash';
 import { assert } from 'ts-essentials';
+import { constructHttpClient } from '../utils/http-client';
+import { AccountCreationError, DuplicatedAccountError } from './errors';
 import { AccountToCreate, RegisteredAccount } from './types';
 
 const logger = global.LOGGER('MailService');
@@ -13,40 +13,22 @@ type MinStore = {
   clear: () => void;
 };
 
-const cache = setupCache({
-  maxAge: 60 * 1000,
-  limit: 1,
-  exclude: {
-    query: false, // apikey is passed through query param
-  },
-  invalidate: async (cfg, req) => {
-    const method = req?.method?.toLowerCase();
-    if (method !== 'get') {
-      // account creation would clear store and force refetching list of accounts
-      await (cfg?.store as MinStore)?.clear();
-    }
+const mailServiceClient = constructHttpClient({
+  cacheOptions: {
+    maxAge: 60 * 1000,
+    limit: 1,
+    exclude: {
+      query: false, // apikey is passed through query param
+    },
+    invalidate: async (cfg, req) => {
+      const method = req?.method?.toLowerCase();
+      if (method !== 'get') {
+        // account creation would clear store and force refetching list of accounts
+        await (cfg?.store as MinStore)?.clear();
+      }
+    },
   },
 });
-
-const cachedAxios = axios.create({
-  adapter: cache.adapter,
-});
-
-export class AccountCreationError extends Error {
-  constructor(account: AccountToCreate) {
-    super(
-      `AccountCreationError: account=${JSON.stringify(
-        account,
-      )} did not get created.`,
-    );
-  }
-}
-
-export class DuplicatedAccountError extends Error {
-  constructor(account: AccountToCreate) {
-    super(`DuplicatedErrorAccount: account=${JSON.stringify(account)}`);
-  }
-}
 
 type RawRegisteredAccount = RegisteredAccount & Record<string, unknown>;
 
@@ -77,7 +59,7 @@ export async function createNewAccount(
 
   const { email } = account;
 
-  const accountMail = isVerified
+  const createdAccount = isVerified
     ? {
         email,
         status: 'imported',
@@ -90,7 +72,7 @@ export async function createNewAccount(
 
   try {
     const { data: registeredAccount } =
-      await cachedAxios.post<RawRegisteredAccount>(apiUrl, accountMail);
+      await mailServiceClient.post<RawRegisteredAccount>(apiUrl, createdAccount);
 
     return sanitizeAccount(registeredAccount);
   } catch (e) {
@@ -110,7 +92,7 @@ export async function fetchAccounts(): Promise<RegisteredAccount[]> {
   const apiUrl = `${MAIL_SERVICE_BASE_URL}/betas/17942/testers?api_key=${MAIL_SERVICE_API_KEY}`;
 
   try {
-    const { data: registeredAccounts } = await cachedAxios.get<
+    const { data: registeredAccounts } = await mailServiceClient.get<
       RawRegisteredAccount[]
     >(apiUrl);
 

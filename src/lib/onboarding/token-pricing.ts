@@ -1,16 +1,40 @@
-import { coingeckoClient } from '../utils/data-providers-clients';
+import { assert } from 'ts-essentials';
+import { startOfHourSec } from '../utils/helpers';
+import { constructHttpClient } from '../utils/http-client';
 
-export async function fetchSpotPSPUsdPrice(): Promise<number> {
-  const url = `https://api.coingecko.com/api/v3/coins/paraswap?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`;
-  const {
-    data: {
-      market_data: {
-        current_price: { usd },
-      },
+const PRICE_SEARCH_PAST_WINDOW_LOOKUP = 4 * 60 * 60;
+
+const tokenPricingServiceClient = constructHttpClient({
+  cacheOptions: {
+    maxAge: 30 * 60 * 1000, // can go for long cache
+    limit: 1000,
+    exclude: {
+      query: false, // to force cache segmentation by interval (from, to)
     },
-  } = await coingeckoClient.get<{
-    market_data: { current_price: { usd: number } };
+  },
+});
+
+export async function fetchHistoricalPSPPrice(
+  timestamp: number,
+): Promise<number> {
+  const fromUnixDate = startOfHourSec(
+    timestamp - PRICE_SEARCH_PAST_WINDOW_LOOKUP,
+  );
+  const toUnixDate = timestamp;
+
+  const url = `https://api.coingecko.com/api/v3/coins/paraswap/market_chart/range?id=paraswap&vs_currency=usd&from=${fromUnixDate}&to=${toUnixDate}`;
+
+  const {
+    data: { prices },
+  } = await tokenPricingServiceClient.get<{
+    prices: [date: number, price: number][];
   }>(url);
 
-  return usd;
+  prices.sort((a, b) => b[0] - a[0]); // sort desc in timestamp
+
+  const closestPrice = prices[0]?.[1];
+
+  assert(closestPrice, 'no price found within 4 hour range check price api');
+
+  return closestPrice;
 }

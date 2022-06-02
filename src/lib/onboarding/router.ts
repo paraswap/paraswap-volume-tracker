@@ -1,25 +1,65 @@
 import * as express from 'express';
 import { assert } from 'ts-essentials';
+import { OnBoardingService, validateAccount } from './service';
 import {
-  OnBoardingService,
-  validateAccount,
   AccountNonValidError,
   AccountNotFoundError,
-} from './service';
+  ValidationError,
+} from './errors';
+
+const logger = global.LOGGER('OnboardingRouter');
 
 const router = express.Router();
-const logger = global.LOGGER('OnboardingRouter');
 
 router.get('/eligible-addresses', async (req, res) => {
   try {
+    const blockNumber = !!req.query.blockNumber
+      ? +req.query.blockNumber
+      : undefined;
+
+    if (!!blockNumber && isNaN(blockNumber))
+      throw new ValidationError(
+        'blockNumber should be either undefined or a number',
+      );
+
     const addresses =
-      await OnBoardingService.getInstance().getEligibleAddresses();
+      await OnBoardingService.getInstance().getEligibleAddresses(blockNumber);
 
     return res.json(addresses);
   } catch (e) {
-    logger.error(req.path, JSON.stringify({ msg: e.message, stack: e.stack }));
+    logger.error(req.path, e);
     res.status(403).send({
-      error: `onboarding: could not retrieve list of addressees`,
+      error:
+        e instanceof ValidationError
+          ? e.message
+          : `onboarding: could not retrieve list of addressees`,
+    });
+  }
+});
+
+router.get('/check-eligibility/:address/:blockNumber', async (req, res) => {
+  try {
+    const address = req.params.address;
+    const blockNumber = +req.params.blockNumber;
+
+    if (address.length !== 42 || !address.startsWith('0x'))
+      throw new ValidationError('pass an address as first param');
+    if (isNaN(blockNumber))
+      throw new ValidationError('pass a block number as second param');
+
+    const isEligible = await OnBoardingService.getInstance().isAddressEligible(
+      address,
+      blockNumber,
+    );
+
+    return res.json({ isEligible });
+  } catch (e) {
+    logger.error(req.path, e);
+    res.status(403).send({
+      error:
+        e instanceof ValidationError
+          ? e.message
+          : `onboarding: could not check eligibility`,
     });
   }
 });
@@ -64,7 +104,8 @@ router.post('/waiting-list', async (req, res) => {
   } catch (e) {
     logger.error(req.path, e);
     res.status(403).send({
-      error: e.message,
+      error:
+        e instanceof ValidationError ? e.message : `Error creating account`,
     });
   }
 });
