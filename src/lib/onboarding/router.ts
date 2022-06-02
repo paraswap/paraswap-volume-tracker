@@ -4,6 +4,8 @@ import { OnBoardingService, validateAccount } from './service';
 import {
   AccountNonValidError,
   AccountNotFoundError,
+  AuthorizationError,
+  OnBoardingError,
   ValidationError,
 } from './errors';
 
@@ -30,7 +32,7 @@ router.get('/eligible-addresses', async (req, res) => {
     logger.error(req.path, e);
     res.status(403).send({
       error:
-        e instanceof ValidationError
+        e instanceof OnBoardingError
           ? e.message
           : `onboarding: could not retrieve list of addressees`,
     });
@@ -57,7 +59,7 @@ router.get('/check-eligibility/:address/:blockNumber', async (req, res) => {
     logger.error(req.path, e);
     res.status(403).send({
       error:
-        e instanceof ValidationError
+        e instanceof OnBoardingError
           ? e.message
           : `onboarding: could not check eligibility`,
     });
@@ -72,7 +74,7 @@ router.post('/submit-verified', async (req, res) => {
     );
 
     if (req.headers['x-auth-token'] !== process.env.SUBMIT_ACCOUNT_API_KEY)
-      return res.status(401).send({ error: 'wrong token' });
+      throw new AuthorizationError();
 
     const account = req.body;
 
@@ -83,8 +85,11 @@ router.post('/submit-verified', async (req, res) => {
     return res.status(201).send('Ok');
   } catch (e) {
     logger.error(req.path, e);
-    res.status(403).send({
-      error: e.message,
+    res.status(e instanceof AuthorizationError ? 401 : 403).send({
+      error:
+        e instanceof OnBoardingError
+          ? e.message
+          : `Unknown error on submitting verified`,
     });
   }
 });
@@ -105,7 +110,9 @@ router.post('/waiting-list', async (req, res) => {
     logger.error(req.path, e);
     res.status(403).send({
       error:
-        e instanceof ValidationError ? e.message : `Error creating account`,
+        e instanceof OnBoardingError
+          ? e.message
+          : `Unknown error on submitting account for waiting list`,
     });
   }
 });
@@ -122,7 +129,10 @@ router.get('/waiting-list/:uuid', async (req, res) => {
     logger.error(req.path, e);
 
     res.status(e instanceof AccountNotFoundError ? 404 : 403).send({
-      error: e.message,
+      error:
+        e instanceof OnBoardingError
+          ? e.message
+          : `Unknown error on retrieving account from waiting list`,
     });
   }
 });

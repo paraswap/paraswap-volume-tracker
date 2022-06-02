@@ -1,12 +1,15 @@
 import { AccountToCreate } from './types';
 
-export class ValidationError extends Error {
+// convient for inheritance cascading property of instanceof
+export class OnBoardingError extends Error {}
+
+export class ValidationError extends OnBoardingError {
   constructor(message: string) {
     super(`ValidationError: ${message}`);
   }
 }
 
-export class AccountCreationError extends Error {
+export class AccountCreationError extends OnBoardingError {
   constructor(account: AccountToCreate) {
     super(
       `AccountCreationError: account=${JSON.stringify(
@@ -16,7 +19,7 @@ export class AccountCreationError extends Error {
   }
 }
 
-export class DuplicatedAccountError extends Error {
+export class DuplicatedAccountError extends OnBoardingError {
   constructor(account: AccountToCreate) {
     super(`DuplicatedErrorAccount: account=${JSON.stringify(account)}`);
   }
@@ -32,8 +35,14 @@ export class AccountNonValidError extends ValidationError {
   }
 }
 
-export class AccountNotFoundError extends Error {
+export class AccountNotFoundError extends OnBoardingError {
   constructor(uuid: string) {
     super(`Account not found uuid=${uuid}`);
+  }
+}
+
+export class AuthorizationError extends ValidationError {
+  constructor() {
+    super(`wrong token`);
   }
 }
