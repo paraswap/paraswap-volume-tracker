@@ -1,5 +1,6 @@
 export type AccountToCreate = {
   email: string;
+  referrer_id: string;
 };
 
 export type RegisteredAccount = {

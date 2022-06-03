@@ -57,19 +57,17 @@ export async function createNewAccount(
 
   const apiUrl = `${MAIL_SERVICE_BASE_URL}/betas/17942/testers?api_key=${MAIL_SERVICE_API_KEY}`;
 
-  const { email } = account;
-
-  const createdAccount = isVerified
-    ? {
-        email,
-        status: 'imported',
-        groups: 'PSP stakers',
-      }
-    : {
-        email,
-        status: 'applied',
-      };
-
+  const createdAccount = {
+    ...account,
+    ...(isVerified
+      ? {
+          status: 'imported',
+          groups: 'PSP stakers',
+        }
+      : {
+          status: 'applied',
+        }),
+  };
   try {
     const { data: registeredAccount } =
       await mailServiceClient.post<RawRegisteredAccount>(

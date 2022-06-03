@@ -5,7 +5,6 @@ import { fetchHistoricalPSPPrice } from './token-pricing';
 import { BlockInfo } from '../block-info';
 import { CHAIN_ID_MAINNET } from '../constants';
 import { Provider } from '../provider';
-import { assert } from 'ts-essentials';
 import { AccountNotFoundError } from './errors';
 import * as pMemoize from 'p-memoize';
 import * as QuickLRU from 'quick-lru';
