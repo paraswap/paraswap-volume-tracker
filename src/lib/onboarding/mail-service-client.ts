@@ -70,10 +70,9 @@ export async function createNewAccount(
   };
   try {
     const { data: registeredAccount } =
-      await mailServiceClient.post<RawRegisteredAccount>(
-        apiUrl,
-        createdAccount,
-      );
+      await mailServiceClient.post<RawRegisteredAccount>(apiUrl, {
+        tester: createdAccount,
+      });
 
     return sanitizeAccount(registeredAccount);
   } catch (e) {
