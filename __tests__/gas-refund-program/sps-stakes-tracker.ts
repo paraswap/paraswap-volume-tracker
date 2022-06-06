@@ -3,7 +3,7 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 import SPSPStakesTracker from '../../scripts/gas-refund-program/staking/spsp-stakes-tracker';
 import { assert } from 'ts-essentials';
-import { BNReplacer } from '../../scripts/gas-refund-program/utils';
+import { BNReplacer } from '../../src/lib/utils/helpers';
 
 jest.setTimeout(5 * 60 * 1000);
 
