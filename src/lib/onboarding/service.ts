@@ -8,6 +8,9 @@ import { Provider } from '../provider';
 import { AccountNotFoundError } from './errors';
 import * as pMemoize from 'p-memoize';
 import * as QuickLRU from 'quick-lru';
+import * as TestAddresses from './test-addresses.json';
+
+const IS_TEST = !process.env.NODE_ENV?.includes('prod');
 
 const getAllPSPStakersAllProgramsCached = pMemoize(
   StakingService.getInstance().getAllPSPStakersAllPrograms,
@@ -67,6 +70,10 @@ export class OnBoardingService {
 
       return acc;
     }, []);
+
+    if (IS_TEST) {
+      return eligibleAddresses.concat(TestAddresses);
+    }
 
     return eligibleAddresses;
   }
