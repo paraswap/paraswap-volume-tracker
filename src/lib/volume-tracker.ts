@@ -52,7 +52,10 @@ export const MarketMakerAddresses: {
     56: ['0x98A2b946CBFf6537601dB6ac0edb0EFf85c36ab2'],
   },
   ParaswapPool4: {
-    1: ['0x0000006daea1723962647b7e189d311d757Fb793'],
+    1: [
+      '0x0000006daea1723962647b7e189d311d757Fb793',
+      '0x00000000AE347930bD1E7B0F35588b92280f9e75',
+    ],
   },
   ParaswapPool5: {
     1: [
