@@ -8,6 +8,7 @@ import {
   OnBoardingError,
   ValidationError,
 } from './errors';
+import { Utils } from '../utils';
 
 const logger = global.LOGGER('OnboardingRouter');
 
@@ -15,6 +16,8 @@ const router = express.Router();
 
 router.get('/eligible-addresses', async (req, res) => {
   try {
+    logger.info(`eligible-addresses:: Detected IP: ${Utils.getIP()}`);
+
     const blockNumber = !!req.query.blockNumber
       ? +req.query.blockNumber
       : undefined;
@@ -41,6 +44,8 @@ router.get('/eligible-addresses', async (req, res) => {
 
 router.get('/check-eligibility/:address/:blockNumber', async (req, res) => {
   try {
+    logger.info(`check-eligibility:: Detected IP: ${Utils.getIP()}`);
+
     const address = req.params.address;
     const blockNumber = +req.params.blockNumber;
 

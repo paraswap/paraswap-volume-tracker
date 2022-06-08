@@ -1,11 +1,19 @@
 import axios, { AxiosBasicCredentials, AxiosResponse } from 'axios';
 import * as https from 'https';
+import { getRemoteAddress } from './remote-address';
 
 const HTTP_TIMEOUT = 500;
 
 axios.defaults.httpsAgent = new https.Agent({ keepAlive: true });
 
 export class Utils {
+  public static readonly isAWS =
+    process.env.ECS_CONTAINER_METADATA_URI !== undefined;
+
+  static getIP = () => {
+    const address = getRemoteAddress();
+    return Utils.isAWS ? address?.split(':')[0] : address;
+  };
 
   static _get<T = any>(
     url: string,
