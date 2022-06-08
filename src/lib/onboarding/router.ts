@@ -44,8 +44,6 @@ router.get('/eligible-addresses', async (req, res) => {
 
 router.get('/check-eligibility/:address/:blockNumber', async (req, res) => {
   try {
-    logger.info(`check-eligibility:: Detected IP: ${Utils.getIP()}`);
-
     const address = req.params.address;
     const blockNumber = +req.params.blockNumber;
 
@@ -104,6 +102,11 @@ router.post('/waiting-list', async (req, res) => {
     const account = req.body;
 
     if (!validateAccount(account)) throw new AccountNonValidError(account);
+
+    account.profile = {
+      // assign ip address to help on fraud protection
+      ip: Utils.getIP(),
+    };
 
     const registeredAccount =
       await OnBoardingService.getInstance().submitAccountForWaitingList(
