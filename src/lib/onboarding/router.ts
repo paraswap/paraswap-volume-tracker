@@ -16,8 +16,6 @@ const router = express.Router();
 
 router.get('/eligible-addresses', async (req, res) => {
   try {
-    logger.info(`eligible-addresses:: Detected IP: ${Utils.getIP()}`);
-
     const blockNumber = !!req.query.blockNumber
       ? +req.query.blockNumber
       : undefined;
