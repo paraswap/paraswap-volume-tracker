@@ -16,3 +16,5 @@ export type RegisteredAccount = {
   share_status_link: string;
   waitlist_position: number;
 };
+
+export type AuthToken = { token: string; exp: number };

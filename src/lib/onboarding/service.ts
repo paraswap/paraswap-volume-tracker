@@ -1,6 +1,6 @@
 import { StakingService } from '../staking/staking';
 import { createNewAccount, fetchAccounts } from './mail-service-client';
-import { RegisteredAccount, AccountToCreate } from './types';
+import { RegisteredAccount, AccountToCreate, AuthToken } from './types';
 import { fetchHistoricalPSPPrice } from './token-pricing';
 import { BlockInfo } from '../block-info';
 import { CHAIN_ID_MAINNET } from '../constants';
@@ -9,6 +9,9 @@ import { AccountNotFoundError } from './errors';
 import * as pMemoize from 'p-memoize';
 import * as QuickLRU from 'quick-lru';
 import * as TestAddresses from './test-addresses.json';
+import { generateAuthToken, submitTester } from './beta-tester';
+
+const logger = global.LOGGER('OnBoardingService');
 
 const IS_TEST = !process.env.NODE_ENV?.includes('prod');
 
@@ -33,6 +36,8 @@ const ELIGIBILITY_USD_STAKE_THRESHOLD = 100;
 
 export class OnBoardingService {
   static instance: OnBoardingService;
+
+  authToken?: AuthToken;
 
   static getInstance() {
     if (!this.instance) {
@@ -92,7 +97,19 @@ export class OnBoardingService {
   async submitVerifiedAccount(
     account: AccountToCreate,
   ): Promise<RegisteredAccount> {
-    return createNewAccount(account, true);
+    const [registeredAccount] = await Promise.all([
+      // register account and add to tester in parallel
+      createNewAccount(account, true),
+      submitTester({
+        email: account.email,
+        authToken: this._getAuthToken().token,
+      }).catch(e => {
+        // If tester submitting fail, other will help manual recovering
+        logger.error(e);
+      }),
+    ]);
+
+    return registeredAccount;
   }
 
   async submitAccountForWaitingList(
@@ -121,5 +138,16 @@ export class OnBoardingService {
     if (!account) throw new AccountNotFoundError(uuid);
 
     return account;
+  }
+
+  _getAuthToken(): AuthToken {
+    if (this.authToken && this.authToken.exp > Date.now() / 1000)
+      return this.authToken;
+
+    const authToken = generateAuthToken();
+
+    this.authToken = authToken;
+
+    return authToken;
   }
 }
