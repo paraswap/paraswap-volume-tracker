@@ -6,7 +6,7 @@ import {
   AccountDeleteError,
   DuplicatedAccountError,
 } from './errors';
-import { AccountToCreate, RegisteredAccount } from './types';
+import { AccountToCreate, RegisteredAccount, AccountStatus } from './types';
 
 const logger = global.LOGGER('MailService');
 
@@ -51,11 +51,6 @@ function sanitizeAccount(
   ]);
 }
 
-const stakerMetadata = {
-  status: 'imported',
-  groups: 'PSP stakers',
-} as const;
-
 // service present some latency (5min observed). Creating account then trying to retrieve it right away would likely fail.
 export async function createNewAccount(
   account: AccountToCreate,
@@ -69,9 +64,12 @@ export async function createNewAccount(
   const createdAccount = {
     ...account,
     ...(isVerified
-      ? stakerMetadata
+      ? {
+          status: AccountStatus.IMPORTED,
+          groups: 'PSP stakers',
+        }
       : {
-          status: 'applied',
+          status: AccountStatus.APPLIED,
         }),
   };
   try {

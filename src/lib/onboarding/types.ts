@@ -6,6 +6,11 @@ export type AccountToCreate = {
   };
 };
 
+export enum AccountStatus {
+  IMPORTED = 'imported',
+  APPLIED = 'applied',
+}
+
 export type RegisteredAccount = {
   uuid: string;
   email: string;
