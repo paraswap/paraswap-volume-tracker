@@ -81,7 +81,7 @@ router.post('/submit-verified', async (req, res) => {
 
     if (!validateAccount(account)) throw new AccountNonValidError(account);
 
-    await OnBoardingService.getInstance().submitVerifiedAccount(account);
+    await OnBoardingService.getInstance().registerVerifiedAccount(account);
 
     return res.status(201).send('Ok');
   } catch (e) {

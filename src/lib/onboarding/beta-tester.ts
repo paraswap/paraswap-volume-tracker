@@ -39,7 +39,7 @@ export function generateAuthToken(): AuthToken {
   };
 }
 
-export async function submitTester({
+export async function createTester({
   email,
   authToken,
 }: {

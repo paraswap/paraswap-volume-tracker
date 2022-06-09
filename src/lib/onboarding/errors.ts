@@ -19,6 +19,12 @@ export class AccountCreationError extends OnBoardingError {
   }
 }
 
+export class AccountUpdateError extends OnBoardingError {
+  constructor(uuid: string) {
+    super(`AccountUpdateError: uuid=${uuid} did not get updated.`);
+  }
+}
+
 export class DuplicatedAccountError extends OnBoardingError {
   constructor(account: AccountToCreate) {
     super(`DuplicatedErrorAccount: account=${JSON.stringify(account)}`);

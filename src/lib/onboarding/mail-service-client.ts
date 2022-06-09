@@ -1,7 +1,11 @@
 import * as _ from 'lodash';
 import { assert } from 'ts-essentials';
 import { constructHttpClient } from '../utils/http-client';
-import { AccountCreationError, DuplicatedAccountError } from './errors';
+import {
+  AccountCreationError,
+  AccountUpdateError,
+  DuplicatedAccountError,
+} from './errors';
 import { AccountToCreate, RegisteredAccount } from './types';
 
 const logger = global.LOGGER('MailService');
@@ -47,6 +51,11 @@ function sanitizeAccount(
   ]);
 }
 
+const stakerMetadata = {
+  status: 'imported',
+  groups: 'PSP stakers',
+} as const;
+
 // service present some latency (5min observed). Creating account then trying to retrieve it right away would likely fail.
 export async function createNewAccount(
   account: AccountToCreate,
@@ -60,10 +69,7 @@ export async function createNewAccount(
   const createdAccount = {
     ...account,
     ...(isVerified
-      ? {
-          status: 'imported',
-          groups: 'PSP stakers',
-        }
+      ? stakerMetadata
       : {
           status: 'applied',
         }),
@@ -76,11 +82,34 @@ export async function createNewAccount(
 
     return sanitizeAccount(registeredAccount);
   } catch (e) {
-    logger.error(e);
     if (e.response?.data?.errors?.[0]?.code === 2310)
       throw new DuplicatedAccountError(account);
 
+    logger.error(e);
+
     throw new AccountCreationError(account);
+  }
+}
+
+export async function upgradeAccountToStaker({
+  uuid,
+}: {
+  uuid: string;
+}): Promise<RegisteredAccount> {
+  assert(MAIL_SERVICE_BASE_URL, 'set MAIL_SERVICE_BASE_URL env var');
+  assert(MAIL_SERVICE_API_KEY, 'set MAIL_SERVICE_API_KEY env var');
+
+  const apiUrl = `${MAIL_SERVICE_BASE_URL}/betas/17942/testers/${uuid}?api_key=${MAIL_SERVICE_API_KEY}`;
+
+  try {
+    const { data: updatedAccount } =
+      await mailServiceClient.put<RawRegisteredAccount>(apiUrl, {
+        tester: stakerMetadata,
+      });
+
+    return sanitizeAccount(updatedAccount);
+  } catch (e) {
+    throw new AccountUpdateError(uuid);
   }
 }
 

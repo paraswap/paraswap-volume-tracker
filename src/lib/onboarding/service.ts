@@ -1,15 +1,19 @@
 import { StakingService } from '../staking/staking';
-import { createNewAccount, fetchAccounts } from './mail-service-client';
+import {
+  createNewAccount,
+  fetchAccounts,
+  upgradeAccountToStaker,
+} from './mail-service-client';
 import { RegisteredAccount, AccountToCreate, AuthToken } from './types';
 import { fetchHistoricalPSPPrice } from './token-pricing';
 import { BlockInfo } from '../block-info';
 import { CHAIN_ID_MAINNET } from '../constants';
 import { Provider } from '../provider';
-import { AccountNotFoundError } from './errors';
+import { AccountNotFoundError, DuplicatedAccountError } from './errors';
 import * as pMemoize from 'p-memoize';
 import * as QuickLRU from 'quick-lru';
 import * as TestAddresses from './test-addresses.json';
-import { generateAuthToken, submitTester } from './beta-tester';
+import { generateAuthToken, createTester } from './beta-tester';
 
 const logger = global.LOGGER('OnBoardingService');
 
@@ -94,37 +98,72 @@ export class OnBoardingService {
     return isEligible;
   }
 
-  async submitVerifiedAccount(
+  async registerVerifiedAccount(
     account: AccountToCreate,
   ): Promise<RegisteredAccount> {
     const [registeredAccount] = await Promise.all([
-      // register account and add to tester in parallel
-      createNewAccount(account, true),
-      submitTester({
-        email: account.email,
-        authToken: this._getAuthToken().token,
-      }).catch(e => {
-        // If tester submitting fail, other will help manual recovering
-        logger.error(e);
-      }),
+      this._submitVerifiedEmailAccount(account),
+      this._submitTester(account),
     ]);
 
     return registeredAccount;
   }
 
+  async _submitVerifiedEmailAccount(
+    account: AccountToCreate,
+  ): Promise<RegisteredAccount> {
+    try {
+      const registeredAccount = await createNewAccount(account, true);
+
+      return registeredAccount;
+    } catch (e) {
+      if (!(e instanceof DuplicatedAccountError)) throw e;
+
+      const foundAccount = await this.getAccountByEmail(account);
+
+      if (!foundAccount) {
+        logger.error(
+          `Logic error, account should exist account with email ${account.email} has detected as duplicated but could not be found`,
+        );
+        throw e;
+      }
+
+      const updatedAccount = await upgradeAccountToStaker(foundAccount);
+
+      return updatedAccount;
+    }
+  }
+
+  // this method should not crash the email submission flow to help on manual recovering
+  async _submitTester(account: AccountToCreate): Promise<void> {
+    try {
+      await createTester({
+        email: account.email,
+        authToken: this._getAuthToken().token,
+      });
+    } catch (e) {
+      logger.error(
+        `Could not submit account with email ${account.email} to connect api`,
+        e,
+      );
+    }
+  }
+
   async submitAccountForWaitingList(
     account: AccountToCreate,
   ): Promise<RegisteredAccount> {
-    const accountByEmail = await this.getAccountByEmail(account.email);
+    const accountByEmail = await this.getAccountByEmail(account);
 
     if (!!accountByEmail) return accountByEmail;
 
     return createNewAccount(account, false);
   }
 
-  async getAccountByEmail(
-    email: string,
-  ): Promise<RegisteredAccount | undefined> {
+  async getAccountByEmail({
+    email,
+  }: {
+    email: string;
+  }): Promise<RegisteredAccount | undefined> {
     const accounts = await fetchAccounts();
 
     return accounts.find(account => account.email === email);
