@@ -3,7 +3,7 @@ import { assert } from 'ts-essentials';
 import { constructHttpClient } from '../utils/http-client';
 import {
   AccountCreationError,
-  AccountUpdateError,
+  AccountDeleteError,
   DuplicatedAccountError,
 } from './errors';
 import { AccountToCreate, RegisteredAccount } from './types';
@@ -19,7 +19,7 @@ type MinStore = {
 
 const mailServiceClient = constructHttpClient({
   cacheOptions: {
-    maxAge: 60 * 1000,
+    maxAge: 2 * 1000,
     limit: 1,
     exclude: {
       query: false, // apikey is passed through query param
@@ -91,23 +91,18 @@ export async function createNewAccount(
   }
 }
 
-export async function upgradeAccountToStaker({
+export async function removeUserFromWaitlist({
   uuid,
-}: Pick<RegisteredAccount, 'uuid'>): Promise<RegisteredAccount> {
+}: Pick<RegisteredAccount, 'uuid'>): Promise<void> {
   assert(MAIL_SERVICE_BASE_URL, 'set MAIL_SERVICE_BASE_URL env var');
   assert(MAIL_SERVICE_API_KEY, 'set MAIL_SERVICE_API_KEY env var');
 
   const apiUrl = `${MAIL_SERVICE_BASE_URL}/betas/17942/testers/${uuid}?api_key=${MAIL_SERVICE_API_KEY}`;
 
   try {
-    const { data: updatedAccount } =
-      await mailServiceClient.put<RawRegisteredAccount>(apiUrl, {
-        tester: stakerMetadata,
-      });
-
-    return sanitizeAccount(updatedAccount);
+    await mailServiceClient.delete(apiUrl);
   } catch (e) {
-    throw new AccountUpdateError({ uuid });
+    throw new AccountDeleteError({ uuid });
   }
 }
 

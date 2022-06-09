@@ -15,9 +15,9 @@ export class AccountCreationError extends OnBoardingError {
   }
 }
 
-export class AccountUpdateError extends OnBoardingError {
+export class AccountDeleteError extends OnBoardingError {
   constructor({ uuid }: Pick<RegisteredAccount, 'uuid'>) {
-    super(`AccountUpdateError: uuid=${uuid} did not get updated.`);
+    super(`AccountDeleteError: uuid=${uuid} did not get deleted.`);
   }
 }
 

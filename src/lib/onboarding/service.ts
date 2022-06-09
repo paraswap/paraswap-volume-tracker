@@ -1,8 +1,8 @@
 import { StakingService } from '../staking/staking';
 import {
   createNewAccount,
+  removeUserFromWaitlist,
   fetchAccounts,
-  upgradeAccountToStaker,
 } from './mail-service-client';
 import { RegisteredAccount, AccountToCreate, AuthToken } from './types';
 import { fetchHistoricalPSPPrice } from './token-pricing';
@@ -119,18 +119,17 @@ export class OnBoardingService {
     } catch (e) {
       if (!(e instanceof DuplicatedAccountError)) throw e;
 
-      const foundAccount = await this.getAccountByEmail(account);
+      const waitlistAccount = await this.getAccountByEmail(account);
 
-      if (!foundAccount) {
+      if (!waitlistAccount) {
         logger.error(
           `Logic error, account should exist account with email ${account.email} has detected as duplicated but could not be found`,
         );
         throw e;
       }
 
-      const updatedAccount = await upgradeAccountToStaker(foundAccount);
-
-      return updatedAccount;
+      await removeUserFromWaitlist(waitlistAccount);
+      return await this._submitVerifiedEmailAccount(account);
     }
   }
 
