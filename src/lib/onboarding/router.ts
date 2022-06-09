@@ -128,7 +128,7 @@ router.get('/waiting-list/:uuid', async (req, res) => {
     const uuid = req.params.uuid;
 
     const registeredAccount =
-      await OnBoardingService.getInstance().getAccountByUUID(uuid);
+      await OnBoardingService.getInstance().getAccountByUUID({ uuid });
 
     return res.json(registeredAccount);
   } catch (e) {

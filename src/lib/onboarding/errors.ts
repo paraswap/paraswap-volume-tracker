@@ -1,4 +1,4 @@
-import { AccountToCreate } from './types';
+import { AccountToCreate, RegisteredAccount } from './types';
 
 // convient for inheritance cascading property of instanceof
 export class OnBoardingError extends Error {}
@@ -10,24 +10,20 @@ export class ValidationError extends OnBoardingError {
 }
 
 export class AccountCreationError extends OnBoardingError {
-  constructor(account: AccountToCreate) {
-    super(
-      `AccountCreationError: account=${JSON.stringify(
-        account,
-      )} did not get created.`,
-    );
+  constructor({ email }: AccountToCreate) {
+    super(`AccountCreationError: email=${email} did not get created.`);
   }
 }
 
 export class AccountUpdateError extends OnBoardingError {
-  constructor(uuid: string) {
+  constructor({ uuid }: Pick<RegisteredAccount, 'uuid'>) {
     super(`AccountUpdateError: uuid=${uuid} did not get updated.`);
   }
 }
 
 export class DuplicatedAccountError extends OnBoardingError {
-  constructor(account: AccountToCreate) {
-    super(`DuplicatedErrorAccount: account=${JSON.stringify(account)}`);
+  constructor({ email }: AccountToCreate) {
+    super(`DuplicatedErrorAccount: email=${email}`);
   }
 }
 
@@ -42,7 +38,7 @@ export class AccountNonValidError extends ValidationError {
 }
 
 export class AccountNotFoundError extends OnBoardingError {
-  constructor(uuid: string) {
+  constructor({ uuid }: Pick<RegisteredAccount, 'uuid'>) {
     super(`Account not found uuid=${uuid}`);
   }
 }

@@ -169,12 +169,14 @@ export class OnBoardingService {
     return accounts.find(account => account.email === email);
   }
 
-  async getAccountByUUID(uuid: string): Promise<RegisteredAccount> {
+  async getAccountByUUID({
+    uuid,
+  }: Pick<RegisteredAccount, 'uuid'>): Promise<RegisteredAccount> {
     const accounts = await fetchAccounts();
 
     const account = accounts.find(account => account.uuid === uuid);
 
-    if (!account) throw new AccountNotFoundError(uuid);
+    if (!account) throw new AccountNotFoundError({ uuid });
 
     return account;
   }

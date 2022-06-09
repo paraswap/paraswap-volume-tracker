@@ -93,9 +93,7 @@ export async function createNewAccount(
 
 export async function upgradeAccountToStaker({
   uuid,
-}: {
-  uuid: string;
-}): Promise<RegisteredAccount> {
+}: Pick<RegisteredAccount, 'uuid'>): Promise<RegisteredAccount> {
   assert(MAIL_SERVICE_BASE_URL, 'set MAIL_SERVICE_BASE_URL env var');
   assert(MAIL_SERVICE_API_KEY, 'set MAIL_SERVICE_API_KEY env var');
 
@@ -109,7 +107,7 @@ export async function upgradeAccountToStaker({
 
     return sanitizeAccount(updatedAccount);
   } catch (e) {
-    throw new AccountUpdateError(uuid);
+    throw new AccountUpdateError({ uuid });
   }
 }
 
