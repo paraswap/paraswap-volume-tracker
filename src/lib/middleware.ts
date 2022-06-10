@@ -40,12 +40,6 @@ export default class Middleware {
     app.use(parser.json({ strict: false }));
     app.use(parser.text());
 
-    /**
-     * Compress requests...
-     */
-    app.use(compression());
-    app.use(cookie());
-
     app.get('/robots.txt', function (req, res) {
       res.type('text/plain');
       res.send(`
