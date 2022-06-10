@@ -66,7 +66,7 @@ export class OnBoardingService {
     }, []);
 
     if (IS_TEST) {
-      return eligibleAddresses.concat(TestAddresses);
+      return eligibleAddresses.concat(TestAddresses.map(v => v.toLowerCase()));
     }
 
     return eligibleAddresses;
