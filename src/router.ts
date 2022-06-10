@@ -14,6 +14,7 @@ import { EpochInfo } from './lib/epoch-info';
 import { GRP_SUPPORTED_CHAINS } from './lib/gas-refund';
 import { StakingService } from './lib/staking/staking';
 import { assert } from 'ts-essentials';
+import OnboardingRouter from './lib/onboarding/router';
 
 const logger = global.LOGGER();
 
@@ -232,6 +233,8 @@ export default class Router {
         });
       }
     });
+
+    router.use('/onboarding', OnboardingRouter);
 
     return router;
   }

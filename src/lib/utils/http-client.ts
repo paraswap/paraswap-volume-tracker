@@ -5,6 +5,7 @@ import axiosRetry, {
   isNetworkOrIdempotentRequestError,
 } from 'axios-retry';
 import * as _rateLimit from 'axios-rate-limit';
+import { IAxiosCacheAdapterOptions, setupCache } from 'axios-cache-adapter';
 
 type rateLimitOptions = {
   maxRequests?: number;
@@ -41,6 +42,7 @@ type Options = {
   axiosConfig?: AxiosRequestConfig;
   retryOptions?: IAxiosRetryConfig;
   rateLimitOptions?: RateLimitOptions;
+  cacheOptions?: IAxiosCacheAdapterOptions;
 };
 
 export const constructHttpClient = (options?: Options) => {
@@ -49,10 +51,13 @@ export const constructHttpClient = (options?: Options) => {
     ...(options?.httpsAgent || {}),
   });
 
+  const cache = options?.cacheOptions ? setupCache(options.cacheOptions) : null;
+
   const _client = axios.create({
     httpsAgent,
     timeout: DEFAULT_HTTP_TIMEOUT,
     ...(options?.axiosConfig || {}),
+    ...(cache ? { adapter: cache.adapter } : {}),
     headers: {
       'User-Agent': 'node.js',
       ...(options?.axiosConfig?.headers || {}),
