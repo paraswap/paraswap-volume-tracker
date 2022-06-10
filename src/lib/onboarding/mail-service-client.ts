@@ -18,26 +18,17 @@ const logger = global.LOGGER('MailService');
 
 const { MAIL_SERVICE_BASE_URL, MAIL_SERVICE_API_KEY } = process.env;
 
-type MinStore = {
-  // store is typed as object in lib
-  clear: () => void;
-};
-
 const mailServiceClient = constructHttpClient({
   cacheOptions: {
-    maxAge: 2 * 1000,
-    limit: 1,
+    maxAge: 30 * 1000,
+    limit: 100,
     exclude: {
       query: false, // apikey is passed through query param
     },
-    invalidate: async (cfg, req) => {
-      const method = req?.method?.toLowerCase();
-      if (method !== 'get') {
-        // account creation would clear store and force refetching list of accounts
-        await (cfg?.store as MinStore)?.clear();
-      }
-    },
   },
+  rateLimitOptions: {
+    maxRPS: 5
+  }
 });
 
 type RawRegisteredAccount = RegisteredAccount & Record<string, unknown>;
