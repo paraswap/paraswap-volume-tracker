@@ -103,7 +103,7 @@ router.post('/waiting-list', async (req, res) => {
 
     account.profile = {
       // assign ip address to help on fraud protection
-      ip: Utils.getIP(),
+      ip: Utils.getIP(req),
     };
 
     const registeredAccount =
