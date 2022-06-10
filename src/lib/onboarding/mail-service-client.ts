@@ -27,8 +27,8 @@ const mailServiceClient = constructHttpClient({
     },
   },
   rateLimitOptions: {
-    maxRPS: 5
-  }
+    maxRPS: 5,
+  },
 });
 
 type RawRegisteredAccount = RegisteredAccount & Record<string, unknown>;
