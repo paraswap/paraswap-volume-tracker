@@ -70,6 +70,7 @@ export async function createNewAccount(
         }
       : {
           status: AccountStatus.APPLIED,
+          groups: 'Waitlist',
         }),
   };
   try {
