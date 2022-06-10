@@ -68,6 +68,7 @@ export class SPSPHelper {
   // function to fetch one staker data efficiently
   async getPSPStakedInSPSPs(
     account: string,
+    blockNumber?: number,
   ): Promise<PSPStakesForStaker<string>> {
     const multicallData = SPSPAddresses.map(address => ({
       target: address,
@@ -78,7 +79,9 @@ export class SPSPHelper {
     }));
 
     const rawResult: MulticallEncodedData =
-      await this.multicallContract.functions.aggregate(multicallData);
+      await this.multicallContract.functions.aggregate(multicallData, {
+        blockTag: blockNumber,
+      });
 
     const stakesByPool = Object.fromEntries(
       rawResult.returnData

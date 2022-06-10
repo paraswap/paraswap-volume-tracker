@@ -14,8 +14,6 @@ import {
   AccountByUUIDNotFoundError,
   DuplicatedAccountError,
 } from './errors';
-import * as pMemoize from 'p-memoize';
-import * as QuickLRU from 'quick-lru';
 import * as TestAddresses from './test-addresses.json';
 import { generateAuthToken, createTester } from './beta-tester';
 import { OnboardingAccount } from '../../models/OnboardingAccount';
@@ -23,15 +21,6 @@ import { OnboardingAccount } from '../../models/OnboardingAccount';
 const logger = global.LOGGER('OnBoardingService');
 
 const IS_TEST = !process.env.NODE_ENV?.includes('prod');
-
-const getAllPSPStakersAllProgramsCached = pMemoize(
-  StakingService.getInstance().getAllPSPStakersAllPrograms,
-  {
-    cache: new QuickLRU({
-      maxSize: 100,
-    }),
-  },
-);
 
 export const validateAccount = (payload: any): payload is AccountToCreate => {
   return (
@@ -56,29 +45,20 @@ export class OnBoardingService {
   }
 
   async getEligibleAddresses(_blockNumber?: number): Promise<string[]> {
-    const ethereumBlockSubGraph = BlockInfo.getInstance(CHAIN_ID_MAINNET);
     const ethereumProvider = Provider.getJsonRpcProvider(CHAIN_ID_MAINNET);
 
     const blockNumber =
       _blockNumber || (await ethereumProvider.getBlockNumber());
 
-    const timestamp =
-      (await ethereumBlockSubGraph.getBlockTimeStamp(blockNumber)) ||
-      (await ethereumProvider.getBlock(blockNumber)).timestamp;
-
-    const pspPriceUsd = await fetchHistoricalPSPPrice(timestamp);
-
-    const stakersWithStakes = await getAllPSPStakersAllProgramsCached(
-      _blockNumber,
-    );
+    const [pspPriceUsd, stakersWithStakes] = await Promise.all([
+      this._fetchPSPPriceForBlock(blockNumber),
+      StakingService.getInstance().getAllPSPStakersAllPrograms(blockNumber),
+    ]);
 
     const eligibleAddresses = Object.entries(
       stakersWithStakes.pspStakersWithStake,
     ).reduce<string[]>((acc, [address, { pspStaked }]) => {
-      const stakeInUsd =
-        Number(BigInt(pspStaked) / BigInt(10 ** 18)) * pspPriceUsd;
-
-      if (stakeInUsd >= ELIGIBILITY_USD_STAKE_THRESHOLD) {
+      if (this._hasEnoughStake(pspStaked, pspPriceUsd)) {
         acc.push(address.toLowerCase());
       }
 
@@ -92,15 +72,46 @@ export class OnBoardingService {
     return eligibleAddresses;
   }
 
+  async _fetchPSPPriceForBlock(blockNumber: number): Promise<number> {
+    const ethereumBlockSubGraph = BlockInfo.getInstance(CHAIN_ID_MAINNET);
+    const ethereumProvider = Provider.getJsonRpcProvider(CHAIN_ID_MAINNET);
+
+    const timestamp =
+      (await ethereumBlockSubGraph.getBlockTimeStamp(blockNumber)) || // can be laggy if checking data for last 5min
+      (await ethereumProvider.getBlock(blockNumber)).timestamp;
+
+    const pspPriceUsd = await fetchHistoricalPSPPrice(timestamp);
+
+    return pspPriceUsd;
+  }
+
   async isAddressEligible(
     address: string,
     blockNumber: number,
   ): Promise<boolean> {
-    const eligibleAddresses = await this.getEligibleAddresses(blockNumber);
+    if (
+      IS_TEST &&
+      TestAddresses.map(a => a.toLowerCase()).includes(address.toLowerCase())
+    ) {
+      return true;
+    }
 
-    const isEligible = eligibleAddresses.includes(address.toLowerCase());
+    const [{ pspStaked }, pspPriceUsd] = await Promise.all([
+      StakingService.getInstance().getPSPStakesAllPrograms(
+        address,
+        blockNumber,
+      ),
+      this._fetchPSPPriceForBlock(blockNumber),
+    ]);
 
-    return isEligible;
+    return this._hasEnoughStake(pspStaked, pspPriceUsd);
+  }
+
+  _hasEnoughStake(pspStaked: string, pspPriceUsd: number) {
+    const stakeInUsd =
+      Number(BigInt(pspStaked) / BigInt(10 ** 18)) * pspPriceUsd;
+
+    return stakeInUsd >= ELIGIBILITY_USD_STAKE_THRESHOLD;
   }
 
   async registerVerifiedAccount(

@@ -55,6 +55,7 @@ export class SafetyModuleHelper {
   // this computes the staked PSP in the safety module for one account. This method is safe regarding to slashing.
   getPSPStakedInSafetyModule = async (
     account: string,
+    blockNumber?: number,
   ): Promise<PSPStakesForStaker<string>> => {
     const [
       {
@@ -65,8 +66,10 @@ export class SafetyModuleHelper {
       },
       stkPSPBalanceBN,
     ] = await Promise.all([
-      this.fetchStkPSPBPtState(),
-      this.safetyModuleAsERC20.balanceOf(account) as Promise<EthersBN>,
+      this.fetchStkPSPBPtState(blockNumber),
+      this.safetyModuleAsERC20.balanceOf(account, {
+        blockTag: blockNumber,
+      }) as Promise<EthersBN>,
     ]);
 
     const stkPSPBalance = stkPSPBalanceBN.toBigInt();
