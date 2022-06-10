@@ -3,7 +3,7 @@ import { assert } from 'ts-essentials';
 import { OnBoardingService, validateAccount } from './service';
 import {
   AccountNonValidError,
-  AccountNotFoundError,
+  AccountByUUIDNotFoundError,
   AuthorizationError,
   OnBoardingError,
   ValidationError,
@@ -134,7 +134,7 @@ router.get('/waiting-list/:uuid', async (req, res) => {
   } catch (e) {
     logger.error(req.path, e);
 
-    res.status(e instanceof AccountNotFoundError ? 404 : 403).send({
+    res.status(e instanceof AccountByUUIDNotFoundError ? 404 : 403).send({
       error:
         e instanceof OnBoardingError
           ? e.message

@@ -4,9 +4,15 @@ import { constructHttpClient } from '../utils/http-client';
 import {
   AccountCreationError,
   AccountDeleteError,
+  AccountByUUIDNotFoundError,
   DuplicatedAccountError,
 } from './errors';
-import { AccountToCreate, RegisteredAccount, AccountStatus } from './types';
+import {
+  AccountToCreate,
+  RegisteredAccount,
+  AccountStatus,
+  AccountGroup,
+} from './types';
 
 const logger = global.LOGGER('MailService');
 
@@ -48,6 +54,7 @@ function sanitizeAccount(
     'share_link',
     'share_status_link',
     'waitlist_position',
+    'groups',
   ]);
 }
 
@@ -66,11 +73,11 @@ export async function createNewAccount(
     ...(isVerified
       ? {
           status: AccountStatus.IMPORTED,
-          groups: 'PSP stakers',
+          groups: AccountGroup.PSP_STAKERS,
         }
       : {
           status: AccountStatus.APPLIED,
-          groups: 'Waitlist',
+          groups: AccountGroup.WAITLIST,
         }),
   };
   try {
@@ -105,21 +112,21 @@ export async function removeUserFromWaitlist({
   }
 }
 
-// Note: service allows to search by uuid but not email. Prefer fetching list (cached) and do in memory lookup to fit all use cases.
-export async function fetchAccounts(): Promise<RegisteredAccount[]> {
+export async function fetchAccountByUUID({
+  uuid,
+}: Pick<RegisteredAccount, 'uuid'>): Promise<RegisteredAccount> {
   assert(MAIL_SERVICE_BASE_URL, 'set MAIL_SERVICE_BASE_URL env var');
   assert(MAIL_SERVICE_API_KEY, 'set MAIL_SERVICE_API_KEY env var');
 
-  const apiUrl = `${MAIL_SERVICE_BASE_URL}/betas/17942/testers?api_key=${MAIL_SERVICE_API_KEY}`;
+  const apiUrl = `${MAIL_SERVICE_BASE_URL}/betas/17942/testers/${uuid}?api_key=${MAIL_SERVICE_API_KEY}`;
 
   try {
-    const { data: registeredAccounts } = await mailServiceClient.get<
-      RawRegisteredAccount[]
-    >(apiUrl);
+    const { data: registeredAccount } =
+      await mailServiceClient.get<RawRegisteredAccount>(apiUrl);
 
-    return registeredAccounts.map(sanitizeAccount);
+    return sanitizeAccount(registeredAccount);
   } catch (e) {
     logger.error(e);
-    throw e;
+    throw new AccountByUUIDNotFoundError({ uuid });
   }
 }

@@ -9,3 +9,5 @@ export const DataType_USD_VALUE = DataType.DECIMAL(
 );
 export const DataType_HALF_STRING = DataType.STRING(127);
 export const DataType_KECCAK256_HASHED_VALUE = DataType.STRING(66);
+
+export const DataType_EMAIL_ADDRESS = DataType.STRING(320); // RFC 3696

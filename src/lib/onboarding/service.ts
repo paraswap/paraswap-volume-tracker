@@ -2,18 +2,23 @@ import { StakingService } from '../staking/staking';
 import {
   createNewAccount,
   removeUserFromWaitlist,
-  fetchAccounts,
+  fetchAccountByUUID,
 } from './mail-service-client';
 import { RegisteredAccount, AccountToCreate, AuthToken } from './types';
 import { fetchHistoricalPSPPrice } from './token-pricing';
 import { BlockInfo } from '../block-info';
 import { CHAIN_ID_MAINNET } from '../constants';
 import { Provider } from '../provider';
-import { AccountNotFoundError, DuplicatedAccountError } from './errors';
+import {
+  AccountByEmailNotFoundError,
+  AccountByUUIDNotFoundError,
+  DuplicatedAccountError,
+} from './errors';
 import * as pMemoize from 'p-memoize';
 import * as QuickLRU from 'quick-lru';
 import * as TestAddresses from './test-addresses.json';
 import { generateAuthToken, createTester } from './beta-tester';
+import { OnboardingAccount } from '../../models/OnboardingAccount';
 
 const logger = global.LOGGER('OnBoardingService');
 
@@ -113,7 +118,7 @@ export class OnBoardingService {
     account: AccountToCreate,
   ): Promise<RegisteredAccount> {
     try {
-      const registeredAccount = await createNewAccount(account, true);
+      const registeredAccount = await this._createNewAccount(account, true);
 
       return registeredAccount;
     } catch (e) {
@@ -123,12 +128,12 @@ export class OnBoardingService {
 
       if (!waitlistAccount) {
         logger.error(
-          `Logic error, account should exist account with email ${account.email} has detected as duplicated but could not be found`,
+          `Logic error: account should always exist account with email ${account.email} has detected as duplicated but could not be found`,
         );
         throw e;
       }
 
-      await removeUserFromWaitlist(waitlistAccount);
+      await this._removeUserFromWaitlist(waitlistAccount);
       return await this._submitVerifiedEmailAccount(account);
     }
   }
@@ -151,33 +156,68 @@ export class OnBoardingService {
   async submitAccountForWaitingList(
     account: AccountToCreate,
   ): Promise<RegisteredAccount> {
-    const accountByEmail = await this.getAccountByEmail(account);
+    try {
+      return await this._createNewAccount(account, false);
+    } catch (e) {
+      if (e instanceof DuplicatedAccountError) {
+        const accountByEmail = await this.getAccountByEmail(account);
 
-    if (!!accountByEmail) return accountByEmail;
+        if (!!accountByEmail) return accountByEmail;
+      }
 
-    return createNewAccount(account, false);
+      throw e;
+    }
   }
 
+  async _createNewAccount(account: AccountToCreate, isVerified: boolean) {
+    const registeredAccount = await createNewAccount(account, isVerified);
+    await OnboardingAccount.create(registeredAccount);
+
+    return registeredAccount;
+  }
+
+  async _removeUserFromWaitlist(waitlistAccount: RegisteredAccount) {
+    await removeUserFromWaitlist(waitlistAccount);
+    await OnboardingAccount.destroy({
+      where: {
+        uuid: waitlistAccount.uuid,
+      },
+    });
+  }
+
+  // Note: service allows to search by uuid but not email.
+  // Initially went for fetching all testers but too brute force + unrealiable (slow to sync)
+  // Prefer falling back to database to lookup account by email.
   async getAccountByEmail({
     email,
-  }: {
-    email: string;
-  }): Promise<RegisteredAccount | undefined> {
-    const accounts = await fetchAccounts();
+  }: Pick<RegisteredAccount, 'email'>): Promise<RegisteredAccount | undefined> {
+    const accountFromDb = await OnboardingAccount.findOne({
+      where: {
+        email,
+      },
+    });
 
-    return accounts.find(account => account.email === email);
+    if (!accountFromDb) throw new AccountByEmailNotFoundError({ email });
+
+    return accountFromDb;
   }
 
   async getAccountByUUID({
     uuid,
   }: Pick<RegisteredAccount, 'uuid'>): Promise<RegisteredAccount> {
-    const accounts = await fetchAccounts();
+    try {
+      return await fetchAccountByUUID({ uuid });
+    } catch (e) {
+      const accountFromDb = await OnboardingAccount.findOne({
+        where: {
+          uuid,
+        },
+      });
 
-    const account = accounts.find(account => account.uuid === uuid);
+      if (!accountFromDb) throw new AccountByUUIDNotFoundError({ uuid });
 
-    if (!account) throw new AccountNotFoundError({ uuid });
-
-    return account;
+      return accountFromDb;
+    }
   }
 
   _getAuthToken(): AuthToken {
