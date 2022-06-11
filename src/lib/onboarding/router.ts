@@ -81,6 +81,8 @@ router.post('/submit-verified', async (req, res) => {
 
     if (!validateAccount(account)) throw new AccountNonValidError(account);
 
+    account.email = account.email.toLowerCase();
+
     await OnBoardingService.getInstance().registerVerifiedAccount(account);
 
     return res.status(201).send('Ok');
@@ -101,6 +103,7 @@ router.post('/waiting-list', async (req, res) => {
 
     if (!validateAccount(account)) throw new AccountNonValidError(account);
 
+    account.email = account.email.toLowerCase();
     account.profile = {
       // assign ip address to help on fraud protection
       ip: Utils.getIP(req),
