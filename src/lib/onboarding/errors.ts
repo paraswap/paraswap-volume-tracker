@@ -1,7 +1,15 @@
 import { AccountToCreate, RegisteredAccount } from './types';
 
 // convient for inheritance cascading property of instanceof
-export class OnBoardingError extends Error {}
+export class OnBoardingError extends Error {
+  constructor(message: string) {
+    super(message);
+
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, OnBoardingError);
+    }
+  }
+}
 
 export class ValidationError extends OnBoardingError {
   constructor(message: string) {
