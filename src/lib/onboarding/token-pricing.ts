@@ -12,6 +12,9 @@ const tokenPricingServiceClient = constructHttpClient({
       query: false, // to force cache segmentation by interval (from, to)
     },
   },
+  rateLimitOptions: {
+    maxRPS: 6, // 8req/sec according to https://www.coingecko.com/en/api_terms
+  },
 });
 
 export async function fetchHistoricalPSPPrice(
