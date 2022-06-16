@@ -6,9 +6,9 @@ export const coingeckoClient = constructHttpClient({
     timeout: 5_000,
   },
   rateLimitOptions: {
-    maxRPS: undefined,
-    maxRequests: 1,
-    perMilliseconds: 10_000,
+    maxRPS: undefined, // to override default maxRPS
+    maxRequests: 40, // theorically max is 50 req/min according to https://www.coingecko.com/en/api/pricing but gets 429s at exact upper bound
+    perMilliseconds: 60_000,
   },
 });
 

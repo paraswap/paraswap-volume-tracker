@@ -13,7 +13,7 @@ import {
 } from './constants';
 import { Provider } from './provider';
 import * as ERC20ABI from './abi/erc20.abi.json';
-import { Utils } from './utils';
+import { coingeckoClient } from './utils/data-providers-clients';
 
 const logger = global.LOGGER();
 
@@ -71,11 +71,8 @@ export class PriceApi {
       // );
 
       const platform = platforms[this.network];
-      const {
-        data,
-      } = await Utils._get(
-        `https://api.coingecko.com/api/v3/coins/list?include_platform=true&asset_platform_id=${platform}`,
-        5000,
+      const { data } = await coingeckoClient.get(
+        `/coins/list?include_platform=true&asset_platform_id=${platform}`,
       );
 
       data.map((d: CoinGekoTokenInfo) => {
@@ -132,9 +129,8 @@ export class PriceApi {
       const tokeInfo = this.tokenList[_tokenAddress];
       const {
         data: { prices },
-      } = await Utils._get(
-        `https://api.coingecko.com/api/v3/coins/${tokeInfo.coinGekoId}/market_chart/range?vs_currency=usd&from=${fromTime}&to=${currentTime}`,
-        5000,
+      } = await coingeckoClient.get(
+        `/coins/${tokeInfo.coinGekoId}/market_chart/range?vs_currency=usd&from=${fromTime}&to=${currentTime}`,
       );
       if (!prices) throw new Error('Invalid coingeko price returned');
 
