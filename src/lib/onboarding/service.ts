@@ -8,6 +8,7 @@ import {
   RegisteredAccount,
   AccountToCreate,
   AuthToken,
+  AccountWithSigToSubmit,
 } from './types';
 import { fetchHistoricalPSPPrice } from './token-pricing';
 import { BlockInfo } from '../block-info';
@@ -16,13 +17,20 @@ import { Provider } from '../provider';
 import {
   AccountByEmailNotFoundError,
   AccountByUUIDNotFoundError,
+  AccountNotEligible,
   DuplicatedAccountError,
+  DuplicatedAccountWithSigError,
+  InvalidSigErrror,
 } from './errors';
 import * as TestAddresses from './test-addresses.json';
 import { generateAuthToken, createTester } from './beta-tester';
 import { OnboardingAccount } from '../../models/OnboardingAccount';
+import { OnboardingSig } from '../../models/OnboardingSig';
+import { isSigValid } from './sig';
 import Database from '../../database';
 import { Transaction as DBTransaction } from 'sequelize/types';
+import { isValidEmailAddr } from '../utils/helpers';
+import { isAddress } from '@ethersproject/address';
 
 const logger = global.LOGGER('OnBoardingService');
 
@@ -32,7 +40,22 @@ export const validateAccount = (payload: any): payload is AccountToCreate => {
   return (
     !!payload &&
     typeof payload === 'object' &&
-    typeof payload['email'] === 'string'
+    isValidEmailAddr(payload['email'])
+  );
+};
+
+/// FALLBACK ONLY
+export const validateAccountWithSig = (
+  payload: any,
+): payload is AccountWithSigToSubmit => {
+  return (
+    !!payload &&
+    typeof payload === 'object' &&
+    isValidEmailAddr(payload['email']) &&
+    isAddress(payload['address']) &&
+    typeof payload['sig'] === 'string' &&
+    payload['sig'].startsWith('0x') &&
+    typeof payload['version'] === 'number'
   );
 };
 
@@ -79,13 +102,14 @@ export class OnBoardingService {
     return eligibleAddresses;
   }
 
-  async _fetchPSPPriceForBlock(blockNumber: number): Promise<number> {
+  async _fetchPSPPriceForBlock(blockNumber?: number): Promise<number> {
     const ethereumBlockSubGraph = BlockInfo.getInstance(this.chainId);
     const ethereumProvider = Provider.getJsonRpcProvider(this.chainId);
 
-    const timestamp =
-      (await ethereumBlockSubGraph.getBlockTimeStamp(blockNumber)) || // can be laggy if checking data for last 5min
-      (await ethereumProvider.getBlock(blockNumber)).timestamp;
+    const timestamp = blockNumber
+      ? (await ethereumBlockSubGraph.getBlockTimeStamp(blockNumber)) || // can be laggy if checking data for last 5min
+        (await ethereumProvider.getBlock(blockNumber)).timestamp
+      : Math.floor(Date.now() / 1000);
 
     const pspPriceUsd = await fetchHistoricalPSPPrice(timestamp);
 
@@ -94,7 +118,7 @@ export class OnBoardingService {
 
   async isAddressEligible(
     address: string,
-    blockNumber: number,
+    blockNumber?: number,
   ): Promise<boolean> {
     if (IS_TEST && TestAddresses.map(a => a.toLowerCase()).includes(address)) {
       return true;
@@ -270,5 +294,38 @@ export class OnBoardingService {
     this.authToken = authToken;
 
     return authToken;
+  }
+
+  /// FALLBACK ONLY
+  async submitAccountWithSig(accountWithSig: AccountWithSigToSubmit) {
+    return Database.sequelize.transaction(async transaction => {
+      const { address, email } = accountWithSig;
+
+      const isEligible = await this.isAddressEligible(address);
+
+      if (!isEligible) throw new AccountNotEligible();
+
+      if (
+        (await OnboardingSig.count({
+          where: { address },
+          transaction,
+        })) > 0
+      )
+        throw new DuplicatedAccountWithSigError(accountWithSig);
+
+      const isValid = await isSigValid({
+        ...accountWithSig,
+        chainId: this.chainId,
+      });
+
+      if (!isValid) throw new InvalidSigErrror(accountWithSig);
+
+      // note: email is not persisted here
+      await OnboardingSig.create(accountWithSig, {
+        transaction,
+      });
+
+      return this._registerVerifiedAccount({ email }, transaction);
+    });
   }
 }

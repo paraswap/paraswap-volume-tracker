@@ -1,6 +1,6 @@
 export type AccountToCreate = {
   email: string;
-  referrer_id: string;
+  referrer_id?: string;
   profile?: {
     ip?: string;
   };
@@ -29,3 +29,18 @@ export type RegisteredAccount = {
 };
 
 export type AuthToken = { token: string; exp: number };
+
+/// FALLBACK ONLY
+export type RegisteredAddressWithSig = {
+  address: string;
+  version: number;
+  sig: string;
+};
+
+export type RegisteredAddressWithSigChain = RegisteredAddressWithSig & {
+  chainId: number;
+};
+
+export type AccountWithSigToSubmit = RegisteredAddressWithSig & {
+  email: string;
+};

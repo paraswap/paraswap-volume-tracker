@@ -155,3 +155,9 @@ export const BNReplacer = (key: string, value: any): any => {
 export const xor = (a: any, b: any): boolean => !!(Number(!!a) ^ Number(!!b));
 
 export const xnor = (a: any, b: any): boolean => !xor(a, b);
+
+const SimpleEmailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const isValidEmailAddr = (unknwonStr: unknown): boolean => {
+  if (typeof unknwonStr !== 'string') return false;
+  return SimpleEmailRegex.test(unknwonStr);
+};

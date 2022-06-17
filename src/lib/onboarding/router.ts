@@ -1,14 +1,20 @@
 import * as express from 'express';
 import { assert } from 'ts-essentials';
-import { OnBoardingService, validateAccount } from './service';
+import {
+  OnBoardingService,
+  validateAccount,
+  validateAccountWithSig,
+} from './service';
 import {
   AccountNonValidError,
   AccountByUUIDNotFoundError,
   AuthorizationError,
   OnBoardingError,
   ValidationError,
+  AccountWithSigNonValidError,
 } from './errors';
 import { Utils } from '../utils';
+import { isAddress } from '@ethersproject/address';
 
 const logger = global.LOGGER('OnboardingRouter');
 
@@ -45,7 +51,7 @@ router.get('/check-eligibility/:address/:blockNumber', async (req, res) => {
     const address = req.params.address.toLowerCase();
     const blockNumber = +req.params.blockNumber;
 
-    if (address.length !== 42 || !address.startsWith('0x'))
+    if (!isAddress(address))
       throw new ValidationError('pass an address as first param');
     if (isNaN(blockNumber))
       throw new ValidationError('pass a block number as second param');
@@ -93,6 +99,31 @@ router.post('/submit-verified', async (req, res) => {
         e instanceof OnBoardingError
           ? e.message
           : `Unknown error on submitting verified`,
+    });
+  }
+});
+
+/// FALLBACK ONLY
+router.post('/submit-with-sig', async (req, res) => {
+  try {
+    const accountWithSig = req.body;
+
+    if (!validateAccountWithSig(accountWithSig))
+      throw new AccountWithSigNonValidError(accountWithSig);
+
+    accountWithSig.email = accountWithSig.email.toLowerCase();
+    accountWithSig.address = accountWithSig.address.toLowerCase();
+
+    await OnBoardingService.getInstance().submitAccountWithSig(accountWithSig);
+
+    return res.status(201).send('Ok');
+  } catch (e) {
+    logger.error(req.path, e);
+    res.status(403).send({
+      error:
+        e instanceof OnBoardingError
+          ? e.message
+          : `Unknown error on submitting with sig`,
     });
   }
 });
