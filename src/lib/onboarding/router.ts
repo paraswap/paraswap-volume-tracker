@@ -42,7 +42,7 @@ router.get('/eligible-addresses', async (req, res) => {
 
 router.get('/check-eligibility/:address/:blockNumber', async (req, res) => {
   try {
-    const address = req.params.address;
+    const address = req.params.address.toLowerCase();
     const blockNumber = +req.params.blockNumber;
 
     if (address.length !== 42 || !address.startsWith('0x'))

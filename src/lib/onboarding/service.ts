@@ -91,7 +91,7 @@ export class OnBoardingService {
   ): Promise<boolean> {
     if (
       IS_TEST &&
-      TestAddresses.map(a => a.toLowerCase()).includes(address.toLowerCase())
+      TestAddresses.map(a => a.toLowerCase()).includes(address)
     ) {
       return true;
     }
