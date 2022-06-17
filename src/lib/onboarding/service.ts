@@ -4,7 +4,11 @@ import {
   removeUserFromWaitlist,
   fetchAccountByUUID,
 } from './mail-service-client';
-import { RegisteredAccount, AccountToCreate, AuthToken } from './types';
+import {
+  RegisteredAccount,
+  AccountToCreate,
+  AuthToken,
+} from './types';
 import { fetchHistoricalPSPPrice } from './token-pricing';
 import { BlockInfo } from '../block-info';
 import { CHAIN_ID_MAINNET } from '../constants';
@@ -17,6 +21,8 @@ import {
 import * as TestAddresses from './test-addresses.json';
 import { generateAuthToken, createTester } from './beta-tester';
 import { OnboardingAccount } from '../../models/OnboardingAccount';
+import Database from '../../database';
+import { Transaction as DBTransaction } from 'sequelize/types';
 
 const logger = global.LOGGER('OnBoardingService');
 
@@ -36,6 +42,7 @@ export class OnBoardingService {
   static instance: OnBoardingService;
 
   authToken?: AuthToken;
+  chainId = CHAIN_ID_MAINNET;
 
   static getInstance() {
     if (!this.instance) {
@@ -45,7 +52,7 @@ export class OnBoardingService {
   }
 
   async getEligibleAddresses(_blockNumber?: number): Promise<string[]> {
-    const ethereumProvider = Provider.getJsonRpcProvider(CHAIN_ID_MAINNET);
+    const ethereumProvider = Provider.getJsonRpcProvider(this.chainId);
 
     const blockNumber =
       _blockNumber || (await ethereumProvider.getBlockNumber());
@@ -73,8 +80,8 @@ export class OnBoardingService {
   }
 
   async _fetchPSPPriceForBlock(blockNumber: number): Promise<number> {
-    const ethereumBlockSubGraph = BlockInfo.getInstance(CHAIN_ID_MAINNET);
-    const ethereumProvider = Provider.getJsonRpcProvider(CHAIN_ID_MAINNET);
+    const ethereumBlockSubGraph = BlockInfo.getInstance(this.chainId);
+    const ethereumProvider = Provider.getJsonRpcProvider(this.chainId);
 
     const timestamp =
       (await ethereumBlockSubGraph.getBlockTimeStamp(blockNumber)) || // can be laggy if checking data for last 5min
@@ -111,22 +118,36 @@ export class OnBoardingService {
     return stakeInUsd >= ELIGIBILITY_USD_STAKE_THRESHOLD;
   }
 
-  async registerVerifiedAccount(
+  async _registerVerifiedAccount(
     account: AccountToCreate,
+    dbTransaction: DBTransaction,
   ): Promise<RegisteredAccount> {
     const [registeredAccount] = await Promise.all([
-      this._submitVerifiedEmailAccount(account),
+      this._submitVerifiedEmailAccount(account, dbTransaction),
       this._submitTester(account),
     ]);
 
     return registeredAccount;
   }
 
-  async _submitVerifiedEmailAccount(
+  async registerVerifiedAccount(
     account: AccountToCreate,
   ): Promise<RegisteredAccount> {
+    return Database.sequelize.transaction(transaction => {
+      return this._registerVerifiedAccount(account, transaction);
+    });
+  }
+
+  async _submitVerifiedEmailAccount(
+    account: AccountToCreate,
+    dbTransaction: DBTransaction,
+  ): Promise<RegisteredAccount> {
     try {
-      const registeredAccount = await this._createNewAccount(account, true);
+      const registeredAccount = await this._createNewAccount(
+        account,
+        true,
+        dbTransaction,
+      );
 
       return registeredAccount;
     } catch (e) {
@@ -141,8 +162,8 @@ export class OnBoardingService {
         throw e;
       }
 
-      await this._removeUserFromWaitlist(waitlistAccount);
-      return await this._submitVerifiedEmailAccount(account);
+      await this._removeUserFromWaitlist(waitlistAccount, dbTransaction);
+      return await this._submitVerifiedEmailAccount(account, dbTransaction);
     }
   }
 
@@ -164,32 +185,44 @@ export class OnBoardingService {
   async submitAccountForWaitingList(
     account: AccountToCreate,
   ): Promise<RegisteredAccount> {
-    try {
-      return await this._createNewAccount(account, false);
-    } catch (e) {
-      if (e instanceof DuplicatedAccountError) {
-        const accountByEmail = await this.getAccountByEmail(account);
+    return await Database.sequelize.transaction(async transaction => {
+      try {
+        return await this._createNewAccount(account, false, transaction);
+      } catch (e) {
+        if (e instanceof DuplicatedAccountError) {
+          const accountByEmail = await this.getAccountByEmail(account);
 
-        if (!!accountByEmail) return accountByEmail;
+          if (!!accountByEmail) return accountByEmail;
+        }
+
+        throw e;
       }
-
-      throw e;
-    }
+    });
   }
 
-  async _createNewAccount(account: AccountToCreate, isVerified: boolean) {
+  async _createNewAccount(
+    account: AccountToCreate,
+    isVerified: boolean,
+    dbTransaction: DBTransaction,
+  ) {
     const registeredAccount = await createNewAccount(account, isVerified);
-    await OnboardingAccount.create(registeredAccount);
+    await OnboardingAccount.create(registeredAccount, {
+      transaction: dbTransaction,
+    });
 
     return registeredAccount;
   }
 
-  async _removeUserFromWaitlist(waitlistAccount: RegisteredAccount) {
+  async _removeUserFromWaitlist(
+    waitlistAccount: RegisteredAccount,
+    dbTransaction: DBTransaction,
+  ) {
     await removeUserFromWaitlist(waitlistAccount);
     await OnboardingAccount.destroy({
       where: {
         uuid: waitlistAccount.uuid,
       },
+      transaction: dbTransaction,
     });
   }
 
