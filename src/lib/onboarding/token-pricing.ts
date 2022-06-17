@@ -1,15 +1,12 @@
 import { assert } from 'ts-essentials';
 import { coingeckoClient } from '../utils/data-providers-clients';
-import { startOfHourSec } from '../utils/helpers';
 
 const PRICE_SEARCH_PAST_WINDOW_LOOKUP = 4 * 60 * 60;
 
 export async function fetchHistoricalPSPPrice(
   timestamp: number,
 ): Promise<number> {
-  const fromUnixDate = startOfHourSec(
-    timestamp - PRICE_SEARCH_PAST_WINDOW_LOOKUP,
-  );
+  const fromUnixDate = timestamp - PRICE_SEARCH_PAST_WINDOW_LOOKUP;
   const toUnixDate = timestamp;
 
   const apiEndpoint = `/coins/paraswap/market_chart/range?id=paraswap&vs_currency=usd&from=${fromUnixDate}&to=${toUnixDate}`;
