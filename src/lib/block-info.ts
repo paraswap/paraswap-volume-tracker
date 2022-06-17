@@ -95,9 +95,10 @@ export class BlockInfo {
     try {
       const {
         data: { data },
-      } = await thegraphClient.post(  // TODO: replace everywhere else with thegraphClient. Going for minimal changes at time being
+      } = await thegraphClient.post(
+        // TODO: replace everywhere else with thegraphClient. Going for minimal changes at time being
         this.subgraphURL,
-        { query, variables }
+        { query, variables },
       );
       this.blockInfo[parseInt(data.blocks[0].number)] = parseInt(
         data.blocks[0].timestamp,

@@ -89,10 +89,7 @@ export class OnBoardingService {
     address: string,
     blockNumber: number,
   ): Promise<boolean> {
-    if (
-      IS_TEST &&
-      TestAddresses.map(a => a.toLowerCase()).includes(address)
-    ) {
+    if (IS_TEST && TestAddresses.map(a => a.toLowerCase()).includes(address)) {
       return true;
     }
 
