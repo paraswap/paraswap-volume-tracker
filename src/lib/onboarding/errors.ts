@@ -67,6 +67,12 @@ export class AuthorizationError extends ValidationError {
   }
 }
 
+export class DuplicatedStakerEmail extends OnBoardingError {
+  constructor({ email }: { email: string }) {
+    super(`${email} has already registered for beta`);
+  }
+}
+
 /// FALLBACK ONLY
 export class AccountWithSigNonValidError extends ValidationError {
   constructor(payload: any) {

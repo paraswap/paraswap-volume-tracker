@@ -9,6 +9,7 @@ import {
   AccountToCreate,
   AuthToken,
   AccountWithSigToSubmit,
+  AccountGroup,
 } from './types';
 import { fetchHistoricalPSPPrice } from './token-pricing';
 import { BlockInfo } from '../block-info';
@@ -20,6 +21,7 @@ import {
   AccountNotEligible,
   DuplicatedAccountError,
   DuplicatedAccountWithSigError,
+  DuplicatedStakerEmail,
   InvalidSigErrror,
 } from './errors';
 import * as TestAddresses from './test-addresses.json';
@@ -177,13 +179,20 @@ export class OnBoardingService {
     } catch (e) {
       if (!(e instanceof DuplicatedAccountError)) throw e;
 
-      const waitlistAccount = await this.getAccountByEmail(account);
+      const waitlistAccount = await this.getAccountByEmail(
+        account,
+        dbTransaction,
+      );
 
       if (!waitlistAccount) {
         logger.error(
           `Logic error: account should always exist account with email ${account.email} has detected as duplicated but could not be found`,
         );
         throw e;
+      }
+
+      if (waitlistAccount.groups === AccountGroup.PSP_STAKERS) {
+        throw new DuplicatedStakerEmail(account);
       }
 
       await this._removeUserFromWaitlist(waitlistAccount, dbTransaction);
@@ -214,7 +223,10 @@ export class OnBoardingService {
         return await this._createNewAccount(account, false, transaction);
       } catch (e) {
         if (e instanceof DuplicatedAccountError) {
-          const accountByEmail = await this.getAccountByEmail(account);
+          const accountByEmail = await this.getAccountByEmail(
+            account,
+            transaction,
+          );
 
           if (!!accountByEmail) return accountByEmail;
         }
@@ -253,13 +265,15 @@ export class OnBoardingService {
   // Note: service allows to search by uuid but not email.
   // Initially went for fetching all testers but too brute force + unrealiable (slow to sync)
   // Prefer falling back to database to lookup account by email.
-  async getAccountByEmail({
-    email,
-  }: Pick<RegisteredAccount, 'email'>): Promise<RegisteredAccount | undefined> {
+  async getAccountByEmail(
+    { email }: Pick<RegisteredAccount, 'email'>,
+    dbTransaction: DBTransaction,
+  ): Promise<RegisteredAccount | undefined> {
     const accountFromDb = await OnboardingAccount.findOne({
       where: {
         email,
       },
+      transaction: dbTransaction,
     });
 
     if (!accountFromDb) throw new AccountByEmailNotFoundError({ email });
