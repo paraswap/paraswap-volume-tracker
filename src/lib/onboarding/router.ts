@@ -3,7 +3,7 @@ import { assert } from 'ts-essentials';
 import { OnBoardingService, validateAccount } from './service';
 import {
   AccountNonValidError,
-  AccountNotFoundError,
+  AccountByUUIDNotFoundError,
   AuthorizationError,
   OnBoardingError,
   ValidationError,
@@ -42,7 +42,7 @@ router.get('/eligible-addresses', async (req, res) => {
 
 router.get('/check-eligibility/:address/:blockNumber', async (req, res) => {
   try {
-    const address = req.params.address;
+    const address = req.params.address.toLowerCase();
     const blockNumber = +req.params.blockNumber;
 
     if (address.length !== 42 || !address.startsWith('0x'))
@@ -81,6 +81,8 @@ router.post('/submit-verified', async (req, res) => {
 
     if (!validateAccount(account)) throw new AccountNonValidError(account);
 
+    account.email = account.email.toLowerCase();
+
     await OnBoardingService.getInstance().registerVerifiedAccount(account);
 
     return res.status(201).send('Ok');
@@ -101,9 +103,10 @@ router.post('/waiting-list', async (req, res) => {
 
     if (!validateAccount(account)) throw new AccountNonValidError(account);
 
+    account.email = account.email.toLowerCase();
     account.profile = {
       // assign ip address to help on fraud protection
-      ip: Utils.getIP(),
+      ip: Utils.getIP(req),
     };
 
     const registeredAccount =
@@ -134,7 +137,7 @@ router.get('/waiting-list/:uuid', async (req, res) => {
   } catch (e) {
     logger.error(req.path, e);
 
-    res.status(e instanceof AccountNotFoundError ? 404 : 403).send({
+    res.status(e instanceof AccountByUUIDNotFoundError ? 404 : 403).send({
       error:
         e instanceof OnBoardingError
           ? e.message

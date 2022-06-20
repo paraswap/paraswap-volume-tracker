@@ -2,31 +2,31 @@ import { StakingService } from '../staking/staking';
 import {
   createNewAccount,
   removeUserFromWaitlist,
-  fetchAccounts,
+  fetchAccountByUUID,
 } from './mail-service-client';
-import { RegisteredAccount, AccountToCreate, AuthToken } from './types';
+import {
+  RegisteredAccount,
+  AccountToCreate,
+  AuthToken,
+} from './types';
 import { fetchHistoricalPSPPrice } from './token-pricing';
 import { BlockInfo } from '../block-info';
 import { CHAIN_ID_MAINNET } from '../constants';
 import { Provider } from '../provider';
-import { AccountNotFoundError, DuplicatedAccountError } from './errors';
-import * as pMemoize from 'p-memoize';
-import * as QuickLRU from 'quick-lru';
+import {
+  AccountByEmailNotFoundError,
+  AccountByUUIDNotFoundError,
+  DuplicatedAccountError,
+} from './errors';
 import * as TestAddresses from './test-addresses.json';
 import { generateAuthToken, createTester } from './beta-tester';
+import { OnboardingAccount } from '../../models/OnboardingAccount';
+import Database from '../../database';
+import { Transaction as DBTransaction } from 'sequelize/types';
 
 const logger = global.LOGGER('OnBoardingService');
 
 const IS_TEST = !process.env.NODE_ENV?.includes('prod');
-
-const getAllPSPStakersAllProgramsCached = pMemoize(
-  StakingService.getInstance().getAllPSPStakersAllPrograms,
-  {
-    cache: new QuickLRU({
-      maxSize: 100,
-    }),
-  },
-);
 
 export const validateAccount = (payload: any): payload is AccountToCreate => {
   return (
@@ -42,6 +42,7 @@ export class OnBoardingService {
   static instance: OnBoardingService;
 
   authToken?: AuthToken;
+  chainId = CHAIN_ID_MAINNET;
 
   static getInstance() {
     if (!this.instance) {
@@ -51,29 +52,20 @@ export class OnBoardingService {
   }
 
   async getEligibleAddresses(_blockNumber?: number): Promise<string[]> {
-    const ethereumBlockSubGraph = BlockInfo.getInstance(CHAIN_ID_MAINNET);
-    const ethereumProvider = Provider.getJsonRpcProvider(CHAIN_ID_MAINNET);
+    const ethereumProvider = Provider.getJsonRpcProvider(this.chainId);
 
     const blockNumber =
       _blockNumber || (await ethereumProvider.getBlockNumber());
 
-    const timestamp =
-      (await ethereumBlockSubGraph.getBlockTimeStamp(blockNumber)) ||
-      (await ethereumProvider.getBlock(blockNumber)).timestamp;
-
-    const pspPriceUsd = await fetchHistoricalPSPPrice(timestamp);
-
-    const stakersWithStakes = await getAllPSPStakersAllProgramsCached(
-      _blockNumber,
-    );
+    const [pspPriceUsd, stakersWithStakes] = await Promise.all([
+      this._fetchPSPPriceForBlock(blockNumber),
+      StakingService.getInstance().getAllPSPStakersAllPrograms(blockNumber),
+    ]);
 
     const eligibleAddresses = Object.entries(
       stakersWithStakes.pspStakersWithStake,
     ).reduce<string[]>((acc, [address, { pspStaked }]) => {
-      const stakeInUsd =
-        Number(BigInt(pspStaked) / BigInt(10 ** 18)) * pspPriceUsd;
-
-      if (stakeInUsd >= ELIGIBILITY_USD_STAKE_THRESHOLD) {
+      if (this._hasEnoughStake(pspStaked, pspPriceUsd)) {
         acc.push(address.toLowerCase());
       }
 
@@ -81,39 +73,81 @@ export class OnBoardingService {
     }, []);
 
     if (IS_TEST) {
-      return eligibleAddresses.concat(TestAddresses);
+      return eligibleAddresses.concat(TestAddresses.map(v => v.toLowerCase()));
     }
 
     return eligibleAddresses;
+  }
+
+  async _fetchPSPPriceForBlock(blockNumber: number): Promise<number> {
+    const ethereumBlockSubGraph = BlockInfo.getInstance(this.chainId);
+    const ethereumProvider = Provider.getJsonRpcProvider(this.chainId);
+
+    const timestamp =
+      (await ethereumBlockSubGraph.getBlockTimeStamp(blockNumber)) || // can be laggy if checking data for last 5min
+      (await ethereumProvider.getBlock(blockNumber)).timestamp;
+
+    const pspPriceUsd = await fetchHistoricalPSPPrice(timestamp);
+
+    return pspPriceUsd;
   }
 
   async isAddressEligible(
     address: string,
     blockNumber: number,
   ): Promise<boolean> {
-    const eligibleAddresses = await this.getEligibleAddresses(blockNumber);
+    if (IS_TEST && TestAddresses.map(a => a.toLowerCase()).includes(address)) {
+      return true;
+    }
 
-    const isEligible = eligibleAddresses.includes(address.toLowerCase());
+    const [{ pspStaked }, pspPriceUsd] = await Promise.all([
+      StakingService.getInstance().getPSPStakesAllPrograms(
+        address,
+        blockNumber,
+      ),
+      this._fetchPSPPriceForBlock(blockNumber),
+    ]);
 
-    return isEligible;
+    return this._hasEnoughStake(pspStaked, pspPriceUsd);
   }
 
-  async registerVerifiedAccount(
+  _hasEnoughStake(pspStaked: string, pspPriceUsd: number) {
+    const stakeInUsd =
+      Number(BigInt(pspStaked) / BigInt(10 ** 18)) * pspPriceUsd;
+
+    return stakeInUsd >= ELIGIBILITY_USD_STAKE_THRESHOLD;
+  }
+
+  async _registerVerifiedAccount(
     account: AccountToCreate,
+    dbTransaction: DBTransaction,
   ): Promise<RegisteredAccount> {
     const [registeredAccount] = await Promise.all([
-      this._submitVerifiedEmailAccount(account),
+      this._submitVerifiedEmailAccount(account, dbTransaction),
       this._submitTester(account),
     ]);
 
     return registeredAccount;
   }
 
-  async _submitVerifiedEmailAccount(
+  async registerVerifiedAccount(
     account: AccountToCreate,
   ): Promise<RegisteredAccount> {
+    return Database.sequelize.transaction(transaction => {
+      return this._registerVerifiedAccount(account, transaction);
+    });
+  }
+
+  async _submitVerifiedEmailAccount(
+    account: AccountToCreate,
+    dbTransaction: DBTransaction,
+  ): Promise<RegisteredAccount> {
     try {
-      const registeredAccount = await createNewAccount(account, true);
+      const registeredAccount = await this._createNewAccount(
+        account,
+        true,
+        dbTransaction,
+      );
 
       return registeredAccount;
     } catch (e) {
@@ -123,13 +157,13 @@ export class OnBoardingService {
 
       if (!waitlistAccount) {
         logger.error(
-          `Logic error, account should exist account with email ${account.email} has detected as duplicated but could not be found`,
+          `Logic error: account should always exist account with email ${account.email} has detected as duplicated but could not be found`,
         );
         throw e;
       }
 
-      await removeUserFromWaitlist(waitlistAccount);
-      return await this._submitVerifiedEmailAccount(account);
+      await this._removeUserFromWaitlist(waitlistAccount, dbTransaction);
+      return await this._submitVerifiedEmailAccount(account, dbTransaction);
     }
   }
 
@@ -151,33 +185,80 @@ export class OnBoardingService {
   async submitAccountForWaitingList(
     account: AccountToCreate,
   ): Promise<RegisteredAccount> {
-    const accountByEmail = await this.getAccountByEmail(account);
+    return await Database.sequelize.transaction(async transaction => {
+      try {
+        return await this._createNewAccount(account, false, transaction);
+      } catch (e) {
+        if (e instanceof DuplicatedAccountError) {
+          const accountByEmail = await this.getAccountByEmail(account);
 
-    if (!!accountByEmail) return accountByEmail;
+          if (!!accountByEmail) return accountByEmail;
+        }
 
-    return createNewAccount(account, false);
+        throw e;
+      }
+    });
   }
 
+  async _createNewAccount(
+    account: AccountToCreate,
+    isVerified: boolean,
+    dbTransaction: DBTransaction,
+  ) {
+    const registeredAccount = await createNewAccount(account, isVerified);
+    await OnboardingAccount.create(registeredAccount, {
+      transaction: dbTransaction,
+    });
+
+    return registeredAccount;
+  }
+
+  async _removeUserFromWaitlist(
+    waitlistAccount: RegisteredAccount,
+    dbTransaction: DBTransaction,
+  ) {
+    await removeUserFromWaitlist(waitlistAccount);
+    await OnboardingAccount.destroy({
+      where: {
+        uuid: waitlistAccount.uuid,
+      },
+      transaction: dbTransaction,
+    });
+  }
+
+  // Note: service allows to search by uuid but not email.
+  // Initially went for fetching all testers but too brute force + unrealiable (slow to sync)
+  // Prefer falling back to database to lookup account by email.
   async getAccountByEmail({
     email,
-  }: {
-    email: string;
-  }): Promise<RegisteredAccount | undefined> {
-    const accounts = await fetchAccounts();
+  }: Pick<RegisteredAccount, 'email'>): Promise<RegisteredAccount | undefined> {
+    const accountFromDb = await OnboardingAccount.findOne({
+      where: {
+        email,
+      },
+    });
 
-    return accounts.find(account => account.email === email);
+    if (!accountFromDb) throw new AccountByEmailNotFoundError({ email });
+
+    return accountFromDb;
   }
 
   async getAccountByUUID({
     uuid,
   }: Pick<RegisteredAccount, 'uuid'>): Promise<RegisteredAccount> {
-    const accounts = await fetchAccounts();
+    try {
+      return await fetchAccountByUUID({ uuid });
+    } catch (e) {
+      const accountFromDb = await OnboardingAccount.findOne({
+        where: {
+          uuid,
+        },
+      });
 
-    const account = accounts.find(account => account.uuid === uuid);
+      if (!accountFromDb) throw new AccountByUUIDNotFoundError({ uuid });
 
-    if (!account) throw new AccountNotFoundError({ uuid });
-
-    return account;
+      return accountFromDb;
+    }
   }
 
   _getAuthToken(): AuthToken {

@@ -2,8 +2,6 @@ import * as express from 'express';
 import * as parser from 'body-parser';
 import * as compression from 'compression';
 import * as cookie from 'cookie-parser';
-import AsyncContextMiddleware from './async-context';
-import RemoteAddressMiddleware from './remote-address';
 
 const logger = global.LOGGER();
 
@@ -41,18 +39,6 @@ export default class Middleware {
      */
     app.use(parser.json({ strict: false }));
     app.use(parser.text());
-
-    /**
-     * Compress requests...
-     */
-    app.use(compression());
-    app.use(cookie());
-
-    // creates async context
-    app.use(AsyncContextMiddleware());
-
-    // extracts and injects remote address to async context
-    app.use(RemoteAddressMiddleware());
 
     app.get('/robots.txt', function (req, res) {
       res.type('text/plain');

@@ -17,10 +17,14 @@ export class StakingService {
 
   getPSPStakesAllPrograms = async (
     account: string,
+    blockNumber?: number,
   ): Promise<PSPStakesForStaker<string>> => {
     const [spsp, safetyModule] = await Promise.all([
-      SPSPHelper.getInstance().getPSPStakedInSPSPs(account),
-      SafetyModuleHelper.getInstance().getPSPStakedInSafetyModule(account),
+      SPSPHelper.getInstance().getPSPStakedInSPSPs(account, blockNumber),
+      SafetyModuleHelper.getInstance().getPSPStakedInSafetyModule(
+        account,
+        blockNumber,
+      ),
     ]);
 
     return {

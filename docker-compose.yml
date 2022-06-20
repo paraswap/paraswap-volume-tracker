@@ -1,7 +1,6 @@
-version: "3.2"
+version: '3.2'
 
 services:
-
   db:
     image: postgres
     restart: always
@@ -12,7 +11,7 @@ services:
       - POSTGRES_USER=paraswap
       - POSTGRES_PASSWORD=paraswap
     ports:
-      - "32780:5432"
+      - '32780:5432'
 
 volumes:
   postgres-db:

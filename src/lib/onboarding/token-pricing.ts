@@ -1,34 +1,21 @@
 import { assert } from 'ts-essentials';
-import { startOfHourSec } from '../utils/helpers';
-import { constructHttpClient } from '../utils/http-client';
+import { coingeckoClient } from '../utils/data-providers-clients';
 
 const PRICE_SEARCH_PAST_WINDOW_LOOKUP = 4 * 60 * 60;
-
-const tokenPricingServiceClient = constructHttpClient({
-  cacheOptions: {
-    maxAge: 30 * 60 * 1000, // can go for long cache
-    limit: 1000,
-    exclude: {
-      query: false, // to force cache segmentation by interval (from, to)
-    },
-  },
-});
 
 export async function fetchHistoricalPSPPrice(
   timestamp: number,
 ): Promise<number> {
-  const fromUnixDate = startOfHourSec(
-    timestamp - PRICE_SEARCH_PAST_WINDOW_LOOKUP,
-  );
+  const fromUnixDate = timestamp - PRICE_SEARCH_PAST_WINDOW_LOOKUP;
   const toUnixDate = timestamp;
 
-  const url = `https://api.coingecko.com/api/v3/coins/paraswap/market_chart/range?id=paraswap&vs_currency=usd&from=${fromUnixDate}&to=${toUnixDate}`;
+  const apiEndpoint = `/coins/paraswap/market_chart/range?id=paraswap&vs_currency=usd&from=${fromUnixDate}&to=${toUnixDate}`;
 
   const {
     data: { prices },
-  } = await tokenPricingServiceClient.get<{
+  } = await coingeckoClient.get<{
     prices: [date: number, price: number][];
-  }>(url);
+  }>(apiEndpoint);
 
   prices.sort((a, b) => b[0] - a[0]); // sort desc in timestamp
 

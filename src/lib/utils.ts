@@ -1,4 +1,5 @@
 import axios, { AxiosBasicCredentials, AxiosResponse } from 'axios';
+import { Request } from 'express';
 import * as https from 'https';
 import { getRemoteAddress } from './remote-address';
 
@@ -10,9 +11,12 @@ export class Utils {
   public static readonly isAWS =
     process.env.ECS_CONTAINER_METADATA_URI !== undefined;
 
-  static getIP = () => {
-    const address = getRemoteAddress();
-    return Utils.isAWS ? address?.split(':')[0] : address;
+  static getIP = (req: Request): string => {
+    const address = getRemoteAddress(req);
+
+    return Array.isArray(address)
+      ? address[0]
+      : address?.split(':')[0] || address;
   };
 
   static _get<T = any>(

@@ -149,11 +149,11 @@ export default class Router {
       }
     });
 
-    router.get('/stakes/:account', async (req, res) => {
+    router.get('/stakes/:address', async (req, res) => {
       try {
-        const account = req.params.account;
+        const address = req.params.address.toLowerCase();
         const totalPSPStakedInAllStakingPrograms =
-          await StakingService.getInstance().getPSPStakesAllPrograms(account);
+          await StakingService.getInstance().getPSPStakesAllPrograms(address);
 
         return res.json(totalPSPStakedInAllStakingPrograms);
       } catch (e) {

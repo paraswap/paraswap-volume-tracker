@@ -1,7 +1,15 @@
 import { AccountToCreate, RegisteredAccount } from './types';
 
 // convient for inheritance cascading property of instanceof
-export class OnBoardingError extends Error {}
+export class OnBoardingError extends Error {
+  constructor(message: string) {
+    super(message);
+
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, OnBoardingError);
+    }
+  }
+}
 
 export class ValidationError extends OnBoardingError {
   constructor(message: string) {
@@ -37,9 +45,15 @@ export class AccountNonValidError extends ValidationError {
   }
 }
 
-export class AccountNotFoundError extends OnBoardingError {
+export class AccountByUUIDNotFoundError extends OnBoardingError {
   constructor({ uuid }: Pick<RegisteredAccount, 'uuid'>) {
     super(`Account not found uuid=${uuid}`);
+  }
+}
+
+export class AccountByEmailNotFoundError extends OnBoardingError {
+  constructor({ email }: Pick<RegisteredAccount, 'email'>) {
+    super(`Account not found email=${email}`);
   }
 }
 
