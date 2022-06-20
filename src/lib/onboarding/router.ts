@@ -2,8 +2,8 @@ import * as express from 'express';
 import { assert } from 'ts-essentials';
 import {
   OnBoardingService,
-  validateAccount,
-  validateAccountWithSig,
+  isValidAccount,
+  isValidAccountWithSig,
 } from './service';
 import {
   AccountNonValidError,
@@ -85,7 +85,7 @@ router.post('/submit-verified', async (req, res) => {
 
     const account = req.body;
 
-    if (!validateAccount(account)) throw new AccountNonValidError(account);
+    if (!isValidAccount(account)) throw new AccountNonValidError(account);
 
     account.email = account.email.toLowerCase();
 
@@ -108,7 +108,7 @@ router.post('/submit-with-sig', async (req, res) => {
   try {
     const accountWithSig = req.body;
 
-    if (!validateAccountWithSig(accountWithSig))
+    if (!isValidAccountWithSig(accountWithSig))
       throw new AccountWithSigNonValidError(accountWithSig);
 
     accountWithSig.email = accountWithSig.email.toLowerCase();
@@ -132,7 +132,7 @@ router.post('/waiting-list', async (req, res) => {
   try {
     const account = req.body;
 
-    if (!validateAccount(account)) throw new AccountNonValidError(account);
+    if (!isValidAccount(account)) throw new AccountNonValidError(account);
 
     account.email = account.email.toLowerCase();
     account.profile = {

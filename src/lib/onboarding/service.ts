@@ -38,7 +38,7 @@ const logger = global.LOGGER('OnBoardingService');
 
 const IS_TEST = !process.env.NODE_ENV?.includes('prod');
 
-export const validateAccount = (payload: any): payload is AccountToCreate => {
+export const isValidAccount = (payload: any): payload is AccountToCreate => {
   return (
     !!payload &&
     typeof payload === 'object' &&
@@ -47,7 +47,7 @@ export const validateAccount = (payload: any): payload is AccountToCreate => {
 };
 
 /// FALLBACK ONLY
-export const validateAccountWithSig = (
+export const isValidAccountWithSig = (
   payload: any,
 ): payload is AccountWithSigToSubmit => {
   return (
