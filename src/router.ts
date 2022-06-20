@@ -151,7 +151,7 @@ export default class Router {
 
     router.get('/stakes/:address', async (req, res) => {
       try {
-        const address = req.params.address.toString();
+        const address = req.params.address.toLowerCase();
         const totalPSPStakedInAllStakingPrograms =
           await StakingService.getInstance().getPSPStakesAllPrograms(address);
 

@@ -33,8 +33,16 @@ export const covalentGetTXsForContract = async ({
 
   const { COVALENT_API_KEY } = process.env;
   const path = (page: number) => {
-    // safety margin to counter possible edge case of relative - not absolute - range bounds
-    const safeMarginForRequestLimits = 10;
+    /* Covalent API only has time relative pagination for tx scanning (give me tx within last X seconds).
+     * We take a safety margin to counter possible edge case of relative - not absolute - range bounds
+     * specific edge case:
+     *  given r_window = relative temporal window and g_window = absolute temporal window.
+     *  When request queues up for couple of minutes due to local rate limitation,
+     *  it can happen that we  miss some txs because we searched in r_window that is out of range (out of g_window range to be precise)
+     *  In such case making r_window wider (here 2h, 1h before + 1h after) allows us to search txs in wider window without suffering from rate limiting lag.
+     *  This is obviously brutforcing...
+     */
+    const safeMarginForRequestLimits = 60 * 60;
     const startSecondsAgo =
       Math.floor(new Date().getTime() / 1000) -
       startTimestamp +
