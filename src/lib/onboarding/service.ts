@@ -4,11 +4,7 @@ import {
   removeUserFromWaitlist,
   fetchAccountByUUID,
 } from './mail-service-client';
-import {
-  RegisteredAccount,
-  AccountToCreate,
-  AuthToken,
-} from './types';
+import { RegisteredAccount, AccountToCreate, AuthToken } from './types';
 import { fetchHistoricalPSPPrice } from './token-pricing';
 import { BlockInfo } from '../block-info';
 import { CHAIN_ID_MAINNET } from '../constants';
