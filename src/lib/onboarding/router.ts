@@ -9,6 +9,7 @@ import {
   ValidationError,
 } from './errors';
 import { Utils } from '../utils';
+import { isAddress } from '@ethersproject/address';
 
 const logger = global.LOGGER('OnboardingRouter');
 
@@ -45,7 +46,7 @@ router.get('/check-eligibility/:address/:blockNumber', async (req, res) => {
     const address = req.params.address.toLowerCase();
     const blockNumber = +req.params.blockNumber;
 
-    if (address.length !== 42 || !address.startsWith('0x'))
+    if (!isAddress(address))
       throw new ValidationError('pass an address as first param');
     if (isNaN(blockNumber))
       throw new ValidationError('pass a block number as second param');
