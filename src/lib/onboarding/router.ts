@@ -10,6 +10,7 @@ import {
 } from './errors';
 import { Utils } from '../utils';
 import { isAddress } from '@ethersproject/address';
+import * as parser from 'body-parser';
 
 const logger = global.LOGGER('OnboardingRouter');
 
@@ -98,7 +99,7 @@ router.post('/submit-verified', async (req, res) => {
   }
 });
 
-router.post('/waiting-list', async (req, res) => {
+router.post('/waiting-list', parser.urlencoded(), async (req, res) => {
   try {
     const account = req.body;
 
@@ -109,13 +110,22 @@ router.post('/waiting-list', async (req, res) => {
       // assign ip address to help on fraud protection
       ip: Utils.getIP(req),
     };
+    account.referrer_id = !account.referrer_id
+      ? undefined
+      : account.referrer_id;
 
     const registeredAccount =
       await OnBoardingService.getInstance().submitAccountForWaitingList(
         account,
       );
 
-    return res.json(registeredAccount);
+    const subdomain = !process.env.NODE_ENV?.includes('prod')
+      ? process.env.NODE_ENV
+      : 'app';
+
+    const redirectUrl = `https://${subdomain}.paraswap.io/#/ios-beta/waiting-list-status/${registeredAccount.uuid}`;
+
+    return res.redirect(redirectUrl);
   } catch (e) {
     logger.error(req.path, e);
     res.status(403).send({

@@ -1,6 +1,6 @@
 export type AccountToCreate = {
   email: string;
-  referrer_id: string;
+  referrer_id?: string;
   profile?: {
     ip?: string;
   };
