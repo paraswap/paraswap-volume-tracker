@@ -10,6 +10,7 @@ import {
 } from './errors';
 import { Utils } from '../utils';
 import { isAddress } from '@ethersproject/address';
+import * as parser from 'body-parser';
 
 const logger = global.LOGGER('OnboardingRouter');
 
@@ -98,7 +99,7 @@ router.post('/submit-verified', async (req, res) => {
   }
 });
 
-router.post('/waiting-list', async (req, res) => {
+router.post('/waiting-list', parser.urlencoded(), async (req, res) => {
   try {
     const account = req.body;
 
