@@ -115,7 +115,13 @@ router.post('/waiting-list', async (req, res) => {
         account,
       );
 
-    return res.json(registeredAccount);
+    const subdomain = !process.env.NODE_ENV?.includes('prod')
+      ? process.env.NODE_ENV
+      : 'app';
+
+    const redirectUrl = `https://${subdomain}.paraswap.io/#/ios-beta/waiting-list-status/${registeredAccount.uuid}`;
+
+    return res.redirect(redirectUrl);
   } catch (e) {
     logger.error(req.path, e);
     res.status(403).send({
