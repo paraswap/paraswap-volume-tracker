@@ -39,7 +39,7 @@ export default class Middleware {
      */
     app.use(parser.json({ strict: false }));
     app.use(parser.text());
-    app.use(parser.urlencoded())
+    app.use(parser.urlencoded());
 
     app.get('/robots.txt', function (req, res) {
       res.type('text/plain');
