@@ -110,6 +110,9 @@ router.post('/waiting-list', parser.urlencoded(), async (req, res) => {
       // assign ip address to help on fraud protection
       ip: Utils.getIP(req),
     };
+    account.referrer_id = !account.referrer_id
+      ? undefined
+      : account.referrer_id;
 
     const registeredAccount =
       await OnBoardingService.getInstance().submitAccountForWaitingList(
