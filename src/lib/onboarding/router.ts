@@ -103,7 +103,7 @@ router.post('/submit-verified', async (req, res) => {
   }
 });
 
-router.post('/waiting-list', parser.urlencoded(), async (req, res) => {
+router.post('/waiting-list', async (req, res) => {
   try {
     const account = req.body;
 
