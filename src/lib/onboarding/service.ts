@@ -4,7 +4,12 @@ import {
   removeUserFromWaitlist,
   fetchAccountByUUID,
 } from './mail-service-client';
-import { RegisteredAccount, AccountToCreate, AuthToken } from './types';
+import {
+  RegisteredAccount,
+  AccountToCreate,
+  AuthToken,
+  AccountToCreateWithResponse,
+} from './types';
 import { fetchHistoricalPSPPrice } from './token-pricing';
 import { BlockInfo } from '../block-info';
 import { CHAIN_ID_MAINNET } from '../constants';
@@ -19,6 +24,7 @@ import { generateAuthToken, createTester } from './beta-tester';
 import { OnboardingAccount } from '../../models/OnboardingAccount';
 import Database from '../../database';
 import { Transaction as DBTransaction } from 'sequelize/types';
+import { verifyKey } from './verification-service';
 
 const logger = global.LOGGER('OnBoardingService');
 
@@ -30,6 +36,16 @@ export const validateAccount = (payload: any): payload is AccountToCreate => {
     typeof payload === 'object' &&
     typeof payload['email'] === 'string'
   );
+};
+
+export const validateAccountWithResponse = (
+  payload: any,
+): payload is AccountToCreateWithResponse => {
+  if (!validateAccount(payload)) return false;
+
+  const _payload = payload as any;
+
+  return typeof _payload['response'] === 'string' && !!_payload['response'];
 };
 
 const ELIGIBILITY_USD_STAKE_THRESHOLD = 100;
@@ -179,10 +195,11 @@ export class OnBoardingService {
   }
 
   async submitAccountForWaitingList(
-    account: AccountToCreate,
+    account: AccountToCreateWithResponse,
   ): Promise<RegisteredAccount> {
     return await Database.sequelize.transaction(async transaction => {
       try {
+        await verifyKey(account.response);
         return await this._createNewAccount(account, false, transaction);
       } catch (e) {
         if (e instanceof DuplicatedAccountError) {
