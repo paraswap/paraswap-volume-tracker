@@ -6,6 +6,10 @@ export type AccountToCreate = {
   };
 };
 
+export type AccountToCreateWithResponse = AccountToCreate & {
+  response: string;
+};
+
 export enum AccountStatus {
   IMPORTED = 'imported',
   APPLIED = 'applied',

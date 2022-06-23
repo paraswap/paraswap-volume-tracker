@@ -1,6 +1,10 @@
 import * as express from 'express';
 import { assert } from 'ts-essentials';
-import { OnBoardingService, validateAccount } from './service';
+import {
+  OnBoardingService,
+  isValidAccount,
+  isValidAccountWithResponse,
+} from './service';
 import {
   AccountNonValidError,
   AccountByUUIDNotFoundError,
@@ -81,7 +85,7 @@ router.post('/submit-verified', async (req, res) => {
 
     const account = req.body;
 
-    if (!validateAccount(account)) throw new AccountNonValidError(account);
+    if (!isValidAccount(account)) throw new AccountNonValidError(account);
 
     account.email = account.email.toLowerCase();
 
@@ -99,11 +103,12 @@ router.post('/submit-verified', async (req, res) => {
   }
 });
 
-router.post('/waiting-list', parser.urlencoded(), async (req, res) => {
+router.post('/waiting-list', async (req, res) => {
   try {
     const account = req.body;
 
-    if (!validateAccount(account)) throw new AccountNonValidError(account);
+    if (!isValidAccountWithResponse(account))
+      throw new AccountNonValidError(account);
 
     account.email = account.email.toLowerCase();
     account.profile = {
@@ -119,13 +124,7 @@ router.post('/waiting-list', parser.urlencoded(), async (req, res) => {
         account,
       );
 
-    const subdomain = !process.env.NODE_ENV?.includes('prod')
-      ? process.env.NODE_ENV
-      : 'app';
-
-    const redirectUrl = `https://${subdomain}.paraswap.io/#/ios-beta/waiting-list-status/${registeredAccount.uuid}`;
-
-    return res.redirect(redirectUrl);
+    return res.status(201).json(registeredAccount);
   } catch (e) {
     logger.error(req.path, e);
     res.status(403).send({
