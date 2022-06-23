@@ -114,6 +114,7 @@ router.post('/waiting-list', async (req, res) => {
     account.profile = {
       // assign ip address to help on fraud protection
       ip: Utils.getIP(req),
+      user_agent: req.headers['user-agent'],
     };
     account.referrer_id = !account.referrer_id
       ? undefined
