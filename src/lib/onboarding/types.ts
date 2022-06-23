@@ -3,6 +3,7 @@ export type AccountToCreate = {
   referrer_id?: string;
   profile?: {
     ip?: string;
+    user_agent?: string;
   };
 };
 
