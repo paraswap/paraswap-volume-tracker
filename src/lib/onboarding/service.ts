@@ -43,7 +43,7 @@ export const isValidAccountWithResponse = (
 ): payload is AccountToCreateWithResponse => {
   if (!isValidAccount(payload)) return false;
 
-  const _payload = payload as any;
+  const _payload: Record<string, any> = payload;
 
   return typeof _payload['response'] === 'string' && !!_payload['response'];
 };
