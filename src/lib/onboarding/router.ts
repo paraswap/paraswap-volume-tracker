@@ -4,6 +4,7 @@ import {
   OnBoardingService,
   isValidAccount,
   isValidAccountWithSig,
+  isValidAccountWithResponse,
 } from './service';
 import {
   AccountNonValidError,
@@ -15,6 +16,7 @@ import {
 } from './errors';
 import { Utils } from '../utils';
 import { isAddress } from '@ethersproject/address';
+import * as parser from 'body-parser';
 
 const logger = global.LOGGER('OnboardingRouter');
 
@@ -132,20 +134,25 @@ router.post('/waiting-list', async (req, res) => {
   try {
     const account = req.body;
 
-    if (!isValidAccount(account)) throw new AccountNonValidError(account);
+    if (!isValidAccountWithResponse(account))
+      throw new AccountNonValidError(account);
 
     account.email = account.email.toLowerCase();
     account.profile = {
       // assign ip address to help on fraud protection
       ip: Utils.getIP(req),
+      user_agent: req.headers['user-agent'],
     };
+    account.referrer_id = !account.referrer_id
+      ? undefined
+      : account.referrer_id;
 
     const registeredAccount =
       await OnBoardingService.getInstance().submitAccountForWaitingList(
         account,
       );
 
-    return res.json(registeredAccount);
+    return res.status(201).json(registeredAccount);
   } catch (e) {
     logger.error(req.path, e);
     res.status(403).send({

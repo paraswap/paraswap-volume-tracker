@@ -27,6 +27,12 @@ export class AccountCreationError extends OnBoardingError {
   }
 }
 
+export class VerificationError extends OnBoardingError {
+  constructor() {
+    super(`VerificationError`);
+  }
+}
+
 export class AccountDeleteError extends OnBoardingError {
   constructor({ uuid }: Pick<RegisteredAccount, 'uuid'>) {
     super(`AccountDeleteError: uuid=${uuid} did not get deleted.`);

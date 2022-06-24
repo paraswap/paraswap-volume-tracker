@@ -10,6 +10,7 @@ import {
   AuthToken,
   AccountWithSigToSubmit,
   AccountGroup,
+  AccountToCreateWithResponse,
 } from './types';
 import { fetchHistoricalPSPPrice } from './token-pricing';
 import { BlockInfo } from '../block-info';
@@ -33,6 +34,7 @@ import Database from '../../database';
 import { Transaction as DBTransaction } from 'sequelize/types';
 import { isValidEmailAddr } from '../utils/helpers';
 import { isAddress } from '@ethersproject/address';
+import { verifyKey } from './verification-service';
 
 const logger = global.LOGGER('OnBoardingService');
 
@@ -59,6 +61,16 @@ export const isValidAccountWithSig = (
     payload['sig'].startsWith('0x') &&
     typeof payload['version'] === 'number'
   );
+};
+
+export const isValidAccountWithResponse = (
+  payload: any,
+): payload is AccountToCreateWithResponse => {
+  if (!isValidAccount(payload)) return false;
+
+  const _payload: Record<string, any> = payload;
+
+  return typeof _payload['response'] === 'string' && !!_payload['response'];
 };
 
 const ELIGIBILITY_USD_STAKE_THRESHOLD = 100;
@@ -216,10 +228,11 @@ export class OnBoardingService {
   }
 
   async submitAccountForWaitingList(
-    account: AccountToCreate,
+    account: AccountToCreateWithResponse,
   ): Promise<RegisteredAccount> {
     return await Database.sequelize.transaction(async transaction => {
       try {
+        await verifyKey(account.response);
         return await this._createNewAccount(account, false, transaction);
       } catch (e) {
         if (e instanceof DuplicatedAccountError) {
