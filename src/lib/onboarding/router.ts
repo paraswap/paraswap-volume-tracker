@@ -3,6 +3,7 @@ import { assert } from 'ts-essentials';
 import {
   OnBoardingService,
   isValidAccount,
+  isValidAccountWithSig,
   isValidAccountWithResponse,
 } from './service';
 import {
@@ -11,6 +12,7 @@ import {
   AuthorizationError,
   OnBoardingError,
   ValidationError,
+  AccountWithSigNonValidError,
 } from './errors';
 import { Utils } from '../utils';
 import { isAddress } from '@ethersproject/address';
@@ -99,6 +101,31 @@ router.post('/submit-verified', async (req, res) => {
         e instanceof OnBoardingError
           ? e.message
           : `Unknown error on submitting verified`,
+    });
+  }
+});
+
+/// FALLBACK ONLY
+router.post('/submit-with-sig', async (req, res) => {
+  try {
+    const accountWithSig = req.body;
+
+    if (!isValidAccountWithSig(accountWithSig))
+      throw new AccountWithSigNonValidError(accountWithSig);
+
+    accountWithSig.email = accountWithSig.email.toLowerCase();
+    accountWithSig.address = accountWithSig.address.toLowerCase();
+
+    await OnBoardingService.getInstance().submitAccountWithSig(accountWithSig);
+
+    return res.status(201).send('Ok');
+  } catch (e) {
+    logger.error(req.path, e);
+    res.status(403).send({
+      error:
+        e instanceof OnBoardingError
+          ? e.message
+          : `Unknown error on submitting with sig`,
     });
   }
 });

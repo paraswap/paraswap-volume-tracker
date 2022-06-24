@@ -34,3 +34,18 @@ export type RegisteredAccount = {
 };
 
 export type AuthToken = { token: string; exp: number };
+
+/// FALLBACK ONLY
+export type RegisteredAddressWithSig = {
+  address: string;
+  version: number;
+  sig: string;
+};
+
+export type RegisteredAddressWithSigChain = RegisteredAddressWithSig & {
+  chainId: number;
+};
+
+export type AccountWithSigToSubmit = RegisteredAddressWithSig & {
+  email: string;
+};

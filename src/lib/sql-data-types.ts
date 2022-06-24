@@ -11,3 +11,5 @@ export const DataType_HALF_STRING = DataType.STRING(127);
 export const DataType_KECCAK256_HASHED_VALUE = DataType.STRING(66);
 
 export const DataType_EMAIL_ADDRESS = DataType.STRING(320); // RFC 3696
+
+export const DataType_SIG = DataType.STRING(500); // should be fit most of the time

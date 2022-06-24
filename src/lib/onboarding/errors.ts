@@ -1,4 +1,8 @@
-import { AccountToCreate, RegisteredAccount } from './types';
+import {
+  AccountToCreate,
+  AccountWithSigToSubmit,
+  RegisteredAccount,
+} from './types';
 
 // convient for inheritance cascading property of instanceof
 export class OnBoardingError extends Error {
@@ -66,5 +70,40 @@ export class AccountByEmailNotFoundError extends OnBoardingError {
 export class AuthorizationError extends ValidationError {
   constructor() {
     super(`wrong token`);
+  }
+}
+
+export class DuplicatedStakerEmail extends OnBoardingError {
+  constructor({ email }: { email: string }) {
+    super(`${email} has already registered for beta`);
+  }
+}
+
+/// FALLBACK ONLY
+export class AccountWithSigNonValidError extends ValidationError {
+  constructor(payload: any) {
+    super(
+      `Invalid account format. Expecting {email: string, sig: string}, received: ${JSON.stringify(
+        payload,
+      )}`,
+    );
+  }
+}
+
+export class DuplicatedAccountWithSigError extends OnBoardingError {
+  constructor({ address }: AccountWithSigToSubmit) {
+    super(`${address} already submitted an email previously`);
+  }
+}
+
+export class InvalidSigErrror extends OnBoardingError {
+  constructor({ sig, address }: AccountWithSigToSubmit) {
+    super(`Invalid signature ${sig} for ${address}`);
+  }
+}
+
+export class AccountNotEligible extends OnBoardingError {
+  constructor() {
+    super(`address has less than 100$ worth of PSP staked`);
   }
 }
