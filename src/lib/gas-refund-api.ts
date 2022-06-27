@@ -162,21 +162,30 @@ export class GasRefundApi {
   async _getCurrentEpochPendingRefundedAmount(
     address: string,
   ): Promise<string> {
-    const epoch = await this.epochInfo.getCurrentEpoch();
+    const latestEpochRefunded = await GasRefundDistribution.max<
+      number,
+      GasRefundDistribution
+    >('epoch', {
+      where: {
+        chainId: this.network,
+      },
+    });
 
-    const totalPSPRefunded = await GasRefundTransaction.sum<
+    const pendingRefundableAmount = await GasRefundTransaction.sum<
       string,
       GasRefundTransaction
     >('refundedAmountPSP', {
       where: {
         address,
-        epoch,
+        epoch: {
+          [Sequelize.Op.gt]: latestEpochRefunded,
+        },
         status: TransactionStatus.VALIDATED,
         chainId: this.network,
       },
     });
 
-    const refundedAmount = totalPSPRefunded.toString(10);
+    const refundedAmount = pendingRefundableAmount.toString(10);
 
     return refundedAmount;
   }
