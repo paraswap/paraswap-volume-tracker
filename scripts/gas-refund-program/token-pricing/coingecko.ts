@@ -5,9 +5,22 @@ import {
   CHAIN_ID_POLYGON,
 } from '../../../src/lib/constants';
 import { HistoricalPrice } from '../types';
-import { coingeckoClient } from '../../../src/lib/utils/data-providers-clients';
+import { constructHttpClient } from '../../../src/lib/utils/http-client';
 import { startOfDayMilliSec } from '../../../src/lib/utils/helpers';
 import { assert } from 'ts-essentials';
+
+
+export const coingeckoClient = constructHttpClient({
+  axiosConfig: {
+    baseURL: 'https://api.coingecko.com/api/v3',
+    timeout: 5_000,
+  },
+  rateLimitOptions: {
+    maxRPS: undefined, // to override default maxRPS
+    maxRequests: 1, 
+    perMilliseconds: 10_000,
+  },
+});
 
 export const PSP_COINGECKO_COIN_ID = 'paraswap';
 
