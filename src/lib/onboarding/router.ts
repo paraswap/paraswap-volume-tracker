@@ -16,7 +16,6 @@ import {
 } from './errors';
 import { Utils } from '../utils';
 import { isAddress } from '@ethersproject/address';
-import * as parser from 'body-parser';
 
 const logger = global.LOGGER('OnboardingRouter');
 
