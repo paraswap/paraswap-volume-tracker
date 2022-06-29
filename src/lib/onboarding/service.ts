@@ -300,15 +300,7 @@ export class OnBoardingService {
     try {
       return await fetchAccountByUUID({ uuid });
     } catch (e) {
-      const accountFromDb = await OnboardingAccount.findOne({
-        where: {
-          uuid,
-        },
-      });
-
-      if (!accountFromDb) throw new AccountByUUIDNotFoundError({ uuid });
-
-      return accountFromDb;
+      throw new AccountByUUIDNotFoundError({ uuid });
     }
   }
 
