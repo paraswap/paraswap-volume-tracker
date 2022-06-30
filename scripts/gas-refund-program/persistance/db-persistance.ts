@@ -44,7 +44,7 @@ export async function fetchLastTimestampTxByContract({
 export async function fetchTotalRefundedPSP(
   toEpoch?: number,
 ): Promise<BigNumber> {
-  const totalPSPRefunded = await GasRefundTransaction.sum<
+  const totalPSPRefunded = (await GasRefundTransaction.sum<
     string,
     GasRefundTransaction
   >('refundedAmountPSP', {
@@ -53,7 +53,7 @@ export async function fetchTotalRefundedPSP(
       ...(toEpoch ? { epoch: { [Op.lt]: toEpoch } } : {}),
     },
     dataType: 'string',
-  });
+  })) as unknown as string; // wrong type
 
   return new BigNumber(totalPSPRefunded);
 }
