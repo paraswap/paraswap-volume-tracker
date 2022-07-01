@@ -162,23 +162,31 @@ export class GasRefundApi {
   async _getCurrentEpochPendingRefundedAmount(
     address: string,
   ): Promise<string> {
-    const epoch = await this.epochInfo.getCurrentEpoch();
+    const latestEpochRefunded = await GasRefundDistribution.max<
+      number,
+      GasRefundDistribution
+    >('epoch', {
+      where: {
+        chainId: this.network,
+      },
+    });
 
-    const totalPSPRefunded = await GasRefundTransaction.sum<
+    const pendingRefundableAmount = (await GasRefundTransaction.sum<
       string,
       GasRefundTransaction
     >('refundedAmountPSP', {
       where: {
         address,
-        epoch,
+        epoch: {
+          [Sequelize.Op.gt]: latestEpochRefunded,
+        },
         status: TransactionStatus.VALIDATED,
         chainId: this.network,
       },
-    });
+      dataType: 'string',
+    })) as unknown as string; // wrong type
 
-    const refundedAmount = totalPSPRefunded.toString(10);
-
-    return refundedAmount;
+    return pendingRefundableAmount;
   }
 
   // get all ever constructed merkle data for addrress
