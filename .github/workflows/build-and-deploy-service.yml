@@ -17,7 +17,7 @@ on:
         - orders
 
 concurrency:
-  group: ${{ github.event_name }}-${{ github.event.inputs.target_env }}
+  group: ${{ github.event_name }}-${{ github.event.inputs.target_env }}-service
   cancel-in-progress: true
 
 env:
