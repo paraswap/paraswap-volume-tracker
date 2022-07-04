@@ -16,6 +16,9 @@ import {
 } from './errors';
 import { Utils } from '../utils';
 import { isAddress } from '@ethersproject/address';
+import { configLoader } from '../../config';
+
+const globalConfig = configLoader.getGlobalConfig();
 
 const logger = global.LOGGER('OnboardingRouter');
 
@@ -77,11 +80,11 @@ router.get('/check-eligibility/:address/:blockNumber', async (req, res) => {
 router.post('/submit-verified', async (req, res) => {
   try {
     assert(
-      process.env.SUBMIT_ACCOUNT_API_KEY,
+      globalConfig.apiKeySubmitAccount,
       'set SUBMIT_ACCOUNT_API_KEY env var',
     );
 
-    if (req.headers['x-auth-token'] !== process.env.SUBMIT_ACCOUNT_API_KEY)
+    if (req.headers['x-auth-token'] !== globalConfig.apiKeySubmitAccount)
       throw new AuthorizationError();
 
     const account = req.body;

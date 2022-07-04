@@ -1,16 +1,14 @@
 import { Client } from 'pg';
 import { Sequelize } from 'sequelize-typescript';
 import * as cls from 'cls-hooked';
+import { IS_DEV } from './env';
+import { configLoader } from './config';
+
+const globalConfig = configLoader.getGlobalConfig();
 
 const logger = global.LOGGER();
 
-const IS_DEV = process.env.NODE_ENV === 'development';
-
-const DATABASE_URL =
-  process.env.DATABASE_URL ||
-  'postgres://paraswap:paraswap@127.0.0.1:32780/volume_tracker';
-
-const DATABASE_NAME = process.env.DATABASE_NAME || 'volume_tracker';
+const DATABASE_NAME = 'volume_tracker';
 
 export class Database {
   sequelize: Sequelize;
@@ -22,14 +20,15 @@ export class Database {
     }
 
     // create a volume-tracker DB if it doesn't exist already
-    const connectionStringParts = DATABASE_URL.split('/');
+    const connectionStringParts = globalConfig.databaseUrl.split('/');
     const connectionStringDBName =
       connectionStringParts[connectionStringParts.length - 1];
     if (connectionStringDBName !== DATABASE_NAME) {
       logger.info(
         'Database name in connection string is different than expected',
       );
-      const client = new Client({ connectionString: DATABASE_URL });
+
+      const client = new Client({ connectionString: globalConfig.databaseUrl });
       await client.connect();
       try {
         await client.query(`CREATE DATABASE ${DATABASE_NAME};`);
@@ -62,7 +61,7 @@ export class Database {
     });
 
     try {
-      logger.info('Connecting to database...');
+      logger.info('Connecting to database...', connectionStringDBName);
       await this.sequelize.authenticate();
       logger.info('Connected to database');
     } catch (e) {

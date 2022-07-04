@@ -1,4 +1,7 @@
+import { configLoader } from '../../config';
 import { constructHttpClient } from './http-client';
+
+const global = configLoader.getGlobalConfig();
 
 export const coingeckoClient = constructHttpClient({
   axiosConfig: {
@@ -14,7 +17,7 @@ export const coingeckoClient = constructHttpClient({
 
 export const covalentClient = constructHttpClient({
   axiosConfig: {
-    baseURL: 'https://api.covalenthq.com/v1',
+    baseURL: global.covalentV1HttpUrl,
     timeout: 30_000,
   },
   rateLimitOptions: {

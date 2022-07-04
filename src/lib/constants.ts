@@ -45,3 +45,5 @@ export const Balancer_80PSP_20WETH_poolId =
   '0xcb0e14e96f2cefa8550ad8e4aea344f211e5061d00020000000000000000011a';
 export const Balancer_80PSP_20WETH_address =
   Balancer_80PSP_20WETH_poolId.substring(0, 42); // or 0xcb0e14e96f2cefa8550ad8e4aea344f211e5061d
+
+export const CONFIG_VOLUME_TRACKER_INIT_TIME_1 =16198272

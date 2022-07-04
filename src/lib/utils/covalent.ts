@@ -2,8 +2,11 @@ import { assert } from 'ts-essentials';
 import { URLSearchParams } from 'url';
 import { queryPaginatedData, QueryPaginatedDataParams } from './helpers';
 import { covalentClient } from './data-providers-clients';
+import { configLoader } from '../../config';
 
-const COVALENT_API_KEY = process.env.COVALENT_API_KEY || 'ckey_docs'; // public, is rate-limited and unreliable
+const config = configLoader.getGlobalConfig();
+
+const COVALENT_API_KEY = config.covalentV1ApiKey || 'ckey_docs'; // public, is rate-limited and unreliable
 
 interface TokenHoldersOptions {
   token: string;

@@ -39,6 +39,7 @@ type GlobalConfig = {
   apiAplcapiHttp: string;
   apiKeyAplcapi: string;
   databaseUrl: string;
+  apiKeyCaptcha: string;
   apiKeySubmitAccount: string;
 };
 

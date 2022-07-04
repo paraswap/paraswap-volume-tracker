@@ -1,5 +1,6 @@
 import * as _ from 'lodash';
 import { assert } from 'ts-essentials';
+import { configLoader } from '../../config';
 import { constructHttpClient } from '../utils/http-client';
 import {
   AccountCreationError,
@@ -16,7 +17,7 @@ import {
 
 const logger = global.LOGGER('MailService');
 
-const { MAIL_SERVICE_BASE_URL, MAIL_SERVICE_API_KEY } = process.env;
+const globalConfig = configLoader.getGlobalConfig();
 
 const mailServiceClient = constructHttpClient({
   cacheOptions: {
@@ -54,10 +55,10 @@ export async function createNewAccount(
   account: AccountToCreate,
   isVerified: boolean,
 ): Promise<RegisteredAccount> {
-  assert(MAIL_SERVICE_BASE_URL, 'set MAIL_SERVICE_BASE_URL env var');
-  assert(MAIL_SERVICE_API_KEY, 'set MAIL_SERVICE_API_KEY env var');
+  assert(globalConfig.apiPrefineryHttp, 'set MAIL_SERVICE_BASE_URL env var');
+  assert(globalConfig.apiKeyPrefinery, 'set MAIL_SERVICE_API_KEY env var');
 
-  const apiUrl = `${MAIL_SERVICE_BASE_URL}/betas/17942/testers?api_key=${MAIL_SERVICE_API_KEY}`;
+  const apiUrl = `${globalConfig.apiPrefineryHttp}/betas/17942/testers?api_key=${globalConfig.apiKeyPrefinery}`;
 
   const createdAccount = {
     ...account,
@@ -91,10 +92,10 @@ export async function createNewAccount(
 export async function removeUserFromWaitlist({
   uuid,
 }: Pick<RegisteredAccount, 'uuid'>): Promise<void> {
-  assert(MAIL_SERVICE_BASE_URL, 'set MAIL_SERVICE_BASE_URL env var');
-  assert(MAIL_SERVICE_API_KEY, 'set MAIL_SERVICE_API_KEY env var');
+  assert(globalConfig.apiPrefineryHttp, 'set MAIL_SERVICE_BASE_URL env var');
+  assert(globalConfig.apiKeyPrefinery, 'set MAIL_SERVICE_API_KEY env var');
 
-  const apiUrl = `${MAIL_SERVICE_BASE_URL}/betas/17942/testers/${uuid}?api_key=${MAIL_SERVICE_API_KEY}`;
+  const apiUrl = `${globalConfig.apiPrefineryHttp}/betas/17942/testers/${uuid}?api_key=${globalConfig.apiKeyPrefinery}`;
 
   try {
     await mailServiceClient.delete(apiUrl);
@@ -106,10 +107,10 @@ export async function removeUserFromWaitlist({
 export async function fetchAccountByUUID({
   uuid,
 }: Pick<RegisteredAccount, 'uuid'>): Promise<RegisteredAccount> {
-  assert(MAIL_SERVICE_BASE_URL, 'set MAIL_SERVICE_BASE_URL env var');
-  assert(MAIL_SERVICE_API_KEY, 'set MAIL_SERVICE_API_KEY env var');
+  assert(globalConfig.apiPrefineryHttp, 'set MAIL_SERVICE_BASE_URL env var');
+  assert(globalConfig.apiKeyPrefinery, 'set MAIL_SERVICE_API_KEY env var');
 
-  const apiUrl = `${MAIL_SERVICE_BASE_URL}/betas/17942/testers/${uuid}?api_key=${MAIL_SERVICE_API_KEY}`;
+  const apiUrl = `${globalConfig.apiPrefineryHttp}/betas/17942/testers/${uuid}?api_key=${globalConfig.apiKeyPrefinery}`;
 
   try {
     const { data: registeredAccount } =
