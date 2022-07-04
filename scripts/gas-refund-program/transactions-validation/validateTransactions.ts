@@ -6,6 +6,7 @@ import {
   GasRefundGenesisEpoch,
   GasRefundPrecisionGlitchRefundedAmountsEpoch,
   getRefundPercent,
+  TOTAL_EPOCHS_IN_YEAR,
   TransactionStatus,
 } from '../../../src/lib/gas-refund';
 import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
@@ -99,7 +100,7 @@ export async function validateTransactions() {
         guardian.cleanEpochBudgetState();
 
         // clean yearly based state every 26 epochs
-        if ((tx.epoch - GasRefundGenesisEpoch) % (52 / 2) === 0) {
+        if ((tx.epoch - GasRefundGenesisEpoch) % TOTAL_EPOCHS_IN_YEAR === 0) {
           guardian.cleanYearlyBudgetState();
         }
 

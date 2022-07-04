@@ -5,14 +5,14 @@ import {
   fetchTotalRefundedPSP,
 } from '../persistance/db-persistance';
 import { ZERO_BN } from '../../../src/lib/utils/helpers';
-import { GasRefundGenesisEpoch } from '../../../src/lib/gas-refund';
+import { TOTAL_EPOCHS_IN_YEAR } from '../../../src/lib/gas-refund';
 
 export const MAX_PSP_GLOBAL_BUDGET_YEARLY = new BigNumber(
   30_000_000,
 ).multipliedBy(10 ** 18);
 export const MAX_USD_ADDRESS_BUDGET_YEARLY = new BigNumber(30_000);
 export const MAX_USD_ADDRESS_BUDGET_EPOCH =
-  MAX_USD_ADDRESS_BUDGET_YEARLY.dividedBy(12 * 2); // epoch based: 1 epoch = 2 weeks
+  MAX_USD_ADDRESS_BUDGET_YEARLY.dividedBy(TOTAL_EPOCHS_IN_YEAR);
 
 export type GRPSystemState = {
   totalPSPRefundedForYear: BigNumber;
@@ -47,7 +47,7 @@ export class GRPBudgetGuardian {
     this.state = {
       totalPSPRefundedForYear,
       totalRefundedUSDByAddressForYear,
-      totalRefundedUSDByAddressForEpoch: {},
+      totalRefundedUSDByAddressForEpoch: {}, // no need to preload as validation runs on full epoch from scratch
     };
   }
 
