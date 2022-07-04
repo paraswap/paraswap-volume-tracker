@@ -53,7 +53,7 @@ export async function fetchTotalRefundedPSP(
       ...(toEpoch ? { epoch: { [Op.lt]: toEpoch } } : {}),
     },
     dataType: 'string',
-  })) as unknown as string; // wrong type
+  })) as unknown as string | number; // wrong type
 
   return new BigNumber(totalPSPRefunded);
 }

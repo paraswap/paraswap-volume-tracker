@@ -184,9 +184,9 @@ export class GasRefundApi {
         chainId: this.network,
       },
       dataType: 'string',
-    })) as unknown as string; // wrong type
+    })) as unknown as string | number; // wrong type
 
-    return pendingRefundableAmount;
+    return String(pendingRefundableAmount);
   }
 
   // get all ever constructed merkle data for addrress
