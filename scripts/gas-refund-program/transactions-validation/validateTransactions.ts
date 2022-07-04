@@ -95,8 +95,15 @@ export async function validateTransactions() {
       let newStatus;
 
       if (prevEpoch !== tx.epoch) {
-        prevEpoch = tx.epoch;
+        // clean epoch based state on each epoch change
         guardian.cleanEpochBudgetState();
+
+        // clean yearly based state every 26 epochs
+        if ((tx.epoch - GasRefundGenesisEpoch) % (52 / 2) === 0) {
+          guardian.cleanYearlyBudgetState();
+        }
+
+        prevEpoch = tx.epoch;
       }
 
       const refundPercentage = getRefundPercent(totalStakeAmountPSP);

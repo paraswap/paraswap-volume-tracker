@@ -24,8 +24,6 @@ export type GRPSystemState = {
  * This loads the current state of the system from database and resolve whether any limits are violated
  * some optimistic in memory updates are inferred to avoid querying database too often
  */
-
-// @FIXME: yearly conditions are not taking into account year rotations. Either consider moving (last 365) or hard year date.
 export class GRPBudgetGuardian {
   state: GRPSystemState;
 
