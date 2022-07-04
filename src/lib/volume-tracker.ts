@@ -5,8 +5,6 @@ import * as moment from 'moment';
 import type { JsonRpcProvider } from '@ethersproject/providers';
 import { Contract } from '@ethersproject/contracts';
 import {
-  AugustusV5Address,
-  AugustusV4Address,
   ZeroXV4Address,
   ZeroXV2Address,
   CHAIN_ID_MAINNET,
@@ -18,18 +16,15 @@ import * as ZeroXV2Abi from './abi/zerox.v2.abi.json';
 import * as ZeroXV4Abi from './abi/zerox.v4.abi.json';
 import { generatePeriods, MAX_PERIOD, VolumesCache } from './volume-cache';
 import { Op } from 'sequelize';
+import { Config } from '../config/index';
 import { Sequelize } from 'sequelize-typescript';
 import { DataType_USD_VALUE_DECIMALS } from './sql-data-types';
 import Database from '../database';
 import { Volume, VolumeAttributes } from '../models/Volume';
 import { VolumeSyncStatus } from '../models/VolumeSyncStatus';
+import { configLoader } from '../config';
 
 const logger = global.LOGGER();
-
-const INIT_TIME = parseInt(process.env.INIT_TIME || '0'); //TODO: use the block info to the init time from the init block
-if (!INIT_TIME) {
-  throw new Error('VolumeTracker INIT_TIME env var is missing');
-}
 
 const defaultBlockDelay = 20;
 const defaultIndexRefreshDelay = 5 * 60 * 1000;
@@ -543,6 +538,8 @@ export class VolumeTracker {
   initBlock: number | null = null;
   marketMakerAddressMap: { [address: string]: string };
 
+  protected config: Config;
+
   static createInstance(
     initTime: number,
     network: number,
@@ -586,9 +583,11 @@ export class VolumeTracker {
       ZeroXV4Abi,
       this.provider,
     );
+
+    this.config = configLoader.getConfig(network);
     this.takerAddresses = [
-      AugustusV5Address[this.network],
-      AugustusV4Address[this.network],
+      this.config.augustusV4Address,
+      this.config.augustusAddress,
     ].filter(a => !!a);
     this.priceApi = new PriceApi(initTime, this.network);
     this.blockInfo = BlockInfo.getInstance(this.network);
@@ -861,7 +860,7 @@ export class VolumeTracker {
       } while (toBlock < maxToBlockNumber);
       logger.info('Indexing completed');
     } catch (e) {
-      if (reportFailure) logger.error('Transaction failed', e);
+      if (reportFailure) logger.error('Transaction failed', e, (e as Error).stack);
     } finally {
       this.isIndexing = false;
     }

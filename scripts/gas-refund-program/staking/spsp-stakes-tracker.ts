@@ -3,7 +3,6 @@ import { BigNumber as EthersBN, Contract, Event, EventFilter } from 'ethers';
 import {
   CHAIN_ID_MAINNET,
   NULL_ADDRESS,
-  PSP_ADDRESS,
 } from '../../../src/lib/constants';
 import { Provider } from '../../../src/lib/provider';
 import * as ERC20ABI from '../../../src/lib/abi/erc20.abi.json';
@@ -21,8 +20,11 @@ import {
   SPSPAddresses,
   SPSPHelper,
 } from '../../../src/lib/staking/spsp-helper';
+import { configLoader } from '../../../src/config';
 
 const logger = global.LOGGER('SPSPStakesTracker');
+
+const config = configLoader.getConfig(CHAIN_ID_MAINNET);
 
 const SPSPAddressesSet = new Set(SPSPAddresses);
 
@@ -33,7 +35,7 @@ const SPSPPrototypeContract = new Contract(
 );
 
 const PSPContract = new Contract(
-  PSP_ADDRESS[CHAIN_ID_MAINNET],
+  config.pspAddress,
   ERC20ABI,
   Provider.getJsonRpcProvider(CHAIN_ID_MAINNET),
 );

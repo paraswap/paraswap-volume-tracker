@@ -3,9 +3,7 @@ import { Contract } from 'ethers';
 import {
   CHAIN_ID_MAINNET,
   MulticallEncodedData,
-  MULTICALL_ADDRESS,
   NULL_ADDRESS,
-  PSP_ADDRESS,
 } from '../constants';
 import { Provider } from '../provider';
 import * as ERC20ABI from '../abi/erc20.abi.json';
@@ -20,11 +18,14 @@ import {
   PSPStakesForStaker,
   SPSPStakesByAccount,
 } from './types';
+import { configLoader } from '../../config';
 
 const logger = global.LOGGER('SPSPHelper');
 
 const chainId = CHAIN_ID_MAINNET;
 const provider = Provider.getJsonRpcProvider(chainId);
+
+const config = configLoader.getConfig(CHAIN_ID_MAINNET);
 
 export const SPSPAddresses = PoolConfigsMap[CHAIN_ID_MAINNET].filter(
   p => p.isActive,
@@ -47,7 +48,7 @@ export class SPSPHelper {
 
   constructor() {
     this.multicallContract = new Contract(
-      MULTICALL_ADDRESS[chainId],
+      config.multicallV2Address,
       MultiCallerABI,
       provider,
     );
@@ -59,7 +60,7 @@ export class SPSPHelper {
     );
 
     this.PSPContract = new Contract(
-      PSP_ADDRESS[this.chainId],
+      config.pspAddress,
       ERC20ABI,
       Provider.getJsonRpcProvider(this.chainId),
     );
@@ -135,7 +136,7 @@ export class SPSPHelper {
           this.SPSPPrototypeContract.interface.encodeFunctionData('pspsLocked'),
       },
       {
-        target: PSP_ADDRESS[chainId],
+        target: config.pspAddress,
         callData: this.PSPContract.interface.encodeFunctionData('balanceOf', [
           pool,
         ]),

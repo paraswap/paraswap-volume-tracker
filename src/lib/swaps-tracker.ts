@@ -48,7 +48,6 @@ export type Swap = {
   timestamp: number;
 };
 
-const INIT_TIME = parseInt(process.env.INIT_TIME || '0'); //TODO: use the block info to the init time from the init block
 const defaultBlockDelay = 20;
 const defaultIndexRefreshDelay = 5 * 60 * 1000;
 
