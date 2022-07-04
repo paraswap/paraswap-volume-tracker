@@ -21,7 +21,7 @@ async function startComputingGasRefundAllChains() {
     await acquireLock(GasRefundTransaction.tableName);
 
     await GRPBudgetGuardian.getInstance().loadStateFromDB();
-    GRPBudgetGuardian.getInstance().assertMaxPSPGlobalBudgetNotReached();
+    GRPBudgetGuardian.getInstance().assertMaxYearlyPSPGlobalBudgetNotSpent();
 
     await StakesTracker.getInstance().loadHistoricalStakes();
 

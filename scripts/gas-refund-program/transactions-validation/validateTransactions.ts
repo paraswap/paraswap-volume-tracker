@@ -81,7 +81,7 @@ export async function validateTransactions() {
 
     const updatedTransactions = [];
 
-    let prevEpoch;
+    let prevEpoch = transactionsSlice[0].epoch;
 
     for (const tx of transactionsSlice) {
       const {
@@ -96,7 +96,7 @@ export async function validateTransactions() {
 
       if (prevEpoch !== tx.epoch) {
         prevEpoch = tx.epoch;
-        guardian.cleanBudgetStateForEpoch();
+        guardian.cleanEpochBudgetState();
       }
 
       const refundPercentage = getRefundPercent(totalStakeAmountPSP);
@@ -119,10 +119,10 @@ export async function validateTransactions() {
       const refundedAmountPSP = _refundedAmountPSP.decimalPlaces(0); // truncate decimals to align with values in db
 
       if (
-        guardian.isMaxPSPGlobalBudgetSpent() ||
-        guardian.isAccountUSDBudgetSpent(address) ||
+        guardian.isMaxYearlyPSPGlobalBudgetSpent() ||
+        guardian.hasSpentYearlyUSDBudget(address) ||
         (tx.epoch >= GasRefundBudgetLimitEpochBasedStartEpoch &&
-          guardian.isAccountUSDBudgetSpentForEpoch(address))
+          guardian.hasSpentUSDBudgetForEpoch(address))
       ) {
         newStatus = TransactionStatus.REJECTED;
       } else {
@@ -147,18 +147,18 @@ export async function validateTransactions() {
         );
 
         if (tx.epoch >= GasRefundBudgetLimitEpochBasedStartEpoch) {
-          guardian.increaseRefundedAmountUSDForEpoch(
+          guardian.increaseRefundedUSDForEpoch(
             address,
             cappedRefundedAmountUSD || refundedAmountUSD,
           );
         }
 
-        guardian.increaseTotalAmountRefundedUSDForAccount(
+        guardian.increaseYearlyRefundedUSD(
           address,
           cappedRefundedAmountUSD || refundedAmountUSD,
         );
 
-        guardian.increaseTotalPSPRefunded(
+        guardian.increaseTotalRefundedPSP(
           cappedRefundedAmountPSP || refundedAmountPSP,
         );
 
@@ -215,12 +215,12 @@ function capRefundedAmountsBasedOnYearlyDollarBudget(
 
   if (
     guardian
-      .totalRefundedAmountUSD(address)
+      .totalYearlyRefundedUSD(address)
       .plus(refundedAmountUSD)
       .isGreaterThan(MAX_USD_ADDRESS_BUDGET_YEARLY)
   ) {
     cappedRefundedAmountUSD = MAX_USD_ADDRESS_BUDGET_YEARLY.minus(
-      guardian.totalRefundedAmountUSD(address),
+      guardian.totalYearlyRefundedUSD(address),
     );
 
     assert(
@@ -246,7 +246,7 @@ function capRefundedAmountsBasedOnEpochDollarBudget(
 
   if (
     guardian
-      .totalRefundedAmountUSD(address)
+      .totalYearlyRefundedUSD(address)
       .plus(refundedAmountUSD)
       .isGreaterThan(MAX_USD_ADDRESS_BUDGET_YEARLY)
   ) {
@@ -262,12 +262,12 @@ function capRefundedAmountsBasedOnEpochDollarBudget(
 
   if (
     guardian
-      .refundedAmountUSDForEpoch(address)
+      .totalRefundedUSDForEpoch(address)
       .plus(refundedAmountUSD)
       .isGreaterThan(MAX_USD_ADDRESS_BUDGET_EPOCH)
   ) {
     cappedRefundedAmountUSD = MAX_USD_ADDRESS_BUDGET_EPOCH.minus(
-      guardian.refundedAmountUSDForEpoch(address),
+      guardian.totalRefundedUSDForEpoch(address),
     );
 
     assert(
