@@ -76,7 +76,9 @@ export async function validateTransactions() {
       ],
     });
 
-    if (!transactionsSlice.length) break;
+    if (!transactionsSlice.length) {
+      break;
+    }
 
     offset += pageSize;
 
@@ -126,6 +128,9 @@ export async function validateTransactions() {
 
       const refundedAmountPSP = _refundedAmountPSP.decimalPlaces(0); // truncate decimals to align with values in db
 
+      let cappedRefundedAmountPSP: BigNumber | undefined;
+      let cappedRefundedAmountUSD: BigNumber | undefined;
+
       if (
         guardian.isMaxYearlyPSPGlobalBudgetSpent() ||
         guardian.hasSpentYearlyUSDBudget(address) ||
@@ -136,7 +141,7 @@ export async function validateTransactions() {
       } else {
         newStatus = TransactionStatus.VALIDATED;
 
-        let { cappedRefundedAmountPSP, cappedRefundedAmountUSD } =
+        ({ cappedRefundedAmountPSP, cappedRefundedAmountUSD } =
           tx.epoch < GasRefundBudgetLimitEpochBasedStartEpoch
             ? capRefundedAmountsBasedOnYearlyDollarBudget(
                 address,
@@ -147,7 +152,7 @@ export async function validateTransactions() {
                 address,
                 refundedAmountUSD,
                 pspUsd,
-              );
+              ));
 
         cappedRefundedAmountPSP = capRefundedPSPAmountBasedOnPSPBudget(
           cappedRefundedAmountPSP,
@@ -169,42 +174,44 @@ export async function validateTransactions() {
         guardian.increaseTotalRefundedPSP(
           cappedRefundedAmountPSP || refundedAmountPSP,
         );
-
-        assert(
-          xnor(cappedRefundedAmountPSP, cappedRefundedAmountUSD),
-          'Either both cappedRefundedAmountPSP and cappedRefundedAmountUSD should be falsy or truthy',
-        );
-
-        if (status !== newStatus || !!cappedRefundedAmountPSP) {
-          updatedTransactions.push({
-            ...tx,
-            ...(!!cappedRefundedAmountPSP
-              ? { refundedAmountPSP: cappedRefundedAmountPSP.toFixed(0) }
-              : {}),
-            ...(!!cappedRefundedAmountUSD
-              ? { refundedAmountUSD: cappedRefundedAmountUSD.toFixed() } // purposefully not rounded to preserve dollar amount precision [IMPORTANT FOR CALCULCATIONS]
-              : {}),
-            status: newStatus,
-          });
-        }
       }
 
-      if (updatedTransactions.length > 0) {
-        await updateTransactionsStatusRefundedAmounts(updatedTransactions);
-      }
+      assert(
+        xnor(cappedRefundedAmountPSP, cappedRefundedAmountUSD),
+        'Either both cappedRefundedAmountPSP and cappedRefundedAmountUSD should be falsy or truthy',
+      );
 
-      if (transactionsSlice.length < pageSize) break; // micro opt to avoid querying db for last page
+      if (status !== newStatus || !!cappedRefundedAmountPSP) {
+        updatedTransactions.push({
+          ...tx,
+          ...(!!cappedRefundedAmountPSP
+            ? { refundedAmountPSP: cappedRefundedAmountPSP.toFixed(0) }
+            : {}),
+          ...(!!cappedRefundedAmountUSD
+            ? { refundedAmountUSD: cappedRefundedAmountUSD.toFixed() } // purposefully not rounded to preserve dollar amount precision [IMPORTANT FOR CALCULCATIONS]
+            : {}),
+          status: newStatus,
+        });
+      }
     }
 
-    const numOfIdleTxs = await GasRefundTransaction.count({
-      where: { status: TransactionStatus.IDLE },
-    });
+    if (updatedTransactions.length > 0) {
+      await updateTransactionsStatusRefundedAmounts(updatedTransactions);
+    }
 
-    assert(
-      numOfIdleTxs === 0,
-      `there should be 0 idle transactions at the end of validation step`,
-    );
+    if (transactionsSlice.length < pageSize) {
+      break; // micro opt to avoid querying db for last page
+    }
   }
+
+  const numOfIdleTxs = await GasRefundTransaction.count({
+    where: { status: TransactionStatus.IDLE },
+  });
+
+  assert(
+    numOfIdleTxs === 0,
+    `there should be 0 idle transactions at the end of validation step`,
+  );
 }
 
 type CappedAmounts = {
