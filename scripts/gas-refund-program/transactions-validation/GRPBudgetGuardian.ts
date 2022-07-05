@@ -37,11 +37,11 @@ export class GRPBudgetGuardian {
     return this.instance;
   }
 
-  async loadStateFromDB(toEpoch?: number) {
+  async loadStateFromDB(startEpoch: number, toEpoch?: number) {
     const [totalPSPRefundedForYear, totalRefundedUSDByAddressForYear] =
       await Promise.all([
-        fetchTotalRefundedPSP(toEpoch),
-        fetchTotalRefundedAmountUSDByAddress(toEpoch),
+        fetchTotalRefundedPSP(startEpoch, toEpoch),
+        fetchTotalRefundedAmountUSDByAddress(startEpoch, toEpoch),
       ]);
 
     this.state = {

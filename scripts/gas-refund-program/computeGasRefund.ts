@@ -5,7 +5,6 @@ import { init } from './common';
 import { acquireLock, releaseLock } from '../../src/lib/lock-utils';
 import Database from '../../src/database';
 import StakesTracker from './staking/stakes-tracker';
-import { GRPBudgetGuardian } from './transactions-validation/GRPBudgetGuardian';
 import { validateTransactions } from './transactions-validation/validateTransactions';
 import { fetchRefundableTransactionsAllChains } from './transactions-indexing/fetchRefundableTransactionsAllChains';
 import { GasRefundTransaction } from '../../src/models/GasRefundTransaction';
@@ -19,9 +18,6 @@ async function startComputingGasRefundAllChains() {
 
   return Database.sequelize.transaction(async () => {
     await acquireLock(GasRefundTransaction.tableName);
-
-    await GRPBudgetGuardian.getInstance().loadStateFromDB();
-    GRPBudgetGuardian.getInstance().assertMaxYearlyPSPGlobalBudgetNotSpent();
 
     await StakesTracker.getInstance().loadHistoricalStakes();
 

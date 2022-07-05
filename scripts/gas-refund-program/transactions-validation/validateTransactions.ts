@@ -38,12 +38,20 @@ export async function validateTransactions() {
   const guardian = GRPBudgetGuardian.getInstance();
 
   const lastEpochRefunded = await fetchLastEpochRefunded();
-  const startEpochForTxValidation = !lastEpochRefunded
+
+  const firstEpochOfYear = !lastEpochRefunded
     ? GasRefundGenesisEpoch
+    : Math.max(
+        GasRefundGenesisEpoch,
+        lastEpochRefunded - (lastEpochRefunded % TOTAL_EPOCHS_IN_YEAR),
+      );
+
+  const startEpochForTxValidation = !lastEpochRefunded
+    ? firstEpochOfYear
     : lastEpochRefunded + 1;
 
   // reload budget guardian state till last epoch refunded (exclusive)
-  await guardian.loadStateFromDB(startEpochForTxValidation);
+  await guardian.loadStateFromDB(firstEpochOfYear, startEpochForTxValidation);
 
   let offset = 0;
   const pageSize = 1000;
