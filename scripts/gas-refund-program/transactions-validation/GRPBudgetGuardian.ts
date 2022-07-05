@@ -104,12 +104,12 @@ export class GRPBudgetGuardian {
   }
 
   // ------------ cleaning -----
-  cleanYearlyBudgetState() {
+  resetYearlyBudgetState() {
     this.state.totalPSPRefundedForYear = ZERO_BN;
     this.state.totalRefundedUSDByAddressForYear = {};
   }
 
-  cleanEpochBudgetState() {
+  resetEpochBudgetState() {
     this.state.totalRefundedUSDByAddressForEpoch = {};
   }
 }

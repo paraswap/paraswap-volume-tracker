@@ -107,11 +107,11 @@ export async function validateTransactions() {
 
       if (prevEpoch !== tx.epoch) {
         // clean epoch based state on each epoch change
-        guardian.cleanEpochBudgetState();
+        guardian.resetEpochBudgetState();
 
         // clean yearly based state every 26 epochs
         if ((tx.epoch - GasRefundGenesisEpoch) % TOTAL_EPOCHS_IN_YEAR === 0) {
-          guardian.cleanYearlyBudgetState();
+          guardian.resetYearlyBudgetState();
         }
 
         prevEpoch = tx.epoch;
