@@ -154,7 +154,7 @@ export async function validateTransactions() {
                 pspUsd,
               ));
 
-        cappedRefundedAmountPSP = capRefundedPSPAmountBasedOnPSPBudget(
+        cappedRefundedAmountPSP = capRefundedPSPAmountBasedOnYearlyPSPBudget(
           cappedRefundedAmountPSP,
           refundedAmountPSP,
         );
@@ -299,34 +299,34 @@ function capRefundedAmountsBasedOnEpochDollarBudget(
   return { cappedRefundedAmountUSD, cappedRefundedAmountPSP };
 }
 
-function capRefundedPSPAmountBasedOnPSPBudget(
+function capRefundedPSPAmountBasedOnYearlyPSPBudget(
   cappedRefundedAmountPSP: BigNumber | undefined,
   refundedAmountPSP: BigNumber,
 ): BigNumber | undefined {
   const guardian = GRPBudgetGuardian.getInstance();
 
-  if (
-    guardian.state.totalPSPRefundedForYear
-      .plus(cappedRefundedAmountPSP || refundedAmountPSP)
-      .isGreaterThan(MAX_PSP_GLOBAL_BUDGET_YEARLY)
-  ) {
-    // Note: updating refundedAmountUSD does not matter if global budget limit is reached
-    const cappedToMax = MAX_PSP_GLOBAL_BUDGET_YEARLY.minus(
-      guardian.state.totalPSPRefundedForYear,
-    );
+  const hasCrossedYearlyPSPBuget = guardian.state.totalPSPRefundedForYear
+    .plus(cappedRefundedAmountPSP || refundedAmountPSP)
+    .isGreaterThan(MAX_PSP_GLOBAL_BUDGET_YEARLY);
 
-    // if transaction has been capped in upper handling, take min to avoid accidentally pushing per address limit
-    cappedRefundedAmountPSP = cappedRefundedAmountPSP
-      ? BigNumber.min(cappedRefundedAmountPSP, cappedToMax)
-      : cappedToMax;
-
-    assert(
-      cappedRefundedAmountPSP.lt(refundedAmountPSP),
-      'the capped amount should be lower than original one',
-    );
-
+  if (!hasCrossedYearlyPSPBuget) {
     return cappedRefundedAmountPSP;
   }
 
-  return cappedRefundedAmountPSP;
+  // Note: updating refundedAmountUSD does not matter if global budget limit is reached
+  const cappedToMax = MAX_PSP_GLOBAL_BUDGET_YEARLY.minus(
+    guardian.state.totalPSPRefundedForYear,
+  );
+
+  // if transaction has been capped in upper handling, take min to avoid accidentally pushing per address limit
+  const _cappedRefundedAmountPSP = cappedRefundedAmountPSP
+    ? BigNumber.min(cappedRefundedAmountPSP, cappedToMax)
+    : cappedToMax;
+
+  assert(
+    _cappedRefundedAmountPSP.lt(refundedAmountPSP),
+    'the capped amount should be lower than original one',
+  );
+
+  return _cappedRefundedAmountPSP;
 }
