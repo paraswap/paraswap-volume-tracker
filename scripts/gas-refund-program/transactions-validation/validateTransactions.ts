@@ -2,9 +2,11 @@ import BigNumber from 'bignumber.js';
 import { Op } from 'sequelize';
 import { assert } from 'ts-essentials';
 import {
+  GasRefundBudgetLimitEpochBasedStartEpoch,
   GasRefundGenesisEpoch,
   GasRefundPrecisionGlitchRefundedAmountsEpoch,
   getRefundPercent,
+  TOTAL_EPOCHS_IN_YEAR,
   TransactionStatus,
 } from '../../../src/lib/gas-refund';
 import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
@@ -15,8 +17,9 @@ import {
 import { xnor } from '../../../src/lib/utils/helpers';
 import {
   GRPBudgetGuardian,
-  MAX_PSP_GLOBAL_BUDGET,
-  MAX_USD_ADDRESS_BUDGET,
+  MAX_PSP_GLOBAL_BUDGET_YEARLY,
+  MAX_USD_ADDRESS_BUDGET_YEARLY,
+  MAX_USD_ADDRESS_BUDGET_EPOCH,
 } from './GRPBudgetGuardian';
 
 /**
@@ -35,12 +38,19 @@ export async function validateTransactions() {
   const guardian = GRPBudgetGuardian.getInstance();
 
   const lastEpochRefunded = await fetchLastEpochRefunded();
+
+  const firstEpochOfYear = !!lastEpochRefunded
+    ? GasRefundGenesisEpoch +
+      lastEpochRefunded -
+      (lastEpochRefunded % TOTAL_EPOCHS_IN_YEAR)
+    : GasRefundGenesisEpoch;
+
   const startEpochForTxValidation = !lastEpochRefunded
-    ? GasRefundGenesisEpoch
+    ? firstEpochOfYear
     : lastEpochRefunded + 1;
 
   // reload budget guardian state till last epoch refunded (exclusive)
-  await guardian.loadStateFromDB(startEpochForTxValidation);
+  await guardian.loadStateFromDB(firstEpochOfYear, startEpochForTxValidation);
 
   let offset = 0;
   const pageSize = 1000;
@@ -73,11 +83,15 @@ export async function validateTransactions() {
       ],
     });
 
-    if (!transactionsSlice.length) break;
+    if (!transactionsSlice.length) {
+      break;
+    }
 
     offset += pageSize;
 
     const updatedTransactions = [];
+
+    let prevEpoch = transactionsSlice[0].epoch;
 
     for (const tx of transactionsSlice) {
       const {
@@ -89,6 +103,18 @@ export async function validateTransactions() {
         pspUsd,
       } = tx;
       let newStatus;
+
+      if (prevEpoch !== tx.epoch) {
+        // clean epoch based state on each epoch change
+        guardian.resetEpochBudgetState();
+
+        // clean yearly based state every 26 epochs
+        if ((tx.epoch - GasRefundGenesisEpoch) % TOTAL_EPOCHS_IN_YEAR === 0) {
+          guardian.resetYearlyBudgetState();
+        }
+
+        prevEpoch = tx.epoch;
+      }
 
       const refundPercentage = getRefundPercent(totalStakeAmountPSP);
 
@@ -109,66 +135,50 @@ export async function validateTransactions() {
 
       const refundedAmountPSP = _refundedAmountPSP.decimalPlaces(0); // truncate decimals to align with values in db
 
-      let cappedRefundedAmountPSP;
-      let cappedRefundedAmountUSD;
+      let cappedRefundedAmountPSP: BigNumber | undefined;
+      let cappedRefundedAmountUSD: BigNumber | undefined;
 
-      const isGlobalLimitReached = guardian.isMaxPSPGlobalBudgetSpent();
-      const isPerAccountLimitReached =
-        guardian.isAccountUSDBudgetSpent(address);
-
-      if (isGlobalLimitReached || isPerAccountLimitReached) {
+      if (
+        guardian.isMaxYearlyPSPGlobalBudgetSpent() ||
+        guardian.hasSpentYearlyUSDBudget(address) ||
+        (tx.epoch >= GasRefundBudgetLimitEpochBasedStartEpoch &&
+          guardian.hasSpentUSDBudgetForEpoch(address))
+      ) {
         newStatus = TransactionStatus.REJECTED;
       } else {
         newStatus = TransactionStatus.VALIDATED;
 
-        if (
-          guardian
-            .totalRefundedAmountUSD(address)
-            .plus(refundedAmountUSD)
-            .isGreaterThan(MAX_USD_ADDRESS_BUDGET)
-        ) {
-          cappedRefundedAmountUSD = MAX_USD_ADDRESS_BUDGET.minus(
-            guardian.totalRefundedAmountUSD(address),
-          );
+        ({ cappedRefundedAmountPSP, cappedRefundedAmountUSD } =
+          tx.epoch < GasRefundBudgetLimitEpochBasedStartEpoch
+            ? capRefundedAmountsBasedOnYearlyDollarBudget(
+                address,
+                refundedAmountUSD,
+                pspUsd,
+              )
+            : capRefundedAmountsBasedOnEpochDollarBudget(
+                address,
+                refundedAmountUSD,
+                pspUsd,
+              ));
 
-          assert(
-            cappedRefundedAmountUSD.isGreaterThanOrEqualTo(0),
-            'Logic Error: quantity cannot be negative, this would mean we priorly refunded more than max',
-          );
+        cappedRefundedAmountPSP = capRefundedPSPAmountBasedOnYearlyPSPBudget(
+          cappedRefundedAmountPSP,
+          refundedAmountPSP,
+        );
 
-          cappedRefundedAmountPSP = cappedRefundedAmountUSD
-            .dividedBy(pspUsd)
-            .multipliedBy(10 ** 18)
-            .decimalPlaces(0);
-        }
-
-        if (
-          guardian.state.totalPSPRefunded
-            .plus(cappedRefundedAmountPSP || refundedAmountPSP)
-            .isGreaterThan(MAX_PSP_GLOBAL_BUDGET)
-        ) {
-          // Note: updating refundedAmountUSD does not matter if global budget limit is reached
-          const cappedToMax = MAX_PSP_GLOBAL_BUDGET.minus(
-            guardian.state.totalPSPRefunded,
-          );
-
-          // if transaction has been capped in upper handling, take min to avoid accidentally pushing per address limit
-          cappedRefundedAmountPSP = cappedRefundedAmountPSP
-            ? BigNumber.min(cappedRefundedAmountPSP, cappedToMax)
-            : cappedToMax;
-
-          assert(
-            cappedRefundedAmountPSP.lt(refundedAmountPSP),
-            'the capped amount should be lower than original one',
+        if (tx.epoch >= GasRefundBudgetLimitEpochBasedStartEpoch) {
+          guardian.increaseRefundedUSDForEpoch(
+            address,
+            cappedRefundedAmountUSD || refundedAmountUSD,
           );
         }
 
-        guardian.increaseTotalAmountRefundedUSDForAccount(
+        guardian.increaseYearlyRefundedUSD(
           address,
           cappedRefundedAmountUSD || refundedAmountUSD,
         );
 
-        guardian.increaseTotalPSPRefunded(
+        guardian.increaseTotalRefundedPSP(
           cappedRefundedAmountPSP || refundedAmountPSP,
         );
       }
@@ -196,7 +206,9 @@ export async function validateTransactions() {
       await updateTransactionsStatusRefundedAmounts(updatedTransactions);
     }
 
-    if (transactionsSlice.length < pageSize) break; // micro opt to avoid querying db for last page
+    if (transactionsSlice.length < pageSize) {
+      break; // micro opt to avoid querying db for last page
+    }
   }
 
   const numOfIdleTxs = await GasRefundTransaction.count({
@@ -207,4 +219,121 @@ export async function validateTransactions() {
     numOfIdleTxs === 0,
     `there should be 0 idle transactions at the end of validation step`,
   );
+}
+
+type CappedAmounts = {
+  cappedRefundedAmountUSD: BigNumber | undefined;
+  cappedRefundedAmountPSP: BigNumber | undefined;
+};
+
+function capRefundedAmountsBasedOnYearlyDollarBudget(
+  address: string,
+  refundedAmountUSD: BigNumber,
+  pspUsd: number,
+): CappedAmounts {
+  const guardian = GRPBudgetGuardian.getInstance();
+  let cappedRefundedAmountUSD;
+  let cappedRefundedAmountPSP;
+
+  if (
+    guardian
+      .totalYearlyRefundedUSD(address)
+      .plus(refundedAmountUSD)
+      .isGreaterThan(MAX_USD_ADDRESS_BUDGET_YEARLY)
+  ) {
+    cappedRefundedAmountUSD = MAX_USD_ADDRESS_BUDGET_YEARLY.minus(
+      guardian.totalYearlyRefundedUSD(address),
+    );
+
+    assert(
+      cappedRefundedAmountUSD.isGreaterThanOrEqualTo(0),
+      'Logic Error: quantity cannot be negative, this would mean we priorly refunded more than max',
+    );
+
+    cappedRefundedAmountPSP = cappedRefundedAmountUSD
+      .dividedBy(pspUsd)
+      .multipliedBy(10 ** 18)
+      .decimalPlaces(0);
+  }
+
+  return { cappedRefundedAmountUSD, cappedRefundedAmountPSP };
+}
+
+function capRefundedAmountsBasedOnEpochDollarBudget(
+  address: string,
+  refundedAmountUSD: BigNumber,
+  pspUsd: number,
+): CappedAmounts {
+  const guardian = GRPBudgetGuardian.getInstance();
+
+  if (
+    guardian
+      .totalYearlyRefundedUSD(address)
+      .plus(refundedAmountUSD)
+      .isGreaterThan(MAX_USD_ADDRESS_BUDGET_YEARLY)
+  ) {
+    return capRefundedAmountsBasedOnYearlyDollarBudget(
+      address,
+      refundedAmountUSD,
+      pspUsd,
+    );
+  }
+
+  let cappedRefundedAmountUSD;
+  let cappedRefundedAmountPSP;
+
+  if (
+    guardian
+      .totalRefundedUSDForEpoch(address)
+      .plus(refundedAmountUSD)
+      .isGreaterThan(MAX_USD_ADDRESS_BUDGET_EPOCH)
+  ) {
+    cappedRefundedAmountUSD = MAX_USD_ADDRESS_BUDGET_EPOCH.minus(
+      guardian.totalRefundedUSDForEpoch(address),
+    );
+
+    assert(
+      cappedRefundedAmountUSD.isGreaterThanOrEqualTo(0),
+      'Logic Error: quantity cannot be negative, this would mean we priorly refunded more than max',
+    );
+
+    cappedRefundedAmountPSP = cappedRefundedAmountUSD
+      .dividedBy(pspUsd)
+      .multipliedBy(10 ** 18)
+      .decimalPlaces(0);
+  }
+
+  return { cappedRefundedAmountUSD, cappedRefundedAmountPSP };
+}
+
+function capRefundedPSPAmountBasedOnYearlyPSPBudget(
+  cappedRefundedAmountPSP: BigNumber | undefined,
+  refundedAmountPSP: BigNumber,
+): BigNumber | undefined {
+  const guardian = GRPBudgetGuardian.getInstance();
+
+  const hasCrossedYearlyPSPBuget = guardian.state.totalPSPRefundedForYear
+    .plus(cappedRefundedAmountPSP || refundedAmountPSP)
+    .isGreaterThan(MAX_PSP_GLOBAL_BUDGET_YEARLY);
+
+  if (!hasCrossedYearlyPSPBuget) {
+    return cappedRefundedAmountPSP;
+  }
+
+  // Note: updating refundedAmountUSD does not matter if global budget limit is reached
+  const cappedToMax = MAX_PSP_GLOBAL_BUDGET_YEARLY.minus(
+    guardian.state.totalPSPRefundedForYear,
+  );
+
+  // if transaction has been capped in upper handling, take min to avoid accidentally pushing per address limit
+  const _cappedRefundedAmountPSP = cappedRefundedAmountPSP
+    ? BigNumber.min(cappedRefundedAmountPSP, cappedToMax)
+    : cappedToMax;
+
+  assert(
+    _cappedRefundedAmountPSP.lt(refundedAmountPSP),
+    'the capped amount should be lower than original one',
+  );
+
+  return _cappedRefundedAmountPSP;
 }

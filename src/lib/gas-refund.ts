@@ -13,6 +13,10 @@ export const GRP_SUPPORTED_CHAINS = [
   CHAIN_ID_FANTOM,
 ];
 
+const WEEKS_IN_YEAR = 52;
+const EPOCH_LENGTH_IN_WEEK = 2;
+export const TOTAL_EPOCHS_IN_YEAR = WEEKS_IN_YEAR / EPOCH_LENGTH_IN_WEEK;
+
 export const GasRefundGenesisEpoch = 9;
 export const GasRefundPricingAlgoFlipEpoch = 11;
 export const GasRefundSafetyModuleStartEpoch = 11;
@@ -21,6 +25,7 @@ export const GasRefundTxOriginCheckStartEpoch = 12;
 export const GasRefundSPSPStakesAlgoFlipEpoch = 12;
 export const GasRefundConsiderContractTXsStartEpoch = 12;
 export const GasRefundPrecisionGlitchRefundedAmountsEpoch = 12;
+export const GasRefundBudgetLimitEpochBasedStartEpoch = 16;
 
 interface BaseGasRefundData {
   epoch: number;

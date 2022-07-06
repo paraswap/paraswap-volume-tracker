@@ -42,6 +42,7 @@ export async function fetchLastTimestampTxByContract({
 }
 
 export async function fetchTotalRefundedPSP(
+  startEpoch: number,
   toEpoch?: number,
 ): Promise<BigNumber> {
   const totalPSPRefunded = (await GasRefundTransaction.sum<
@@ -50,7 +51,10 @@ export async function fetchTotalRefundedPSP(
   >('refundedAmountPSP', {
     where: {
       status: TransactionStatus.VALIDATED,
-      ...(toEpoch ? { epoch: { [Op.lt]: toEpoch } } : {}),
+      epoch: {
+        [Op.gte]: startEpoch,
+        ...(toEpoch ? { [Op.lt]: toEpoch } : {}),
+      },
     },
     dataType: 'string',
   })) as unknown as string | number; // wrong type
@@ -59,6 +63,7 @@ export async function fetchTotalRefundedPSP(
 }
 
 export async function fetchTotalRefundedAmountUSDByAddress(
+  startEpoch: number,
   toEpoch?: number,
 ): Promise<{
   [address: string]: BigNumber;
@@ -74,7 +79,10 @@ export async function fetchTotalRefundedAmountUSDByAddress(
       ],
       where: {
         status: TransactionStatus.VALIDATED,
-        ...(toEpoch ? { epoch: { [Op.lt]: toEpoch } } : {}),
+        epoch: {
+          [Op.gte]: startEpoch,
+          ...(toEpoch ? { [Op.lt]: toEpoch } : {}),
+        },
       },
       group: 'address',
       raw: true,

@@ -6,14 +6,16 @@ import {
 } from '../persistance/db-persistance';
 import { ZERO_BN } from '../../../src/lib/utils/helpers';
 
-export const MAX_PSP_GLOBAL_BUDGET = new BigNumber(30_000_000).multipliedBy(
-  10 ** 18,
-);
-export const MAX_USD_ADDRESS_BUDGET = new BigNumber(30_000);
+export const MAX_PSP_GLOBAL_BUDGET_YEARLY = new BigNumber(
+  30_000_000,
+).multipliedBy(10 ** 18);
+export const MAX_USD_ADDRESS_BUDGET_YEARLY = new BigNumber(30_000);
+export const MAX_USD_ADDRESS_BUDGET_EPOCH = new BigNumber(1_250); // should have been MAX_USD_ADDRESS_BUDGET_YEARLY.dividedBy(TOTAL_EPOCHS_IN_YEAR) but voted 1250
 
 export type GRPSystemState = {
-  totalPSPRefunded: BigNumber;
-  totalRefundedAmountUSDByAddress: { [address: string]: BigNumber };
+  totalPSPRefundedForYear: BigNumber;
+  totalRefundedUSDByAddressForYear: { [address: string]: BigNumber };
+  totalRefundedUSDByAddressForEpoch: { [address: string]: BigNumber };
 };
 
 /* Gas Refund System Guardian is meant to implement proposal limitations; initially local limit of 30k$ per address and global limit of 30M PSP
@@ -33,50 +35,79 @@ export class GRPBudgetGuardian {
     return this.instance;
   }
 
-  async loadStateFromDB(toEpoch?: number) {
-    const [totalPSPRefunded, totalRefundedAmountUSDByAddress] =
+  async loadStateFromDB(startEpoch: number, toEpoch?: number) {
+    const [totalPSPRefundedForYear, totalRefundedUSDByAddressForYear] =
       await Promise.all([
-        fetchTotalRefundedPSP(toEpoch),
-        fetchTotalRefundedAmountUSDByAddress(toEpoch),
+        fetchTotalRefundedPSP(startEpoch, toEpoch),
+        fetchTotalRefundedAmountUSDByAddress(startEpoch, toEpoch),
       ]);
 
     this.state = {
-      totalPSPRefunded,
-      totalRefundedAmountUSDByAddress,
+      totalPSPRefundedForYear,
+      totalRefundedUSDByAddressForYear,
+      totalRefundedUSDByAddressForEpoch: {}, // no need to preload as validation runs on full epoch from scratch
     };
   }
 
-  totalRefundedAmountUSD(account: string) {
-    return this.state.totalRefundedAmountUSDByAddress[account] || ZERO_BN;
-  }
-
-  isMaxPSPGlobalBudgetSpent() {
-    return this.state.totalPSPRefunded.isGreaterThanOrEqualTo(
-      MAX_PSP_GLOBAL_BUDGET,
+  // ---------  PSP Global Yearly Budget Limit ---------
+  isMaxYearlyPSPGlobalBudgetSpent() {
+    return this.state.totalPSPRefundedForYear.isGreaterThanOrEqualTo(
+      MAX_PSP_GLOBAL_BUDGET_YEARLY,
     );
   }
 
-  isAccountUSDBudgetSpent(account: string) {
-    return this.totalRefundedAmountUSD(account).isGreaterThanOrEqualTo(
-      MAX_USD_ADDRESS_BUDGET,
+  assertMaxYearlyPSPGlobalBudgetNotSpent() {
+    assert(
+      !this.isMaxYearlyPSPGlobalBudgetSpent(),
+      'Max PSP global budget spent',
     );
   }
 
-  assertMaxPSPGlobalBudgetNotReached() {
-    assert(!this.isMaxPSPGlobalBudgetSpent(), 'Max PSP global budget spent');
+  increaseTotalRefundedPSP(amount: BigNumber) {
+    this.state.totalPSPRefundedForYear = (
+      this.state.totalPSPRefundedForYear || ZERO_BN
+    ).plus(amount);
   }
 
-  increaseTotalAmountRefundedUSDForAccount(
-    account: string,
-    usdAmount: BigNumber | string,
-  ) {
-    this.state.totalRefundedAmountUSDByAddress[account] =
-      this.totalRefundedAmountUSD(account).plus(usdAmount);
+  // ---------  USD Per User Yearly Budget Limit ---------
+  totalYearlyRefundedUSD(account: string) {
+    return this.state.totalRefundedUSDByAddressForYear[account] || ZERO_BN;
   }
 
-  increaseTotalPSPRefunded(amount: BigNumber | string) {
-    this.state.totalPSPRefunded = (this.state.totalPSPRefunded || ZERO_BN).plus(
-      amount,
+  hasSpentYearlyUSDBudget(account: string) {
+    return this.totalYearlyRefundedUSD(account).isGreaterThanOrEqualTo(
+      MAX_USD_ADDRESS_BUDGET_YEARLY,
     );
+  }
+
+  increaseYearlyRefundedUSD(account: string, usdAmount: BigNumber) {
+    this.state.totalRefundedUSDByAddressForYear[account] =
+      this.totalYearlyRefundedUSD(account).plus(usdAmount);
+  }
+
+  // ---------  USD Per User Epoch Based Budget Limit ---------
+  totalRefundedUSDForEpoch(account: string) {
+    return this.state.totalRefundedUSDByAddressForEpoch[account] || ZERO_BN;
+  }
+
+  hasSpentUSDBudgetForEpoch(account: string) {
+    return this.totalRefundedUSDForEpoch(account).isGreaterThanOrEqualTo(
+      MAX_USD_ADDRESS_BUDGET_EPOCH,
+    );
+  }
+
+  increaseRefundedUSDForEpoch(account: string, usdAmount: BigNumber) {
+    this.state.totalRefundedUSDByAddressForEpoch[account] =
+      this.totalRefundedUSDForEpoch(account).plus(usdAmount);
+  }
+
+  // ------------ cleaning -----
+  resetYearlyBudgetState() {
+    this.state.totalPSPRefundedForYear = ZERO_BN;
+    this.state.totalRefundedUSDByAddressForYear = {};
+  }
+
+  resetEpochBudgetState() {
+    this.state.totalRefundedUSDByAddressForEpoch = {};
   }
 }
