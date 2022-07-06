@@ -5,14 +5,12 @@ import {
   fetchTotalRefundedPSP,
 } from '../persistance/db-persistance';
 import { ZERO_BN } from '../../../src/lib/utils/helpers';
-import { TOTAL_EPOCHS_IN_YEAR } from '../../../src/lib/gas-refund';
 
 export const MAX_PSP_GLOBAL_BUDGET_YEARLY = new BigNumber(
   30_000_000,
 ).multipliedBy(10 ** 18);
 export const MAX_USD_ADDRESS_BUDGET_YEARLY = new BigNumber(30_000);
-export const MAX_USD_ADDRESS_BUDGET_EPOCH =
-  MAX_USD_ADDRESS_BUDGET_YEARLY.dividedBy(TOTAL_EPOCHS_IN_YEAR);
+export const MAX_USD_ADDRESS_BUDGET_EPOCH = new BigNumber(1_250); // should have been MAX_USD_ADDRESS_BUDGET_YEARLY.dividedBy(TOTAL_EPOCHS_IN_YEAR) but voted 1250
 
 export type GRPSystemState = {
   totalPSPRefundedForYear: BigNumber;
