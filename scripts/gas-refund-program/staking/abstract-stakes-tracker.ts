@@ -1,4 +1,6 @@
-export default class AbstractStakeTracker {
+import BigNumber from 'bignumber.js';
+
+export class AbstractStakeTracker {
   startBlock: number;
   endBlock: number;
 
@@ -8,4 +10,13 @@ export default class AbstractStakeTracker {
 
     return this;
   }
+}
+
+export interface IStakeTracker {
+  loadStakes: () => Promise<void>;
+  computeStakedPSPBalance: (account: string, timestamp: number) => BigNumber;
+  computeStakedPSPBalanceWithVirtualLockup: (
+    account: string,
+    timestamp: number,
+  ) => BigNumber;
 }

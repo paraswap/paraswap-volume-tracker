@@ -15,12 +15,13 @@ import {
   ZERO_BN,
 } from '../../../src/lib/utils/helpers';
 import { reduceTimeSeries, TimeSeries } from '../timeseries';
-import AbstractStakeTracker from './abstract-stakes-tracker';
+import { AbstractStakeTracker, IStakeTracker } from './abstract-stakes-tracker';
 import { assert } from 'ts-essentials';
 import {
   SPSPAddresses,
   SPSPHelper,
 } from '../../../src/lib/staking/spsp-helper';
+import { VIRTUAL_LOCKUP_PERIOD } from '../../../src/lib/gas-refund';
 
 const logger = global.LOGGER('SPSPStakesTracker');
 
@@ -79,7 +80,10 @@ type DiffState = {
 
 const ONE_UNIT = (10 ** 18).toString();
 
-export default class SPSPStakesTracker extends AbstractStakeTracker {
+export default class SPSPStakesTracker
+  extends AbstractStakeTracker
+  implements IStakeTracker
+{
   initState: InitState = {
     totalSupply: {},
     pspBalance: {},
@@ -350,6 +354,29 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
     );
   }
 
+  computePoolState(
+    poolAddress: string,
+    timestamp: number,
+  ): { pspsLocked: BigNumber; totalSPSP: BigNumber; pspBalance: BigNumber } {
+    const pspsLocked = reduceTimeSeries(
+      timestamp,
+      this.initState.pspsLocked[poolAddress],
+      this.differentialStates.pspsLocked[poolAddress],
+    );
+    const totalSPSP = reduceTimeSeries(
+      timestamp,
+      this.initState.totalSupply[poolAddress],
+      this.differentialStates.totalSupply[poolAddress],
+    );
+    const pspBalance = reduceTimeSeries(
+      timestamp,
+      this.initState.pspBalance[poolAddress],
+      this.differentialStates.pspBalance[poolAddress],
+    );
+
+    return { pspsLocked, totalSPSP, pspBalance };
+  }
+
   computeStakedPSPBalance(account: string, timestamp: number) {
     const totalPSPBalance = SPSPAddresses.reduce((acc, poolAddress) => {
       const sPSPAmount = reduceTimeSeries(
@@ -360,20 +387,9 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
 
       if (sPSPAmount.isZero()) return acc;
 
-      const pspsLocked = reduceTimeSeries(
+      const { pspsLocked, totalSPSP, pspBalance } = this.computePoolState(
+        poolAddress,
         timestamp,
-        this.initState.pspsLocked[poolAddress],
-        this.differentialStates.pspsLocked[poolAddress],
-      );
-      const totalSPSP = reduceTimeSeries(
-        timestamp,
-        this.initState.totalSupply[poolAddress],
-        this.differentialStates.totalSupply[poolAddress],
-      );
-      const pspBalance = reduceTimeSeries(
-        timestamp,
-        this.initState.pspBalance[poolAddress],
-        this.differentialStates.pspBalance[poolAddress],
       );
 
       const stakedPSPBalance = SPSPHelper.getInstance().computePSPStakedInSPSP({
@@ -460,6 +476,69 @@ export default class SPSPStakesTracker extends AbstractStakeTracker {
         .toNumber();
 
       const stakedPSPBalance = sPSPAmount.multipliedBy(pspRate);
+
+      return acc.plus(stakedPSPBalance);
+    }, ZERO_BN);
+
+    return totalPSPBalance;
+  }
+
+  computeMinStakedBalanceDuringVirtualLockup(
+    account: string,
+    timestamp: number,
+    poolAddress: string,
+  ) {
+    const startOfVirtualLockupPeriod = timestamp - VIRTUAL_LOCKUP_PERIOD;
+
+    const stakeAtStartOfVirtualLockup = reduceTimeSeries(
+      startOfVirtualLockupPeriod,
+      this.initState.sPSPBalanceByAccount[poolAddress]?.[account],
+      this.differentialStates.sPSPBalanceByAccount[poolAddress]?.[account],
+    );
+
+    if (
+      !this.differentialStates.sPSPBalanceByAccount[poolAddress][account] ||
+      this.differentialStates.sPSPBalanceByAccount[poolAddress][account]
+        .length === 0
+    )
+      return stakeAtStartOfVirtualLockup;
+
+    const minStakeHoldDuringVirtualLockup = (
+      this.differentialStates.sPSPBalanceByAccount[poolAddress][account] || []
+    ).reduce((minStake, stakeAtT) => {
+      if (stakeAtT.timestamp < startOfVirtualLockupPeriod) return minStake;
+
+      const newStake = minStake.plus(stakeAtT.value);
+      const _minStake = BigNumber.min(minStake, newStake);
+
+      return _minStake;
+    }, stakeAtStartOfVirtualLockup);
+
+    return minStakeHoldDuringVirtualLockup;
+  }
+
+  computeStakedPSPBalanceWithVirtualLockup(account: string, timestamp: number) {
+    const totalPSPBalance = SPSPAddresses.reduce((acc, poolAddress) => {
+      const minSPSPAmountHoldDuringVirtualLockup =
+        this.computeMinStakedBalanceDuringVirtualLockup(
+          account,
+          timestamp,
+          poolAddress,
+        );
+
+      if (minSPSPAmountHoldDuringVirtualLockup.isZero()) return acc;
+
+      const { pspsLocked, totalSPSP, pspBalance } = this.computePoolState(
+        poolAddress,
+        timestamp,
+      );
+
+      const stakedPSPBalance = SPSPHelper.getInstance().computePSPStakedInSPSP({
+        sPSPShare: minSPSPAmountHoldDuringVirtualLockup,
+        totalSPSP,
+        pspBalance,
+        pspsLocked,
+      });
 
       return acc.plus(stakedPSPBalance);
     }, ZERO_BN);

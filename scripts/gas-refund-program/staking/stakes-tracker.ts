@@ -6,6 +6,8 @@ import {
   GasRefundGenesisEpoch,
   GasRefundSafetyModuleStartEpoch,
   GasRefundSPSPStakesAlgoFlipEpoch,
+  GasRefundVirtualLockupStartEpoch,
+  VIRTUAL_LOCKUP_PERIOD,
 } from '../../../src/lib/gas-refund';
 import { OFFSET_CALC_TIME, SCRIPT_START_TIME_SEC } from '../common';
 import { getLatestEpochRefundedAllChains } from '../persistance/db-persistance';
@@ -30,6 +32,7 @@ export default class StakesTracker {
     // we have to come up with a stronger implem to always make sure tx scanning time isn't lower than stakes fetching time
     const latestEpochRefunded = await getLatestEpochRefundedAllChains();
 
+    // Note: since we take start of latest epoch refunded, we don't need adjust start times with VIRTUAL_LOCKUP_PERIOD
     const startTimeSPSP = await epochInfo.getEpochStartCalcTime(
       latestEpochRefunded || GasRefundGenesisEpoch,
     );
@@ -91,6 +94,7 @@ export default class StakesTracker {
     const account = _account.toLowerCase();
 
     const spspStakesTracker = SPSPStakesTracker.getInstance();
+    const safetyModuleTracker = SafetyModuleStakesTracker.getInstance();
 
     const pspStakedInSPSP =
       epoch < GasRefundSPSPStakesAlgoFlipEpoch
@@ -99,17 +103,24 @@ export default class StakesTracker {
             timestamp,
             eofEpochTimestampForBackwardCompat,
           )
-        : spspStakesTracker.computeStakedPSPBalance(account, timestamp);
+        : epoch < GasRefundVirtualLockupStartEpoch
+        ? spspStakesTracker.computeStakedPSPBalance(account, timestamp)
+        : spspStakesTracker.computeStakedPSPBalanceWithVirtualLockup(
+            account,
+            timestamp,
+          );
 
     if (epoch < GasRefundSafetyModuleStartEpoch) {
       return pspStakedInSPSP;
     }
 
     const pspStakedInSM =
-      SafetyModuleStakesTracker.getInstance().computeStakedPSPBalance(
-        account,
-        timestamp,
-      );
+      epoch < GasRefundVirtualLockupStartEpoch
+        ? safetyModuleTracker.computeStakedPSPBalance(account, timestamp)
+        : safetyModuleTracker.computeStakedPSPBalanceWithVirtualLockup(
+            account,
+            timestamp,
+          );
 
     return pspStakedInSPSP.plus(pspStakedInSM);
   }
