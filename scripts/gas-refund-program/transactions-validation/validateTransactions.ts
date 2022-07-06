@@ -39,12 +39,11 @@ export async function validateTransactions() {
 
   const lastEpochRefunded = await fetchLastEpochRefunded();
 
-  const firstEpochOfYear = !lastEpochRefunded
-    ? GasRefundGenesisEpoch
-    : Math.max(
-        GasRefundGenesisEpoch,
-        lastEpochRefunded - (lastEpochRefunded % TOTAL_EPOCHS_IN_YEAR),
-      );
+  const firstEpochOfYear = !!lastEpochRefunded
+    ? GasRefundGenesisEpoch +
+      lastEpochRefunded -
+      (lastEpochRefunded % TOTAL_EPOCHS_IN_YEAR)
+    : GasRefundGenesisEpoch;
 
   const startEpochForTxValidation = !lastEpochRefunded
     ? firstEpochOfYear
