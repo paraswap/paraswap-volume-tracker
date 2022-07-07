@@ -5,12 +5,12 @@ import { Contract } from '@ethersproject/contracts';
 import {
   ZeroXV4Address,
   ZeroXV2Address,
-  Web3Provider,
   CHAIN_ID_MAINNET,
   CHAIN_ID_BINANCE,
   CHAIN_ID_POLYGON,
   CHAIN_ID_AVALANCHE,
   CHAIN_ID_FANTOM,
+  CHAIN_ID_ROPSTEN,
 } from './constants';
 import { PriceApi } from './price-api';
 import { BlockInfo } from './block-info';
@@ -19,6 +19,16 @@ import * as ZeroXV4Abi from './abi/zerox.v4.abi.json';
 import { Utils } from './utils';
 
 const logger = global.LOGGER();
+
+export const Web3Provider: { [network: number]: string } = {
+  [CHAIN_ID_MAINNET]: process.env.HTTP_PROVIDER || '',
+  [CHAIN_ID_ROPSTEN]: process.env.HTTP_PROVIDER_3 || '',
+  [CHAIN_ID_BINANCE]: process.env.HTTP_PROVIDER_56 || '',
+  [CHAIN_ID_POLYGON]: process.env.HTTP_PROVIDER_137 || '',
+  [CHAIN_ID_FANTOM]: process.env.HTTP_PROVIDER_250 || '',
+  [CHAIN_ID_AVALANCHE]: process.env.HTTP_PROVIDER_43114 || '',
+};
+
 
 export type Swap = {
   id: string;
@@ -48,7 +58,6 @@ export type Swap = {
   timestamp: number;
 };
 
-const INIT_TIME = parseInt(process.env.INIT_TIME || '0'); //TODO: use the block info to the init time from the init block
 const defaultBlockDelay = 20;
 const defaultIndexRefreshDelay = 5 * 60 * 1000;
 

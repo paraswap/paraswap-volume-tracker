@@ -13,7 +13,7 @@ const DAY = 1000 * 60 * 60 * 24;
 export const MAX_PERIOD = 120 * DAY // 60 days
 
 const CACHE_MAX_SIZE = 60 // days
-const GC_INTERVAL = process.env.VOLUME_AGGREGATION_GC_INTERVAL || DAY / 2 // 12 hours
+const GC_INTERVAL = DAY / 2 // 12 hours
 
 export class VolumesCache {
   private volumes: VolumeCache = {}

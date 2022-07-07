@@ -1,11 +1,18 @@
-require('dotenv').config();
-
+/* eslint-disable */
 if (process.env.NEW_RELIC_LICENSE_KEY) {
   require('newrelic');
 }
+require('dotenv').config();
 
-import { handleErrors, startApp } from './app';
+import { init } from './config';
 
-handleErrors();
+const main = async () => {
+  await init();
 
-startApp();
+  const { handleErrors, startApp } = require('./app');
+
+  handleErrors();
+  startApp();
+};
+
+main();

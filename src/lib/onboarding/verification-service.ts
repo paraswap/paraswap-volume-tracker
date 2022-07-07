@@ -1,7 +1,10 @@
 import { assert } from 'ts-essentials';
 import { URLSearchParams } from 'url';
+import { configLoader } from '../../config';
 import { constructHttpClient } from '../utils/http-client';
 import { VerificationError } from './errors';
+
+const config = configLoader.getGlobalConfig();
 
 const logger = global.LOGGER('verificationService');
 
@@ -15,10 +18,10 @@ const responseVerificationClient = constructHttpClient({
 });
 
 export const verifyKey = async (key: string) => {
-  assert(process.env.CAPTCHA_SECRET_KEY, 'CAPTCHA_SECRET_KEY should be set');
+  assert(config.apiKeyCaptcha, 'CAPTCHA_SECRET_KEY should be set');
 
   const params = new URLSearchParams();
-  params.append('secret', process.env.CAPTCHA_SECRET_KEY);
+  params.append('secret', config.apiKeyCaptcha);
   params.append('response', key);
 
   try {

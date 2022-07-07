@@ -90,8 +90,8 @@ export class StakingService {
     );
 
     Object.entries(stkPSPBPtStakers).forEach(
-      ([account, pspStakedInStkPSPBPt]) => {
-        if (!pspStakedInStkPSPBPt) return;
+      ([account, _pspStakedInStkPSPBPt]) => {
+        if (!_pspStakedInStkPSPBPt) return;
         if (!pspStakersWithStakes[account]?.pspStaked) {
           pspStakersWithStakes[account] = {
             pspStaked: BigInt(0),
@@ -99,6 +99,7 @@ export class StakingService {
           };
         }
 
+        const pspStakedInStkPSPBPt = _pspStakedInStkPSPBPt as bigint;
         pspStakersWithStakes[account].pspStaked += pspStakedInStkPSPBPt;
         totalPSPStaked += pspStakedInStkPSPBPt;
         totalPSPStakedStkPSPBpt += pspStakedInStkPSPBPt;

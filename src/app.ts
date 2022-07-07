@@ -1,5 +1,4 @@
 import {
-  VOLUME_TRACKER_INIT_TIME,
   VOLUME_TRACKER_SUPPORTED_NETWORKS,
 } from './lib/constants';
 import { shutdown as shutdownLog4js } from './lib/log4js';
@@ -7,6 +6,7 @@ import Database from './database';
 import VolumeTracker from './lib/volume-tracker';
 import WebServer from './web-server';
 import { PoolInfo } from './lib/pool-info';
+import { configLoader } from './config';
 
 const logger = global.LOGGER();
 
@@ -23,13 +23,14 @@ export async function startApp() {
 
     await Promise.all(
       VOLUME_TRACKER_SUPPORTED_NETWORKS.map(network => {
-        if (!VOLUME_TRACKER_INIT_TIME[network]) {
+        const config = configLoader.getConfig(network);
+        if (!config.volumeTrackerInitTime) {
           throw new Error(
             'VolumeTracker INIT_TIME env var is missing for network ' + network,
           );
         }
         return VolumeTracker.createInstance(
-          VOLUME_TRACKER_INIT_TIME[network],
+          config.volumeTrackerInitTime,
           network,
         ).startIndexing();
       }),

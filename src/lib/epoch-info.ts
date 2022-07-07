@@ -4,10 +4,10 @@ import * as RewardDistributionAbi from './abi/reward-distribution.abi.json';
 import {
   CHAIN_ID_ROPSTEN,
   CHAIN_ID_MAINNET,
-  RewardDistributionAddress,
 } from './constants';
 import { BlockInfo } from './block-info';
 import { Provider } from './provider';
+import { configLoader } from '../config';
 
 const logger = global.LOGGER();
 
@@ -59,9 +59,14 @@ export class EpochInfo {
 
   constructor(protected network: number, lazy: boolean = false) {
     this.blockInfo = BlockInfo.getInstance(this.network);
+    const config = configLoader.getConfig(network);
     const provider = Provider.getJsonRpcProvider(this.network);
+
+    if (!config.rewardDistributionAddress) {
+      throw new Error(`missing rewardDistributionAddress for network ${network}`);
+    }
     this.rewardDistribution = new Contract(
-      RewardDistributionAddress[this.network],
+      config.rewardDistributionAddress,
       RewardDistributionAbi,
       provider,
     );

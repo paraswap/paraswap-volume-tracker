@@ -7,8 +7,6 @@ import {
   Balancer_80PSP_20WETH_poolId,
   CHAIN_ID_MAINNET,
   MulticallEncodedData,
-  MULTICALL_ADDRESS,
-  PSP_ADDRESS,
   SAFETY_MODULE_ADDRESS,
 } from '../constants';
 import { Provider } from '../provider';
@@ -16,6 +14,7 @@ import { Contract, BigNumber as EthersBN } from 'ethers';
 import { Interface } from '@ethersproject/abi';
 import { getTokenHolders } from '../utils/covalent';
 import { DataByAccount, PSPStakesForStaker, StkPSPBPtState } from './types';
+import { Config, configLoader } from '../../config';
 
 export class SafetyModuleHelper {
   private static instance: SafetyModuleHelper;
@@ -33,11 +32,14 @@ export class SafetyModuleHelper {
   bVaultIface: Interface;
   erc20Iface: Interface;
 
+  private config: Config;
+
   constructor() {
+    this.config = configLoader.getConfig(this.chainId);
     const provider = Provider.getJsonRpcProvider(this.chainId);
 
     this.multicallContract = new Contract(
-      MULTICALL_ADDRESS[this.chainId],
+      this.config.multicallV2Address,
       MultiCallerABI,
       provider,
     );
@@ -130,7 +132,7 @@ export class SafetyModuleHelper {
         target: BalancerVaultAddress,
         callData: this.bVaultIface.encodeFunctionData('getPoolTokenInfo', [
           Balancer_80PSP_20WETH_poolId,
-          PSP_ADDRESS[this.chainId],
+          this.config.pspAddress,
         ]),
       },
     ];

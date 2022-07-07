@@ -1,3 +1,4 @@
+import { configLoader } from '../../../src/config';
 import { covalentClient } from '../../../src/lib/utils/data-providers-clients';
 import {
   CovalentAPI,
@@ -5,8 +6,10 @@ import {
   GasRefundTransaction,
 } from '../types';
 
+const globalConfig = configLoader.getGlobalConfig();
+
 interface GetContractTXsByNetworkInput {
-  chainId: number;
+  chainId: number
   contract: string;
   startTimestamp: number;
   endTimestamp: number;
@@ -31,7 +34,6 @@ export const covalentGetTXsForContract = async ({
     contract,
   });
 
-  const { COVALENT_API_KEY } = process.env;
   const path = (page: number) => {
     /* Covalent API only has time relative pagination for tx scanning (give me tx within last X seconds).
      * We take a safety margin to counter possible edge case of relative - not absolute - range bounds
@@ -58,7 +60,7 @@ export const covalentGetTXsForContract = async ({
       throw new Error('only query historic data');
     }
 
-    return `/${chainId}/address/${contract}/transactions_v2/?key=${COVALENT_API_KEY}&no-logs=true&page-number=${page}&page-size=1000&block-signed-at-limit=${startSecondsAgo}&block-signed-at-span=${duration}&match={"to_address": "${contract}"}`;
+    return `/${chainId}/address/${contract}/transactions_v2/?key=${globalConfig.covalentV1ApiKey}&no-logs=true&page-number=${page}&page-size=1000&block-signed-at-limit=${startSecondsAgo}&block-signed-at-span=${duration}&match={"to_address": "${contract}"}`;
   };
 
   // todo: better would be to first call the end point with page-size=0 just to get the total number of items, and then construct many request promises and run concurrently - currently this isn't possible (as `total_count` is null) in the covalent api but scheduled

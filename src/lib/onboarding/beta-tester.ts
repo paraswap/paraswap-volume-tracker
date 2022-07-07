@@ -1,19 +1,20 @@
 import axios from 'axios';
 import * as jwt from 'jsonwebtoken';
 import { assert } from 'ts-essentials';
+import { configLoader } from '../../config';
 import { AuthToken } from './types';
+
+const config = configLoader.getGlobalConfig();
 
 const logger = global.LOGGER('BetaTest');
 
-const _pk = process.env.APLCAPI_KEY;
-const baseUrl = process.env.APLCAPI_BASE_URL;
 const keyid = 'SQ994H8QHA';
 const issuerId = '2e01237d-0848-46cc-a3ac-b0f6245eb42b';
 
 export function generateAuthToken(): AuthToken {
-  assert(_pk, 'set APLCAPI_KEY env var');
+  assert(config.apiKeyAplcapi, 'set APLCAPI_KEY env var');
 
-  const pk = _pk.replace(/\\n/g, '\n');
+  const pk = config.apiKeyAplcapi.replace(/\\n/g, '\n');
 
   const iat = Math.floor(Date.now() / 1000);
   const exp = iat + 15 * 60;
@@ -46,11 +47,11 @@ export async function createTester({
   email: string;
   authToken: string;
 }) {
-  assert(baseUrl, 'set APLCAPI_BASE_URL env var');
+  assert(config.apiAplcapiHttp, 'set APLCAPI_BASE_URL env var');
 
   try {
     await axios.post(
-      baseUrl + '/v1/betaTesters',
+      config.apiAplcapiHttp + '/v1/betaTesters',
       {
         data: {
           attributes: {

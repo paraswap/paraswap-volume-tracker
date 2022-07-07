@@ -2,7 +2,6 @@ import type { JsonRpcProvider } from '@ethersproject/providers';
 import { Contract } from '@ethersproject/contracts';
 import { Interface } from '@ethersproject/abi';
 import {
-  MULTICALL_ADDRESS,
   DEFAULT_CHAIN_ID,
   CHAIN_ID_ROPSTEN,
   CHAIN_ID_MAINNET,
@@ -17,6 +16,7 @@ import BigNumber from 'bignumber.js';
 import VolumeTracker from './volume-tracker';
 import { BlockInfo } from './block-info';
 import { EpochInfo } from './epoch-info';
+import { configLoader } from '../config';
 
 export enum PoolType {
   AMMPool = 'AMMPool',
@@ -339,9 +339,11 @@ export class PoolInfo {
     private network: number,
     private poolConfigs: PoolConfig[],
   ) {
+    const config = configLoader.getConfig(network);
+
     this.provider = Provider.getJsonRpcProvider(this.network);
     this.multicallContract = new Contract(
-      MULTICALL_ADDRESS[this.network],
+      config.multicallV2Address,
       MultiCallerABI,
       this.provider,
     );
