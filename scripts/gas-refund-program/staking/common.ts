@@ -14,7 +14,12 @@ export function computeMinStakedBalanceDuringVirtualLockup(
 
   const minStakeHoldDuringVirtualLockup = (differentialStates || []).reduce(
     (minStake, stakeAtT) => {
-      if (stakeAtT.timestamp < startOfVirtualLockupPeriod) return minStake;
+      if (
+        stakeAtT.timestamp < startOfVirtualLockupPeriod ||
+        stakeAtT.timestamp > timestamp
+      ) {
+        return minStake;
+      }
 
       const newStake = minStake.plus(stakeAtT.value);
       const _minStake = BigNumber.min(minStake, newStake);
