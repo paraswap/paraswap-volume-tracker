@@ -25,6 +25,7 @@ import {
 import { AbstractStakeTracker, IStakeTracker } from './abstract-stakes-tracker';
 import { SafetyModuleHelper } from '../../../src/lib/staking/safety-module-helper';
 import { VIRTUAL_LOCKUP_PERIOD } from '../../../src/lib/gas-refund';
+import { computeMinStakedBalanceDuringVirtualLockup } from './common';
 
 interface MinERC20 extends Contract {
   totalSupply(overrides?: CallOverrides): Promise<EthersBN>;
@@ -402,10 +403,7 @@ export default class SafetyModuleStakesTracker
     return stkPSPBPT.multipliedBy(stkPSP2PSPRate);
   }
 
-  computeMinStakedBalanceDuringVirtualLockup(
-    account: string,
-    timestamp: number,
-  ): BigNumber {
+  computeStakedPSPBalanceWithVirtualLockup(account: string, timestamp: number) {
     const startOfVirtualLockupPeriod = timestamp - VIRTUAL_LOCKUP_PERIOD;
 
     const stakeAtStartOfVirtualLockup = reduceTimeSeries(
@@ -414,32 +412,12 @@ export default class SafetyModuleStakesTracker
       this.differentialStates.stkPSPBptUsersBalances[account],
     );
 
-    if (
-      !this.differentialStates.stkPSPBptUsersBalances[account] ||
-      this.differentialStates.stkPSPBptUsersBalances[account].length === 0
-    ) {
-      return stakeAtStartOfVirtualLockup;
-    }
-
-    const minStakeHoldDuringVirtualLockup =
-      this.differentialStates.stkPSPBptUsersBalances[account].reduce<BigNumber>(
-        (minStake, stakeAtT) => {
-          if (stakeAtT.timestamp < startOfVirtualLockupPeriod) return minStake;
-
-          const newStake = minStake.plus(stakeAtT.value);
-          const _minStake = BigNumber.min(minStake, newStake);
-
-          return _minStake;
-        },
-        stakeAtStartOfVirtualLockup,
-      );
-
-    return minStakeHoldDuringVirtualLockup;
-  }
-
-  computeStakedPSPBalanceWithVirtualLockup(account: string, timestamp: number) {
     const minStkPSPBptAmountHoldDuringVirtualLockup =
-      this.computeMinStakedBalanceDuringVirtualLockup(account, timestamp);
+      computeMinStakedBalanceDuringVirtualLockup(
+        timestamp,
+        stakeAtStartOfVirtualLockup,
+        this.differentialStates.stkPSPBptUsersBalances[account],
+      );
 
     if (minStkPSPBptAmountHoldDuringVirtualLockup.isZero())
       return minStkPSPBptAmountHoldDuringVirtualLockup;

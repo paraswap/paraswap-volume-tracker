@@ -22,6 +22,7 @@ import {
   SPSPHelper,
 } from '../../../src/lib/staking/spsp-helper';
 import { VIRTUAL_LOCKUP_PERIOD } from '../../../src/lib/gas-refund';
+import { computeMinStakedBalanceDuringVirtualLockup } from './common';
 
 const logger = global.LOGGER('SPSPStakesTracker');
 
@@ -483,47 +484,21 @@ export default class SPSPStakesTracker
     return totalPSPBalance;
   }
 
-  computeMinStakedBalanceDuringVirtualLockup(
-    account: string,
-    timestamp: number,
-    poolAddress: string,
-  ) {
-    const startOfVirtualLockupPeriod = timestamp - VIRTUAL_LOCKUP_PERIOD;
-
-    const stakeAtStartOfVirtualLockup = reduceTimeSeries(
-      startOfVirtualLockupPeriod,
-      this.initState.sPSPBalanceByAccount[poolAddress]?.[account],
-      this.differentialStates.sPSPBalanceByAccount[poolAddress]?.[account],
-    );
-
-    if (
-      !this.differentialStates.sPSPBalanceByAccount[poolAddress][account] ||
-      this.differentialStates.sPSPBalanceByAccount[poolAddress][account]
-        .length === 0
-    )
-      return stakeAtStartOfVirtualLockup;
-
-    const minStakeHoldDuringVirtualLockup = (
-      this.differentialStates.sPSPBalanceByAccount[poolAddress][account] || []
-    ).reduce((minStake, stakeAtT) => {
-      if (stakeAtT.timestamp < startOfVirtualLockupPeriod) return minStake;
-
-      const newStake = minStake.plus(stakeAtT.value);
-      const _minStake = BigNumber.min(minStake, newStake);
-
-      return _minStake;
-    }, stakeAtStartOfVirtualLockup);
-
-    return minStakeHoldDuringVirtualLockup;
-  }
-
   computeStakedPSPBalanceWithVirtualLockup(account: string, timestamp: number) {
     const totalPSPBalance = SPSPAddresses.reduce((acc, poolAddress) => {
+      const startOfVirtualLockupPeriod = timestamp - VIRTUAL_LOCKUP_PERIOD;
+
+      const stakeAtStartOfVirtualLockup = reduceTimeSeries(
+        startOfVirtualLockupPeriod,
+        this.initState.sPSPBalanceByAccount[poolAddress][account],
+        this.differentialStates.sPSPBalanceByAccount[poolAddress][account],
+      );
+
       const minSPSPAmountHoldDuringVirtualLockup =
-        this.computeMinStakedBalanceDuringVirtualLockup(
-          account,
+        computeMinStakedBalanceDuringVirtualLockup(
           timestamp,
-          poolAddress,
+          stakeAtStartOfVirtualLockup,
+          this.differentialStates.sPSPBalanceByAccount[poolAddress][account],
         );
 
       if (minSPSPAmountHoldDuringVirtualLockup.isZero()) return acc;
