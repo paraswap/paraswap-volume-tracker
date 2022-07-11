@@ -152,8 +152,19 @@ export default class Router {
     router.get('/stakes/:address', async (req, res) => {
       try {
         const address = req.params.address.toLowerCase();
+        const blockNumber = !!req.query.blockNumber
+          ? Number(req.query.blockNumber as string)
+          : undefined;
+
+        assert(
+          !blockNumber || !isNaN(blockNumber),
+          'blockNumber should be either undefined or a number',
+        );
         const totalPSPStakedInAllStakingPrograms =
-          await StakingService.getInstance().getPSPStakesAllPrograms(address);
+          await StakingService.getInstance().getPSPStakesAllPrograms(
+            address,
+            blockNumber,
+          );
 
         return res.json(totalPSPStakedInAllStakingPrograms);
       } catch (e) {

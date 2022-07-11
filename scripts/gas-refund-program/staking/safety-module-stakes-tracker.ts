@@ -22,8 +22,13 @@ import {
   TimeSeries,
   timeseriesComparator,
 } from '../timeseries';
-import AbstractStakeTracker from './abstract-stakes-tracker';
+import {
+  AbstractStakesTracker,
+  IStakesTracker,
+} from './abstract-stakes-tracker';
 import { SafetyModuleHelper } from '../../../src/lib/staking/safety-module-helper';
+import { VIRTUAL_LOCKUP_PERIOD } from '../../../src/lib/gas-refund';
+import { computeMinStakedBalanceDuringVirtualLockup } from './common';
 
 interface MinERC20 extends Contract {
   totalSupply(overrides?: CallOverrides): Promise<EthersBN>;
@@ -101,7 +106,10 @@ type DiffState = {
   stkPSPBptUsersBalances: { [address: string]: TimeSeries };
 };
 
-export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
+export default class SafetyModuleStakesTracker
+  extends AbstractStakesTracker
+  implements IStakesTracker
+{
   initState: InitState = {
     stkPSPBptUsersBalances: {},
     bptPoolPSPBalance: ZERO_BN,
@@ -387,8 +395,7 @@ export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
   }
 
   // @FIXME: current formula assumes all PSP in the balancer pool are detained by stkPSPBpt. Fix background compat
-  computeStakedPSPBalance(_account: string, timestamp: number) {
-    const account = _account.toLowerCase();
+  computeStakedPSPBalance(account: string, timestamp: number) {
     const stkPSPBPT = reduceTimeSeries(
       timestamp,
       this.initState.stkPSPBptUsersBalances[account],
@@ -397,5 +404,31 @@ export default class SafetyModuleStakesTracker extends AbstractStakeTracker {
     const stkPSP2PSPRate = this.compute_StkPSPBPT_to_PSP_Rate(timestamp);
 
     return stkPSPBPT.multipliedBy(stkPSP2PSPRate);
+  }
+
+  computeStakedPSPBalanceWithVirtualLockup(account: string, timestamp: number) {
+    const startOfVirtualLockupPeriod = timestamp - VIRTUAL_LOCKUP_PERIOD;
+
+    const stakeAtStartOfVirtualLockup = reduceTimeSeries(
+      startOfVirtualLockupPeriod,
+      this.initState.stkPSPBptUsersBalances[account],
+      this.differentialStates.stkPSPBptUsersBalances[account],
+    );
+
+    const minStkPSPBptAmountHoldDuringVirtualLockup =
+      computeMinStakedBalanceDuringVirtualLockup(
+        timestamp,
+        stakeAtStartOfVirtualLockup,
+        this.differentialStates.stkPSPBptUsersBalances[account],
+      );
+
+    if (minStkPSPBptAmountHoldDuringVirtualLockup.isZero())
+      return minStkPSPBptAmountHoldDuringVirtualLockup;
+
+    const stkPSP2PSPRate = this.compute_StkPSPBPT_to_PSP_Rate(timestamp);
+
+    return minStkPSPBptAmountHoldDuringVirtualLockup.multipliedBy(
+      stkPSP2PSPRate,
+    );
   }
 }
