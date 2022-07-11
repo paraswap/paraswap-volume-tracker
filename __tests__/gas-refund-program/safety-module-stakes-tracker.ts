@@ -8,10 +8,18 @@ describe('SafetyModuleStakesTracker', () => {
   describe('snashot test for backward compat', () => {
     let tracker: SafetyModuleStakesTracker;
     const startBlock = 14567000;
+    const endBlock = startBlock + 10000;
+    const startTimestamp = 1649715553;
+    const endTimestamp = 1649851552;
 
     beforeAll(async () => {
       tracker = new SafetyModuleStakesTracker();
-      tracker.setBlockBoundary(startBlock + 1, startBlock + 10000);
+      tracker.setBlockBoundary({
+        startBlock: startBlock + 1,
+        endBlock,
+        startTimestamp,
+        endTimestamp,
+      });
       await tracker.loadStakes();
     });
 

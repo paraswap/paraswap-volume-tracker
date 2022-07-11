@@ -10,13 +10,23 @@ jest.setTimeout(5 * 60 * 1000);
 describe('SpspStakesTracker', () => {
   describe('snashot test for backward compat', () => {
     let tracker: SPSPStakesTracker;
-    let startBlock = 14652905;
-    let endBlock = 14722785;
+    const startBlock = 14652905;
+    const startTimestamp = 1650877705;
+
+    const endBlock = 14722785;
+    const endTimestamp = 1651829555;
 
     beforeAll(async () => {
       tracker = new SPSPStakesTracker();
 
-      await tracker.setBlockBoundary(startBlock, endBlock).loadStakes();
+      await tracker
+        .setBlockBoundary({
+          startBlock,
+          endBlock,
+          startTimestamp,
+          endTimestamp,
+        })
+        .loadStakes();
     });
 
     test('Init state', () => {
@@ -39,12 +49,17 @@ describe('SpspStakesTracker', () => {
     let lateSPSPTracker: SPSPStakesTracker;
     let atObservationTracker: SPSPStakesTracker;
 
-    let observationTimestamp = 1651829438; // is matching startBlockAtObservationTracker
+    const startBlockEarlyTracker = 14652905;
+    const startTimestapEarlyTracker = 1650877705;
 
-    let startBlockEarlyTracker = 14652905;
-    let startBlockLateTracker = 14699930;
-    let startBlockAtObservationTracker = 14722775; // matching observationTimestamp
-    let endBlockAllTrackers = startBlockAtObservationTracker + 1; // later than all but doesn't really matter much in future. Just after oberservation is fine
+    const startBlockLateTracker = 14699930;
+    const startTimestampLateTracker = 1651516627;
+
+    const startBlockAtObservationTracker = 14722775; // matching observationTimestamp
+    const observationTimestamp = 1651829438; // is matching startBlockAtObservationTracker
+
+    const endBlockAllTrackers = startBlockAtObservationTracker + 1; // later than all but doesn't really matter much in future. Just after oberservation is fine
+    const endTimestamp = 1651829444;
 
     assert(
       startBlockEarlyTracker < startBlockLateTracker &&
@@ -60,13 +75,28 @@ describe('SpspStakesTracker', () => {
 
       await Promise.all([
         earlySPSPTracker
-          .setBlockBoundary(startBlockEarlyTracker, endBlockAllTrackers)
+          .setBlockBoundary({
+            startBlock: startBlockEarlyTracker,
+            endBlock: endBlockAllTrackers,
+            startTimestamp: startTimestapEarlyTracker,
+            endTimestamp,
+          })
           .loadStakes(),
         lateSPSPTracker
-          .setBlockBoundary(startBlockLateTracker, endBlockAllTrackers)
+          .setBlockBoundary({
+            startBlock: startBlockLateTracker,
+            endBlock: endBlockAllTrackers,
+            startTimestamp: startTimestampLateTracker,
+            endTimestamp,
+          })
           .loadStakes(),
         atObservationTracker
-          .setBlockBoundary(startBlockAtObservationTracker, endBlockAllTrackers)
+          .setBlockBoundary({
+            startBlock: startBlockAtObservationTracker,
+            startTimestamp: observationTimestamp,
+            endBlock: endBlockAllTrackers,
+            endTimestamp,
+          })
           .loadStakes(),
       ]);
     });
