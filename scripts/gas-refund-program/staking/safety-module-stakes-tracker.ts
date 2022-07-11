@@ -22,7 +22,7 @@ import {
   TimeSeries,
   timeseriesComparator,
 } from '../timeseries';
-import { AbstractStakeTracker, IStakeTracker } from './abstract-stakes-tracker';
+import { AbstractStakesTracker, IStakesTracker } from './abstract-stakes-tracker';
 import { SafetyModuleHelper } from '../../../src/lib/staking/safety-module-helper';
 import { VIRTUAL_LOCKUP_PERIOD } from '../../../src/lib/gas-refund';
 import { computeMinStakedBalanceDuringVirtualLockup } from './common';
@@ -104,8 +104,8 @@ type DiffState = {
 };
 
 export default class SafetyModuleStakesTracker
-  extends AbstractStakeTracker
-  implements IStakeTracker
+  extends AbstractStakesTracker
+  implements IStakesTracker
 {
   initState: InitState = {
     stkPSPBptUsersBalances: {},

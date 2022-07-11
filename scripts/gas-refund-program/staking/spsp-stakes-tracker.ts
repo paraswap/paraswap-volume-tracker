@@ -15,7 +15,7 @@ import {
   ZERO_BN,
 } from '../../../src/lib/utils/helpers';
 import { reduceTimeSeries, TimeSeries } from '../timeseries';
-import { AbstractStakeTracker, IStakeTracker } from './abstract-stakes-tracker';
+import { AbstractStakesTracker, IStakesTracker } from './abstract-stakes-tracker';
 import { assert } from 'ts-essentials';
 import {
   SPSPAddresses,
@@ -82,8 +82,8 @@ type DiffState = {
 const ONE_UNIT = (10 ** 18).toString();
 
 export default class SPSPStakesTracker
-  extends AbstractStakeTracker
-  implements IStakeTracker
+  extends AbstractStakesTracker
+  implements IStakesTracker
 {
   initState: InitState = {
     totalSupply: {},

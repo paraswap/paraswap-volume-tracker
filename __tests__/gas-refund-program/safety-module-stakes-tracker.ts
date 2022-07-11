@@ -1,16 +1,16 @@
 import '../../src/lib/log4js';
 import * as dotenv from 'dotenv';
 dotenv.config();
-import SafetyModuleStakeTracker from '../../scripts/gas-refund-program/staking/safety-module-stakes-tracker';
+import SafetyModuleStakesTracker from '../../scripts/gas-refund-program/staking/safety-module-stakes-tracker';
 import { BNReplacer } from '../../src/lib/utils/helpers';
 
 describe('SafetyModuleStakesTracker', () => {
   describe('snashot test for backward compat', () => {
-    let tracker: SafetyModuleStakeTracker;
+    let tracker: SafetyModuleStakesTracker;
     const startBlock = 14567000;
 
     beforeAll(async () => {
-      tracker = new SafetyModuleStakeTracker();
+      tracker = new SafetyModuleStakesTracker();
       tracker.setBlockBoundary(startBlock + 1, startBlock + 10000);
       await tracker.loadStakes();
     });
