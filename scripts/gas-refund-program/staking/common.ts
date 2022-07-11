@@ -1,6 +1,6 @@
 import BigNumber from 'bignumber.js';
 import { VIRTUAL_LOCKUP_PERIOD } from '../../../src/lib/gas-refund';
-import { TimeSeries } from '../timeseries';
+import { TimeSeries, timeseriesComparator } from '../timeseries';
 
 export function computeMinStakedBalanceDuringVirtualLockup(
   timestamp: number,
@@ -11,6 +11,8 @@ export function computeMinStakedBalanceDuringVirtualLockup(
 
   if (!differentialStates || differentialStates.length === 0)
     return stakeAtStartOfVirtualLockup;
+
+  differentialStates.sort(timeseriesComparator);
 
   const minStakeHeldDuringVirtualLockup = differentialStates.reduce(
     (minStake, stakeAtT) => {
