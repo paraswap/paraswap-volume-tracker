@@ -15,7 +15,10 @@ import {
   ZERO_BN,
 } from '../../../src/lib/utils/helpers';
 import { reduceTimeSeries, TimeSeries } from '../timeseries';
-import { AbstractStakesTracker, IStakesTracker } from './abstract-stakes-tracker';
+import {
+  AbstractStakesTracker,
+  IStakesTracker,
+} from './abstract-stakes-tracker';
 import { assert } from 'ts-essentials';
 import {
   SPSPAddresses,
