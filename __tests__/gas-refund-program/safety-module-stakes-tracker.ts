@@ -103,5 +103,21 @@ describe('SafetyModuleStakesTracker', () => {
         '994128705008224339309',
       );
     });
+
+    test('had some stake and withdrew it all  within [t-lockup_window, t[ and did a new tx at t', () => {
+      // redeem: https://etherscan.io/tx/0xb1ab807d5939ccec01adfbe74528abbe54278f0a26a98a05d3592093612395cd
+      // swap:  https://etherscan.io/tx/0xb4a441329d92eabf6db2467e1b7d2d83196c2ee3caf8755a7f9c3896e0afbeda
+
+      const txTimestamp = 1656472361;
+      const account = '0xfc44a13ea1a98166ffc0719f83b5f3ee2759c03f';
+
+      const spotStake = tracker.computeStakedPSPBalance(account, txTimestamp);
+
+      const minHeldDuringVirtualLockup =
+        tracker.computeStakedPSPBalanceWithVirtualLockup(account, txTimestamp);
+
+      expect(spotStake.isEqualTo(minHeldDuringVirtualLockup)).toBeTruthy();
+      expect(spotStake.isZero()).toBeTruthy();
+    });
   });
 });
