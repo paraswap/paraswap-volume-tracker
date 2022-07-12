@@ -49,4 +49,55 @@ describe('SafetyModuleStakesTracker', () => {
       expect(pspBalanceAtTimestamp.toFixed(0)).toBe('31176610680399907896512');
     });
   });
+
+  describe('virtual lockup', () => {
+    const startBlock = 14942024;
+    const startTimestamp = 1654917473;
+
+    const endBlock = 15123160;
+    const endTimestamp = 1657566578;
+
+    let tracker: SafetyModuleStakesTracker;
+
+    beforeAll(async () => {
+      tracker = new SafetyModuleStakesTracker().setBlockBoundary({
+        startBlock,
+        startTimestamp,
+        endBlock,
+        endTimestamp,
+      });
+
+      await tracker.loadStakes();
+    });
+
+    test('had stake for more than lockup_window and did a tx', () => {
+      // stake : https://etherscan.io/tx/0x6ca776bf1de66ca31385a5da967bc432b4042c928aeffee3562208f735982759
+      // swap : https://etherscan.io/tx/0x450e4bec3f2977caddc4a191c43db761147ca53059183287c9e337ab6741e17a
+
+      const txTimestamp = 1655660833;
+      const account = '0x88f81b95eae67461b2d687343d36852f87409a7b';
+
+      const spotStake = tracker.computeStakedPSPBalance(account, txTimestamp);
+
+      const minHeldDuringVirtualLockup =
+        tracker.computeStakedPSPBalanceWithVirtualLockup(account, txTimestamp);
+
+      expect(spotStake.isEqualTo(minHeldDuringVirtualLockup)).toBeTruthy();
+    });
+
+    test('had some stakes and staked more within [t-lockup_window, t[ and did a new tx at t', () => {
+      // first staked: 0xc413fded33705a1877211ee1a3f88800eb8c63a11fb11298c094e0255b2fee4f - ~1000 PSP - at t - 10d
+      // second staked: 0xf29c2c99da6d4e44ae7d2b21bf935a5a94b651827ed1264375f243394ec7c906 - ~7 PSP   - at t - 4d
+      // then did tx: 0x1c7a1bd67e4db53f622f8d9e1c22a6e4ff6dc152ffc9ca89aef1729aa2a3da95 - at t
+
+      const txTimestamp = 1657252834;
+      const account = '0x4532280a66a0c1c709f7e0c40b14b4dea83253c1';
+
+      const spotStake = tracker.computeStakedPSPBalance(account, txTimestamp);
+      const minHeldDuringVirtualLockup =
+        tracker.computeStakedPSPBalanceWithVirtualLockup(account, txTimestamp);
+      expect(spotStake.isEqualTo(minHeldDuringVirtualLockup)).toBeFalsy();
+      expect(minHeldDuringVirtualLockup.isLessThan(spotStake)).toBeTruthy();
+    });
+  });
 });
