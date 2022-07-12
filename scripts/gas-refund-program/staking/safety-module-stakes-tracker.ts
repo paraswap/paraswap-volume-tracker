@@ -409,9 +409,10 @@ export default class SafetyModuleStakesTracker
   }
 
   computeStakedPSPBalanceWithVirtualLockup(account: string, timestamp: number) {
-    this.assertTimestampWithinLoadInterval(timestamp);
-
     const startOfVirtualLockupPeriod = timestamp - VIRTUAL_LOCKUP_PERIOD;
+
+    this.assertTimestampWithinLoadInterval(timestamp);
+    this.assertTimestampWithinLoadInterval(startOfVirtualLockupPeriod);
 
     const stakeAtStartOfVirtualLockup = reduceTimeSeries(
       startOfVirtualLockupPeriod,

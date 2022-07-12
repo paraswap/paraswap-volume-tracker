@@ -494,11 +494,12 @@ export default class SPSPStakesTracker
   }
 
   computeStakedPSPBalanceWithVirtualLockup(account: string, timestamp: number) {
+    const startOfVirtualLockupPeriod = timestamp - VIRTUAL_LOCKUP_PERIOD;
+
     this.assertTimestampWithinLoadInterval(timestamp);
+    this.assertTimestampWithinLoadInterval(startOfVirtualLockupPeriod);
 
     const totalPSPBalance = SPSPAddresses.reduce((acc, poolAddress) => {
-      const startOfVirtualLockupPeriod = timestamp - VIRTUAL_LOCKUP_PERIOD;
-
       const stakeAtStartOfVirtualLockup = reduceTimeSeries(
         startOfVirtualLockupPeriod,
         this.initState.sPSPBalanceByAccount[poolAddress][account],
