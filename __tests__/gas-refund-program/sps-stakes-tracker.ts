@@ -168,14 +168,12 @@ describe('SpspStakesTracker', () => {
       const txTimestamp = 1657396621;
       const account = '0x88f81b95eae67461b2d687343d36852f87409a7b';
 
-      const spotStake = tracker
-        .computeStakedPSPBalance(account, txTimestamp)
-        .toFixed(0);
-      const minHeldDuringVirtualLockup = tracker
-        .computeStakedPSPBalanceWithVirtualLockup(account, txTimestamp)
-        .toFixed(0);
+      const spotStake = tracker.computeStakedPSPBalance(account, txTimestamp);
 
-      expect(spotStake).toBe(minHeldDuringVirtualLockup);
+      const minHeldDuringVirtualLockup =
+        tracker.computeStakedPSPBalanceWithVirtualLockup(account, txTimestamp);
+
+      expect(spotStake.isEqualTo(minHeldDuringVirtualLockup)).toBeTruthy();
     });
 
     test('had no stake and staked within [t-lockup_window, t[ and did a new tx at t', () => {
@@ -185,15 +183,13 @@ describe('SpspStakesTracker', () => {
       const txTimestamp = 1656366935;
       const account = '0x17134276ce356f3bacad4e2b23222d9a088ac248';
 
-      const spotStake = tracker
-        .computeStakedPSPBalance(account, txTimestamp)
-        .toFixed(0);
-      const minHeldDuringVirtualLockup = tracker
-        .computeStakedPSPBalanceWithVirtualLockup(account, txTimestamp)
-        .toFixed(0);
+      const spotStake = tracker.computeStakedPSPBalance(account, txTimestamp);
 
-      expect(spotStake).toBe('14596156936477148188887');
-      expect(minHeldDuringVirtualLockup).toBe('0');
+      const minHeldDuringVirtualLockup =
+        tracker.computeStakedPSPBalanceWithVirtualLockup(account, txTimestamp);
+
+      expect(spotStake.toFixed(0)).toBe('14596156936477148188887');
+      expect(minHeldDuringVirtualLockup.toFixed(0)).toBe('0');
     });
 
     test('had some stake and staked more within [t-lockup_window, t[ and did a new tx at t', () => {
@@ -203,15 +199,16 @@ describe('SpspStakesTracker', () => {
       const txTimestamp = 1656430446;
       const account = '0x5577933afc0522c5ee71115df61512f49da0543e';
 
-      const spotStake = tracker
-        .computeStakedPSPBalance(account, txTimestamp)
-        .toFixed(0);
-      const minHeldDuringVirtualLockup = tracker
-        .computeStakedPSPBalanceWithVirtualLockup(account, txTimestamp)
-        .toFixed(0);
+      const spotStake = tracker.computeStakedPSPBalance(account, txTimestamp);
 
-      expect(spotStake).toBe('619217648752360328978270');
-      expect(minHeldDuringVirtualLockup).toBe('516526358541823114384937');
+      const minHeldDuringVirtualLockup =
+        tracker.computeStakedPSPBalanceWithVirtualLockup(account, txTimestamp);
+
+      expect(minHeldDuringVirtualLockup.isLessThan(spotStake)).toBeTruthy();
+      expect(spotStake.toFixed(0)).toBe('619217648752360328978270');
+      expect(minHeldDuringVirtualLockup.toFixed(0)).toBe(
+        '516526358541823114384937',
+      );
     });
 
     test('had some stake and withdrew a portion within [t-lockup_window, t[ and did a new tx at t', () => {
@@ -221,15 +218,13 @@ describe('SpspStakesTracker', () => {
       const txTimestamp = 1649168528;
       const account = '0x05537ac27aef02ee087ae859a73f2cc5fe15c798';
 
-      const spotStake = tracker
-        .computeStakedPSPBalance(account, txTimestamp)
-        .toFixed(0);
-      const minHeldDuringVirtualLockup = tracker
-        .computeStakedPSPBalanceWithVirtualLockup(account, txTimestamp)
-        .toFixed(0);
+      const spotStake = tracker.computeStakedPSPBalance(account, txTimestamp);
 
-      expect(spotStake).toBe(minHeldDuringVirtualLockup);
-      expect(spotStake).not.toBe('0');
+      const minHeldDuringVirtualLockup =
+        tracker.computeStakedPSPBalanceWithVirtualLockup(account, txTimestamp);
+
+      expect(spotStake.isEqualTo(minHeldDuringVirtualLockup)).toBeTruthy();
+      expect(spotStake.toFixed(0)).not.toBe('0');
     });
 
     test('had some stake and withdrew it all before tx', () => {
@@ -239,15 +234,13 @@ describe('SpspStakesTracker', () => {
       const txTimestamp = 1656515184;
       const account = '0x1d1ae55be3b5b4a0220eed418403cb3b2755e2b4';
 
-      const spotStake = tracker
-        .computeStakedPSPBalance(account, txTimestamp)
-        .toFixed(0);
-      const minHeldDuringVirtualLockup = tracker
-        .computeStakedPSPBalanceWithVirtualLockup(account, txTimestamp)
-        .toFixed(0);
+      const spotStake = tracker.computeStakedPSPBalance(account, txTimestamp);
 
-      expect(spotStake).toBe(minHeldDuringVirtualLockup);
-      expect(spotStake).toBe('0');
+      const minHeldDuringVirtualLockup =
+        tracker.computeStakedPSPBalanceWithVirtualLockup(account, txTimestamp);
+
+      expect(spotStake.isEqualTo(minHeldDuringVirtualLockup)).toBeTruthy();
+      expect(spotStake.isZero()).toBeTruthy();
     });
   });
 });

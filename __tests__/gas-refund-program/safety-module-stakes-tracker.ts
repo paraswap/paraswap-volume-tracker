@@ -78,7 +78,6 @@ describe('SafetyModuleStakesTracker', () => {
       const account = '0x88f81b95eae67461b2d687343d36852f87409a7b';
 
       const spotStake = tracker.computeStakedPSPBalance(account, txTimestamp);
-
       const minHeldDuringVirtualLockup =
         tracker.computeStakedPSPBalanceWithVirtualLockup(account, txTimestamp);
 
@@ -96,8 +95,13 @@ describe('SafetyModuleStakesTracker', () => {
       const spotStake = tracker.computeStakedPSPBalance(account, txTimestamp);
       const minHeldDuringVirtualLockup =
         tracker.computeStakedPSPBalanceWithVirtualLockup(account, txTimestamp);
-      expect(spotStake.isEqualTo(minHeldDuringVirtualLockup)).toBeFalsy();
+
       expect(minHeldDuringVirtualLockup.isLessThan(spotStake)).toBeTruthy();
+
+      expect(spotStake.toFixed(0)).toBe('1364657414057644135201');
+      expect(minHeldDuringVirtualLockup.toFixed(0)).toBe(
+        '994128705008224339309',
+      );
     });
   });
 });
