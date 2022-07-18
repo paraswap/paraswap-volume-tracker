@@ -142,7 +142,7 @@ describe('SpspStakesTracker', () => {
       });
     });
   });
-  describe('virtual lockup', () => {
+  describe('virtual lockup - only stakes held for 7d preceding a transaction are taken into account', () => {
     const startBlock = 14305200;
     const startTimestamp = 1646192162;
 
@@ -162,85 +162,100 @@ describe('SpspStakesTracker', () => {
       await tracker.loadStakes();
     });
 
-    test('had stake for more than lockup_window and did a tx', () => {
+    test('account had stake for more than lockup_window and did a tx, whole stake is taken into account', () => {
       // enterWithPermit: https://etherscan.io/tx/0x76ebb2fcb750e16f086c9e75a1364d7f5355a283f49eda6c2845819df6d57b91
       // swap : https://polygonscan.com/tx/0x185ad8ff97fd92eedaa045722d65f487478887051e9402e2f1da699ffa92876f
       const txTimestamp = 1657396621;
       const account = '0x88f81b95eae67461b2d687343d36852f87409a7b';
 
-      const spotStake = tracker.computeStakedPSPBalance(account, txTimestamp);
+      const actualStakeAtT = tracker.computeStakedPSPBalance(
+        account,
+        txTimestamp,
+      );
 
-      const minHeldDuringVirtualLockup =
+      const virtuallyLockedStakeAtT =
         tracker.computeStakedPSPBalanceWithVirtualLockup(account, txTimestamp);
 
-      expect(spotStake.isEqualTo(minHeldDuringVirtualLockup)).toBeTruthy();
+      expect(actualStakeAtT.isEqualTo(virtuallyLockedStakeAtT)).toBeTruthy();
     });
 
-    test('had no stake and staked within [t-lockup_window, t[ and did a new tx at t', () => {
+    test('account had no stake and staked within [t-lockup_window, t[ and did a new tx at t, no stake should be taken into account', () => {
       // enter : https://etherscan.io/tx/0x746c71e8bb678c26e58ef2c03e49adc4b4b1a6208a723772dad867da2cca8a87
       // swap : https://etherscan.io/tx/0x62aebdcfe527375fdfa0e87cdde482557febb330afe38b21c3143df936b621ae
 
       const txTimestamp = 1656366935;
       const account = '0x17134276ce356f3bacad4e2b23222d9a088ac248';
 
-      const spotStake = tracker.computeStakedPSPBalance(account, txTimestamp);
+      const actualStakeAtT = tracker.computeStakedPSPBalance(
+        account,
+        txTimestamp,
+      );
 
-      const minHeldDuringVirtualLockup =
+      const virtuallyLockedStakeAtT =
         tracker.computeStakedPSPBalanceWithVirtualLockup(account, txTimestamp);
 
-      expect(spotStake.toFixed(0)).toBe('14596156936477148188887');
-      expect(minHeldDuringVirtualLockup.toFixed(0)).toBe('0');
+      expect(actualStakeAtT.toFixed(0)).toBe('14596156936477148188887');
+      expect(virtuallyLockedStakeAtT.toFixed(0)).toBe('0');
     });
 
-    test('had some stake and staked more within [t-lockup_window, t[ and did a new tx at t', () => {
+    test('account had some stake and staked more within [t-lockup_window, t[ and did a new tx at t, take into account only part of stake held for last 7d', () => {
       // enter: https://etherscan.io/tx/0xdeed3257737726d250c5be4529f862f32d325b842b92cd179b1c4cae8b1930d4
       // swap: https://etherscan.io/tx/0xc9f96b1de35449efb4a64c1d2e1bbc008e95c3e4429c7bd4976087ce14917c95
 
       const txTimestamp = 1656430446;
       const account = '0x5577933afc0522c5ee71115df61512f49da0543e';
 
-      const spotStake = tracker.computeStakedPSPBalance(account, txTimestamp);
+      const actualStakeAtT = tracker.computeStakedPSPBalance(
+        account,
+        txTimestamp,
+      );
 
-      const minHeldDuringVirtualLockup =
+      const virtuallyLockedStakeAtT =
         tracker.computeStakedPSPBalanceWithVirtualLockup(account, txTimestamp);
 
-      expect(minHeldDuringVirtualLockup.isLessThan(spotStake)).toBeTruthy();
-      expect(spotStake.toFixed(0)).toBe('619217648752360328978270');
-      expect(minHeldDuringVirtualLockup.toFixed(0)).toBe(
+      expect(virtuallyLockedStakeAtT.isLessThan(actualStakeAtT)).toBeTruthy();
+      expect(actualStakeAtT.toFixed(0)).toBe('619217648752360328978270');
+      expect(virtuallyLockedStakeAtT.toFixed(0)).toBe(
         '516526358541823114384937',
       );
     });
 
-    test('had some stake and withdrew a portion within [t-lockup_window, t[ and did a new tx at t', () => {
+    test('account had some stake and withdrew a portion within [t-lockup_window, t[ and did a new tx at t, the actual stake should matching the minium held', () => {
       // leave: https://etherscan.io/tx/0x8123fabee2397ccd9a7071b0d58e0ef8fbe88bbbde3ee35131129c1b47064415
       // swap: https://etherscan.io/tx/0x7c32bf8707788598969d941e74df1a947be85a6482e3e779bc7113c5f013f0d1
 
       const txTimestamp = 1649168528;
       const account = '0x05537ac27aef02ee087ae859a73f2cc5fe15c798';
 
-      const spotStake = tracker.computeStakedPSPBalance(account, txTimestamp);
+      const actualStakeAtT = tracker.computeStakedPSPBalance(
+        account,
+        txTimestamp,
+      );
 
-      const minHeldDuringVirtualLockup =
+      const virtuallyLockedStakeAtT =
         tracker.computeStakedPSPBalanceWithVirtualLockup(account, txTimestamp);
 
-      expect(spotStake.isEqualTo(minHeldDuringVirtualLockup)).toBeTruthy();
-      expect(spotStake.toFixed(0)).not.toBe('0');
+      expect(actualStakeAtT.isEqualTo(virtuallyLockedStakeAtT)).toBeTruthy();
+      expect(actualStakeAtT.toFixed(0)).not.toBe('0');
     });
 
-    test('had some stake and withdrew it all before tx', () => {
+    test('account had some stake and withdrew it all before tx, should not take into account any stake', () => {
       // leave: https://etherscan.io/tx/0x4211f53fa0f3cc931774d5b97aeaf118f0be0b862564819709d1cc3b9cb99b69
       // swap: https://etherscan.io/tx/0x06e55919991c52887b0958f21388505ff2585cf87939b5cb9cdf0bf7529b044b
 
       const txTimestamp = 1656515184;
       const account = '0x1d1ae55be3b5b4a0220eed418403cb3b2755e2b4';
 
-      const spotStake = tracker.computeStakedPSPBalance(account, txTimestamp);
+      const actualStakeAtT = tracker.computeStakedPSPBalance(
+        account,
+        txTimestamp,
+      );
 
-      const minHeldDuringVirtualLockup =
+      const virtuallyLockedStakeAtT =
         tracker.computeStakedPSPBalanceWithVirtualLockup(account, txTimestamp);
 
-      expect(spotStake.isEqualTo(minHeldDuringVirtualLockup)).toBeTruthy();
-      expect(spotStake.isZero()).toBeTruthy();
+      expect(actualStakeAtT.isEqualTo(virtuallyLockedStakeAtT)).toBeTruthy();
+      expect(actualStakeAtT.isZero()).toBeTruthy();
     });
   });
 });
