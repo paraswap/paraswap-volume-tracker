@@ -26,7 +26,6 @@ const logger = global.LOGGER('GRP:COMPUTE_MERKLE_TREE');
 const skipCheck = process.env.SKIP_CHECKS === 'true';
 const saveFile = process.env.SAVE_FILE === 'true';
 
-// @FIXME: should cap amount distributed to stakers to 30k
 export async function computeAndStoreMerkleTreeForChain({
   chainId,
   epoch,
