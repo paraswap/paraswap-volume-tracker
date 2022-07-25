@@ -9,6 +9,7 @@ import { constructHttpClient } from '../../../src/lib/utils/http-client';
 import { startOfDayMilliSec } from '../../../src/lib/utils/helpers';
 import { assert } from 'ts-essentials';
 
+const logger = global.LOGGER('coingecko');
 
 export const coingeckoClient = constructHttpClient({
   axiosConfig: {
@@ -52,6 +53,11 @@ export async function fetchHistoricalPriceCoingecko({
   const {
     data: { prices },
   } = await coingeckoClient.get<{ prices: CoingeckoPriceHistory }>(url);
+
+  logger.info(JSON.stringify({
+    url,
+    prices,
+  }))
 
   return prices;
 }
