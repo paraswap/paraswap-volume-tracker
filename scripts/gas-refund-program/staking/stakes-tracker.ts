@@ -7,7 +7,6 @@ import {
   GasRefundSafetyModuleStartEpoch,
   GasRefundSPSPStakesAlgoFlipEpoch,
   GasRefundVirtualLockupStartEpoch,
-  VIRTUAL_LOCKUP_PERIOD,
 } from '../../../src/lib/gas-refund';
 import { OFFSET_CALC_TIME, SCRIPT_START_TIME_SEC } from '../common';
 import { getLatestEpochRefundedAllChains } from '../persistance/db-persistance';
@@ -77,10 +76,20 @@ export default class StakesTracker {
 
     await Promise.all([
       SPSPStakesTracker.getInstance()
-        .setBlockBoundary(startBlockSPSP, endBlock)
+        .setBlockBoundary({
+          startBlock: startBlockSPSP,
+          endBlock,
+          startTimestamp: startTimeSPSP,
+          endTimestamp: endTime,
+        })
         .loadStakes(),
       SafetyModuleStakesTracker.getInstance()
-        .setBlockBoundary(startBlockSM, endBlock)
+        .setBlockBoundary({
+          startBlock: startBlockSM,
+          endBlock,
+          startTimestamp: startTimeSM,
+          endTimestamp: endTime,
+        })
         .loadStakes(),
     ]);
   }

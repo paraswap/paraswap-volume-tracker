@@ -382,6 +382,8 @@ export default class SPSPStakesTracker
   }
 
   computeStakedPSPBalance(account: string, timestamp: number) {
+    this.assertTimestampWithinLoadInterval(timestamp);
+
     const totalPSPBalance = SPSPAddresses.reduce((acc, poolAddress) => {
       const sPSPAmount = reduceTimeSeries(
         timestamp,
@@ -415,6 +417,8 @@ export default class SPSPStakesTracker
     timestamp: number,
     endTimestamp: number,
   ) {
+    this.assertTimestampWithinLoadInterval(timestamp);
+
     const account = _account.toLowerCase();
 
     const startOfHourTimestampUnix = startOfHourSec(timestamp);
@@ -444,6 +448,8 @@ export default class SPSPStakesTracker
     account: string,
     timestamp: number,
   ) {
+    this.assertTimestampWithinLoadInterval(timestamp);
+
     const totalPSPBalance = SPSPAddresses.reduce((acc, poolAddress) => {
       const sPSPAmount = reduceTimeSeries(
         timestamp,
@@ -488,9 +494,12 @@ export default class SPSPStakesTracker
   }
 
   computeStakedPSPBalanceWithVirtualLockup(account: string, timestamp: number) {
-    const totalPSPBalance = SPSPAddresses.reduce((acc, poolAddress) => {
-      const startOfVirtualLockupPeriod = timestamp - VIRTUAL_LOCKUP_PERIOD;
+    const startOfVirtualLockupPeriod = timestamp - VIRTUAL_LOCKUP_PERIOD;
 
+    this.assertTimestampWithinLoadInterval(timestamp);
+    this.assertTimestampWithinLoadInterval(startOfVirtualLockupPeriod);
+
+    const totalPSPBalance = SPSPAddresses.reduce((acc, poolAddress) => {
       const stakeAtStartOfVirtualLockup = reduceTimeSeries(
         startOfVirtualLockupPeriod,
         this.initState.sPSPBalanceByAccount[poolAddress][account],
