@@ -29,7 +29,6 @@ interface MerkleRedeem extends Contract {
 }
 
 const MerkleRedeemAddress: { [chainId: number]: string } = {
-  // @TODO
   [CHAIN_ID_MAINNET]: '0xFEB7e2D8584BEf7BB21dA0B70C148DABf1388031',
   [CHAIN_ID_POLYGON]: '0xD15Fe65BCf0B612343E879434dc72DB1721F732D',
   [CHAIN_ID_FANTOM]: '0xCA82162e3666dbDf97814197Ae82731D857125dE',

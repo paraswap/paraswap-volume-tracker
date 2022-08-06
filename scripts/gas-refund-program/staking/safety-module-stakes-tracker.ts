@@ -396,6 +396,8 @@ export default class SafetyModuleStakesTracker
 
   // @FIXME: current formula assumes all PSP in the balancer pool are detained by stkPSPBpt. Fix background compat
   computeStakedPSPBalance(account: string, timestamp: number) {
+    this.assertTimestampWithinLoadInterval(timestamp);
+
     const stkPSPBPT = reduceTimeSeries(
       timestamp,
       this.initState.stkPSPBptUsersBalances[account],
@@ -408,6 +410,9 @@ export default class SafetyModuleStakesTracker
 
   computeStakedPSPBalanceWithVirtualLockup(account: string, timestamp: number) {
     const startOfVirtualLockupPeriod = timestamp - VIRTUAL_LOCKUP_PERIOD;
+
+    this.assertTimestampWithinLoadInterval(timestamp);
+    this.assertTimestampWithinLoadInterval(startOfVirtualLockupPeriod);
 
     const stakeAtStartOfVirtualLockup = reduceTimeSeries(
       startOfVirtualLockupPeriod,

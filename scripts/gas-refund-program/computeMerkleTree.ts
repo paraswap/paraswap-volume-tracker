@@ -3,6 +3,7 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 import { computeMerkleData } from './refund/merkle-tree';
 import {
+  fetchLastEpochRefunded,
   merkleRootExists,
   saveMerkleTreeInDB,
 } from './persistance/db-persistance';
@@ -17,13 +18,14 @@ import {
 import { GasRefundTransaction } from '../../src/models/GasRefundTransaction';
 import { saveMerkleTreeInFile } from './persistance/file-persistance';
 import { init, resolveEpochCalcTimeInterval } from './common';
+import { EpochInfo } from '../../src/lib/epoch-info';
+import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
 
 const logger = global.LOGGER('GRP:COMPUTE_MERKLE_TREE');
 
 const skipCheck = process.env.SKIP_CHECKS === 'true';
 const saveFile = process.env.SAVE_FILE === 'true';
 
-// @FIXME: should cap amount distributed to stakers to 30k
 export async function computeAndStoreMerkleTreeForChain({
   chainId,
   epoch,
@@ -82,29 +84,41 @@ export async function computeAndStoreMerkleTreeForChain({
 async function startComputingMerkleTreesAllChains() {
   await init();
 
-  const epoch = Number(process.env.GRP_EPOCH) || GasRefundGenesisEpoch; // @TODO: automate
+  const latestEpochRefunded = await fetchLastEpochRefunded();
+  let startEpoch = latestEpochRefunded
+    ? latestEpochRefunded + 1
+    : GasRefundGenesisEpoch;
 
   assert(
-    epoch >= GasRefundGenesisEpoch,
+    startEpoch >= GasRefundGenesisEpoch,
     'cannot compute grp merkle data for epoch < genesis_epoch',
   );
 
-  const { isEpochEnded } = await resolveEpochCalcTimeInterval(epoch);
+  const currentEpoch = EpochInfo.getInstance(
+    CHAIN_ID_MAINNET,
+    true,
+  ).currentEpoch;
 
-  if (!skipCheck)
-    assert(
-      isEpochEnded,
-      `Epoch ${epoch} has not ended or data not available yet`,
+  assert(currentEpoch, 'currentEpoch should defined');
+
+  for (let epoch = startEpoch; epoch <= currentEpoch; epoch++) {
+    const { isEpochEnded } = await resolveEpochCalcTimeInterval(epoch);
+
+    if (!skipCheck && !isEpochEnded) {
+      return logger.warn(
+        `Epoch ${epoch} has not ended or full onchain data not available yet`,
+      );
+    }
+
+    await Promise.all(
+      GRP_SUPPORTED_CHAINS.map(chainId =>
+        computeAndStoreMerkleTreeForChain({
+          chainId,
+          epoch,
+        }),
+      ),
     );
-
-  await Promise.all(
-    GRP_SUPPORTED_CHAINS.map(chainId =>
-      computeAndStoreMerkleTreeForChain({
-        chainId,
-        epoch,
-      }),
-    ),
-  );
+  }
 }
 
 startComputingMerkleTreesAllChains()

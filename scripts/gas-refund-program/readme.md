@@ -6,12 +6,13 @@
 - **DATABASE_URL**: Postgres local instance
 
 Start local postgres:
-`docker run --name volume-tracker-db -e POSTGRES_PASSWORD=paraswap -e POSTGRES_USER=paraswap -e POSTGRES_DB=volume_tracker -p 32780:5432 -d postgres`
-
+`docker compose up -d` in src/ folder
+or
+`docker run --name volume-tracker-db -e POSTGRES_PASSWORD=paraswap -e POSTGRES_USER=paraswap -e POSTGRES_DB=volume_tracker -p 32780:5432 -d postgres` anywhere
 
 ## Description
 
-- **computeGasRefund**: index transactions over one epoch and compute refund (`sum(gas * gasPrice * pspChainCurrencySameDayRate * refundPercent)` -> will soon run automatically/periodically
+- **computeGasRefund**: index transactions over one epoch and compute refund (`sum(gas * gasPrice * pspChainCurrencySameDayRate * refundPercent)` -> run automatically/periodically
 - **computeMerkleTree**: compute merkle tree of all gas refunds and store in file/db -> 2 variants needed to seed contract upfront then allow users to actually claim read next section
 
 ## Run the scripts
