@@ -27,7 +27,7 @@ export async function fetchPricingAndTransactions({
     startTimestamp:
       epoch < GasRefundPricingAlgoFlipEpoch
         ? startTimestamp
-        : startTimestamp - 24 * 60 * 60, // overfetch to allow for last 24h avg
+        : startTimestamp - 48 * 60 * 60, // overfetch to allow for last 24h avg
     endTimestamp,
   });
 
