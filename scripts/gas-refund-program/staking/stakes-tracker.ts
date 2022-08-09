@@ -74,23 +74,18 @@ export default class StakesTracker {
       'startBlockSM should be a number and 0 < startBlockSM < endBlock',
     );
 
+    const spspStakesTracker = SPSPStakesTracker.getInstance();
+    const stakeModuleStakesTracker = SafetyModuleStakesTracker.getInstance();
+
     await Promise.all([
-      SPSPStakesTracker.getInstance()
-        .setBlockBoundary({
-          startBlock: startBlockSPSP,
-          endBlock,
-          startTimestamp: startTimeSPSP,
-          endTimestamp: endTime,
-        })
-        .loadStakes(),
-      SafetyModuleStakesTracker.getInstance()
-        .setBlockBoundary({
-          startBlock: startBlockSM,
-          endBlock,
-          startTimestamp: startTimeSM,
-          endTimestamp: endTime,
-        })
-        .loadStakes(),
+      spspStakesTracker.loadHistoricalStakesWithinInterval({
+        startTimestamp: startTimeSPSP,
+        endTimestamp: endTime,
+      }),
+      stakeModuleStakesTracker.loadHistoricalStakesWithinInterval({
+        startTimestamp: startTimeSM,
+        endTimestamp: endTime,
+      }),
     ]);
   }
 

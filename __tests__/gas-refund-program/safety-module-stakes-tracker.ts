@@ -7,27 +7,22 @@ import { BNReplacer } from '../../src/lib/utils/helpers';
 describe('SafetyModuleStakesTracker', () => {
   describe('snashot test for backward compat', () => {
     let tracker: SafetyModuleStakesTracker;
-    const startBlock = 14567000;
-    const endBlock = startBlock + 10000;
     const startTimestamp = 1649715553;
     const endTimestamp = 1649851552;
 
     beforeAll(async () => {
       tracker = new SafetyModuleStakesTracker();
-      tracker.setBlockBoundary({
-        startBlock: startBlock + 1,
-        endBlock,
+      await tracker.loadHistoricalStakesWithinInterval({
         startTimestamp,
         endTimestamp,
       });
-      await tracker.loadStakes();
     });
 
     test('Init state', () => {
       // hint: Use https://etherscan.io/tokencheck-tool to check all snapshoted data
 
       expect(JSON.stringify(tracker.initState, BNReplacer, 2)).toMatchSnapshot(
-        `SafetyModuleStakesTracker::initState at block ${startBlock}`,
+        `SafetyModuleStakesTracker::initState at block ${tracker.startBlock}`,
       );
     });
 
@@ -51,23 +46,18 @@ describe('SafetyModuleStakesTracker', () => {
   });
 
   describe('virtual lockup - only stakes held for 7d preceding a transaction are taken into account', () => {
-    const startBlock = 14942024;
     const startTimestamp = 1654917473;
-
-    const endBlock = 15123160;
     const endTimestamp = 1657566578;
 
     let tracker: SafetyModuleStakesTracker;
 
     beforeAll(async () => {
-      tracker = new SafetyModuleStakesTracker().setBlockBoundary({
-        startBlock,
+      tracker = new SafetyModuleStakesTracker();
+
+      await tracker.loadHistoricalStakesWithinInterval({
         startTimestamp,
-        endBlock,
         endTimestamp,
       });
-
-      await tracker.loadStakes();
     });
 
     test('account had stake for more than lockup_window and did a tx, whole stake is taken into account', () => {
