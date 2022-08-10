@@ -51,29 +51,6 @@ export default class StakesTracker {
     );
     assert(startTimeSM < endTime, 'startTimeSM should be less than endTime');
 
-    const [startBlockSPSP, startBlockSM, endBlock] = await Promise.all([
-      blockInfo.getBlockAfterTimeStamp(startTimeSPSP),
-      blockInfo.getBlockAfterTimeStamp(startTimeSM),
-      blockInfo.getBlockAfterTimeStamp(endTime),
-    ]);
-
-    assert(
-      typeof endBlock === 'number' && endBlock > 0,
-      'endBlock should be a number greater than 0',
-    );
-    assert(
-      typeof startBlockSPSP === 'number' &&
-        startBlockSPSP > 0 &&
-        startBlockSPSP < endBlock,
-      'startBlockSPSP should be a number and 0 < startBlockSPSP < endBlock',
-    );
-    assert(
-      typeof startBlockSM === 'number' &&
-        startBlockSM > 0 &&
-        startBlockSM < endBlock,
-      'startBlockSM should be a number and 0 < startBlockSM < endBlock',
-    );
-
     const spspStakesTracker = SPSPStakesTracker.getInstance();
     const stakeModuleStakesTracker = SafetyModuleStakesTracker.getInstance();
 
