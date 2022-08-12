@@ -10,29 +10,22 @@ jest.setTimeout(5 * 60 * 1000);
 describe('SpspStakesTracker', () => {
   describe('snashot test for backward compat', () => {
     let tracker: SPSPStakesTracker;
-    const startBlock = 14652905;
     const startTimestamp = 1650877705;
-
-    const endBlock = 14722785;
     const endTimestamp = 1651829555;
 
     beforeAll(async () => {
       tracker = new SPSPStakesTracker();
 
-      await tracker
-        .setBlockBoundary({
-          startBlock,
-          endBlock,
-          startTimestamp,
-          endTimestamp,
-        })
-        .loadStakes();
+      await tracker.loadHistoricalStakesWithinInterval({
+        startTimestamp,
+        endTimestamp,
+      });
     });
 
     test('Init state', () => {
       console.log(tracker.initState);
       expect(JSON.stringify(tracker.initState, BNReplacer, 2)).toMatchSnapshot(
-        `SPSPStakesTracker::initState at block ${startBlock}`,
+        `SPSPStakesTracker::initState at block ${tracker.startBlock}`,
       );
     });
 
@@ -49,22 +42,16 @@ describe('SpspStakesTracker', () => {
     let lateSPSPTracker: SPSPStakesTracker;
     let atObservationTracker: SPSPStakesTracker;
 
-    const startBlockEarlyTracker = 14652905;
-    const startTimestapEarlyTracker = 1650877705;
-
-    const startBlockLateTracker = 14699930;
+    const startTimestampEarlyTracker = 1650877705;
     const startTimestampLateTracker = 1651516627;
-
-    const startBlockAtObservationTracker = 14722775; // matching observationTimestamp
     const observationTimestamp = 1651829438; // is matching startBlockAtObservationTracker
 
-    const endBlockAllTrackers = startBlockAtObservationTracker + 1; // later than all but doesn't really matter much in future. Just after oberservation is fine
     const endTimestamp = 1651829444;
 
     assert(
-      startBlockEarlyTracker < startBlockLateTracker &&
-        startBlockLateTracker < startBlockAtObservationTracker &&
-        startBlockAtObservationTracker < endBlockAllTrackers,
+      startTimestampEarlyTracker < startTimestampLateTracker &&
+        startTimestampLateTracker < observationTimestamp &&
+        observationTimestamp < endTimestamp,
       'trackers start block should rigously follow : startBlockEarlyTracker < startBlockLateTracker < startBlockAtObservationTracker < endBlockBothTrackers',
     );
 
@@ -74,30 +61,18 @@ describe('SpspStakesTracker', () => {
       atObservationTracker = new SPSPStakesTracker();
 
       await Promise.all([
-        earlySPSPTracker
-          .setBlockBoundary({
-            startBlock: startBlockEarlyTracker,
-            endBlock: endBlockAllTrackers,
-            startTimestamp: startTimestapEarlyTracker,
-            endTimestamp,
-          })
-          .loadStakes(),
-        lateSPSPTracker
-          .setBlockBoundary({
-            startBlock: startBlockLateTracker,
-            endBlock: endBlockAllTrackers,
-            startTimestamp: startTimestampLateTracker,
-            endTimestamp,
-          })
-          .loadStakes(),
-        atObservationTracker
-          .setBlockBoundary({
-            startBlock: startBlockAtObservationTracker,
-            startTimestamp: observationTimestamp,
-            endBlock: endBlockAllTrackers,
-            endTimestamp,
-          })
-          .loadStakes(),
+        earlySPSPTracker.loadHistoricalStakesWithinInterval({
+          startTimestamp: startTimestampEarlyTracker,
+          endTimestamp,
+        }),
+        lateSPSPTracker.loadHistoricalStakesWithinInterval({
+          startTimestamp: startTimestampLateTracker,
+          endTimestamp,
+        }),
+        atObservationTracker.loadHistoricalStakesWithinInterval({
+          startTimestamp: observationTimestamp,
+          endTimestamp,
+        }),
       ]);
     });
 
@@ -143,23 +118,18 @@ describe('SpspStakesTracker', () => {
     });
   });
   describe('virtual lockup - only stakes held for 7d preceding a transaction are taken into account', () => {
-    const startBlock = 14305200;
     const startTimestamp = 1646192162;
-
-    const endBlock = 15123160;
     const endTimestamp = 1657566578;
 
     let tracker: SPSPStakesTracker;
 
     beforeAll(async () => {
-      tracker = new SPSPStakesTracker().setBlockBoundary({
-        startBlock,
+      tracker = new SPSPStakesTracker();
+
+      await tracker.loadHistoricalStakesWithinInterval({
         startTimestamp,
-        endBlock,
         endTimestamp,
       });
-
-      await tracker.loadStakes();
     });
 
     test('account had stake for more than lockup_window and did a tx, whole stake is taken into account', () => {
