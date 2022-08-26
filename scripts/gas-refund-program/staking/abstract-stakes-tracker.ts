@@ -64,7 +64,6 @@ export class AbstractStakesTracker {
 
 export interface IStakesTracker {
   loadStakes: () => Promise<void>;
-  computeStakedPSPBalance: (account: string, timestamp: number) => BigNumber;
   computeStakedPSPBalanceWithVirtualLockup: (
     account: string,
     timestamp: number,

@@ -4,6 +4,7 @@ import { CHAIN_ID_MAINNET } from '../../../src/lib/constants';
 import { EpochInfo } from '../../../src/lib/epoch-info';
 import {
   GasRefundGenesisEpoch,
+  GasRefundSafetyModuleAllPSPInBptFixStartEpoch,
   GasRefundSafetyModuleStartEpoch,
   GasRefundSPSPStakesAlgoFlipEpoch,
   GasRefundVirtualLockupStartEpoch,
@@ -97,7 +98,12 @@ export default class StakesTracker {
 
     const pspStakedInSM =
       epoch < GasRefundVirtualLockupStartEpoch
-        ? safetyModuleTracker.computeStakedPSPBalance(account, timestamp)
+        ? safetyModuleTracker.computeStakedPSPBalanceBroken(account, timestamp)
+        : epoch < GasRefundSafetyModuleAllPSPInBptFixStartEpoch
+        ? safetyModuleTracker.computeStakedPSPBalanceWithVirtualLockupBroken(
+            account,
+            timestamp,
+          )
         : safetyModuleTracker.computeStakedPSPBalanceWithVirtualLockup(
             account,
             timestamp,
