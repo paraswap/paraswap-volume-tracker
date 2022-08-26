@@ -1,5 +1,4 @@
 import { assert } from 'ts-essentials';
-import { BlockInfo } from '../../../src/lib/block-info';
 import { CHAIN_ID_MAINNET } from '../../../src/lib/constants';
 import { EpochInfo } from '../../../src/lib/epoch-info';
 import {
@@ -25,11 +24,8 @@ export default class StakesTracker {
   }
 
   async loadHistoricalStakes() {
-    const blockInfo = BlockInfo.getInstance(CHAIN_ID_MAINNET);
     const epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET, true);
 
-    // @FIXME: as this has to be aligned with the logic where we scan transactions
-    // we have to come up with a stronger implem to always make sure tx scanning time isn't lower than stakes fetching time
     const latestEpochRefunded = await getLatestEpochRefundedAllChains();
 
     // Note: since we take start of latest epoch refunded, we don't need adjust start times with VIRTUAL_LOCKUP_PERIOD
