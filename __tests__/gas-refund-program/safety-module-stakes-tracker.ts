@@ -35,7 +35,7 @@ describe('SafetyModuleStakesTracker', () => {
     });
 
     test('Staked PSP Balance at timestamp', () => {
-      const pspBalanceAtTimestamp = tracker.computeStakedPSPBalance(
+      const pspBalanceAtTimestamp = tracker.computeStakedPSPBalanceBroken(
         '0x0e71f7a6bbae357a1cd364173ae69d3fb2e539e3',
         1649822860, // timestamp has to be within range
       );
@@ -67,12 +67,15 @@ describe('SafetyModuleStakesTracker', () => {
       const txTimestamp = 1655660833;
       const account = '0x88f81b95eae67461b2d687343d36852f87409a7b';
 
-      const actualStakeAtT = tracker.computeStakedPSPBalance(
+      const actualStakeAtT = tracker.computeStakedPSPBalanceBroken(
         account,
         txTimestamp,
       );
       const virtuallyLockedStakeAtT =
-        tracker.computeStakedPSPBalanceWithVirtualLockup(account, txTimestamp);
+        tracker.computeStakedPSPBalanceWithVirtualLockupBroken(
+          account,
+          txTimestamp,
+        );
 
       expect(actualStakeAtT.isEqualTo(virtuallyLockedStakeAtT)).toBeTruthy();
     });
@@ -85,12 +88,15 @@ describe('SafetyModuleStakesTracker', () => {
       const txTimestamp = 1657252834;
       const account = '0x4532280a66a0c1c709f7e0c40b14b4dea83253c1';
 
-      const actualStakeAtT = tracker.computeStakedPSPBalance(
+      const actualStakeAtT = tracker.computeStakedPSPBalanceBroken(
         account,
         txTimestamp,
       );
       const virtuallyLockedStakeAtT =
-        tracker.computeStakedPSPBalanceWithVirtualLockup(account, txTimestamp);
+        tracker.computeStakedPSPBalanceWithVirtualLockupBroken(
+          account,
+          txTimestamp,
+        );
 
       expect(virtuallyLockedStakeAtT.isLessThan(actualStakeAtT)).toBeTruthy();
 
@@ -106,13 +112,16 @@ describe('SafetyModuleStakesTracker', () => {
       const txTimestamp = 1656472361;
       const account = '0xfc44a13ea1a98166ffc0719f83b5f3ee2759c03f';
 
-      const actualStakeAtT = tracker.computeStakedPSPBalance(
+      const actualStakeAtT = tracker.computeStakedPSPBalanceBroken(
         account,
         txTimestamp,
       );
 
       const virtuallyLockedStakeAtT =
-        tracker.computeStakedPSPBalanceWithVirtualLockup(account, txTimestamp);
+        tracker.computeStakedPSPBalanceWithVirtualLockupBroken(
+          account,
+          txTimestamp,
+        );
 
       expect(actualStakeAtT.isEqualTo(virtuallyLockedStakeAtT)).toBeTruthy();
       expect(actualStakeAtT.isZero()).toBeTruthy();

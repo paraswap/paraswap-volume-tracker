@@ -61,11 +61,3 @@ export class AbstractStakesTracker {
     );
   }
 }
-
-export interface IStakesTracker {
-  loadStakes: () => Promise<void>;
-  computeStakedPSPBalanceWithVirtualLockup: (
-    account: string,
-    timestamp: number,
-  ) => BigNumber;
-}

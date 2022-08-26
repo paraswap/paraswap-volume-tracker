@@ -210,7 +210,7 @@ export class SafetyModuleHelper {
   computePSPStakedInStkPSPBpt({
     stkPSPBalance,
     bptBalanceOfStkPSPBpt,
-    pspBalance,
+    pspBalance: bptPoolPSPBalance,
     stkPSPBPtTotalSupply,
     bptTotalSupply,
   }: {
@@ -221,7 +221,7 @@ export class SafetyModuleHelper {
     bptTotalSupply: bigint;
   }): bigint {
     const pspStaked =
-      (stkPSPBalance * bptBalanceOfStkPSPBpt * pspBalance) /
+      (stkPSPBalance * bptBalanceOfStkPSPBpt * bptPoolPSPBalance) /
       (stkPSPBPtTotalSupply * bptTotalSupply);
 
     return pspStaked;
