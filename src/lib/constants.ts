@@ -80,7 +80,7 @@ export const NATIVE_TOKEN_ADDRESS =
   '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
 
 export const SAFETY_MODULE_ADDRESS =
-  '0xc8dc2ec5f5e02be8b37a8444a1931f02374a17ab';
+  '0xc8dc2ec5f5e02be8b37a8444a1931f02374a17ab'.toLowerCase();
 
 export const AUGUSTUS_V5_ADDRESS = '0xdef171fe48cf0115b1d80b88dc8eab59176fee57';
 

@@ -191,9 +191,13 @@ export class SafetyModuleHelper {
     const stakesByAccount = Object.entries(stkPSPBalanceByAccount).reduce<
       DataByAccount<bigint>
     >((acc, [address, stkPSPBalance]) => {
-      const pspStaked =
-        (stkPSPBalance * bptBalanceOfStkPSPBpt * pspBalance) /
-        (stkPSPBPtTotalSupply * bptTotalSupply);
+      const pspStaked = this.computePSPStakedInStkPSPBpt({
+        stkPSPBalance,
+        bptBalanceOfStkPSPBpt,
+        pspBalance,
+        stkPSPBPtTotalSupply,
+        bptTotalSupply,
+      });
 
       acc[address] = pspStaked;
 
@@ -201,5 +205,25 @@ export class SafetyModuleHelper {
     }, {});
 
     return stakesByAccount;
+  }
+
+  computePSPStakedInStkPSPBpt({
+    stkPSPBalance,
+    bptBalanceOfStkPSPBpt,
+    pspBalance: bptPoolPSPBalance,
+    stkPSPBPtTotalSupply,
+    bptTotalSupply,
+  }: {
+    stkPSPBalance: bigint;
+    bptBalanceOfStkPSPBpt: bigint;
+    pspBalance: bigint;
+    stkPSPBPtTotalSupply: bigint;
+    bptTotalSupply: bigint;
+  }): bigint {
+    const pspStaked =
+      (stkPSPBalance * bptBalanceOfStkPSPBpt * bptPoolPSPBalance) /
+      (stkPSPBPtTotalSupply * bptTotalSupply);
+
+    return pspStaked;
   }
 }

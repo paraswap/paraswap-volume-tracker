@@ -22,10 +22,7 @@ import {
   TimeSeries,
   timeseriesComparator,
 } from '../timeseries';
-import {
-  AbstractStakesTracker,
-  IStakesTracker,
-} from './abstract-stakes-tracker';
+import { AbstractStakesTracker } from './abstract-stakes-tracker';
 import { SafetyModuleHelper } from '../../../src/lib/staking/safety-module-helper';
 import { VIRTUAL_LOCKUP_PERIOD } from '../../../src/lib/gas-refund';
 import { computeMinStakedBalanceDuringVirtualLockup } from './common';
@@ -61,7 +58,7 @@ const bVaultContract = new Contract(
   Provider.getJsonRpcProvider(CHAIN_ID_MAINNET),
 ) as BVaultContract;
 
-const bptAsEERC20 = new Contract(
+const bptAsERC20 = new Contract(
   Balancer_80PSP_20WETH_address,
   ERC20ABI,
   Provider.getJsonRpcProvider(CHAIN_ID_MAINNET),
@@ -97,28 +94,33 @@ interface Swap extends Event {
 type InitState = {
   bptPoolPSPBalance: BigNumber;
   bptPoolTotalSupply: BigNumber;
+  stkPSPBPtTotalSupply: BigNumber;
+  bptBalanceOfStkPSPBpt: BigNumber;
   stkPSPBptUsersBalances: { [address: string]: BigNumber };
 };
 
 type DiffState = {
   bptPoolPSPBalance: TimeSeries;
   bptPoolTotalSupply: TimeSeries;
+  stkPSPBPtTotalSupply: TimeSeries;
+  bptBalanceOfStkPSPBpt: TimeSeries;
   stkPSPBptUsersBalances: { [address: string]: TimeSeries };
 };
 
-export default class SafetyModuleStakesTracker
-  extends AbstractStakesTracker
-  implements IStakesTracker
-{
+export default class SafetyModuleStakesTracker extends AbstractStakesTracker {
   initState: InitState = {
     stkPSPBptUsersBalances: {},
     bptPoolPSPBalance: ZERO_BN,
     bptPoolTotalSupply: ZERO_BN,
+    stkPSPBPtTotalSupply: ZERO_BN,
+    bptBalanceOfStkPSPBpt: ZERO_BN,
   };
   differentialStates: DiffState = {
     stkPSPBptUsersBalances: {},
     bptPoolPSPBalance: [],
     bptPoolTotalSupply: [],
+    stkPSPBPtTotalSupply: [],
+    bptBalanceOfStkPSPBpt: [],
   };
 
   static instance: SafetyModuleStakesTracker;
@@ -154,15 +156,20 @@ export default class SafetyModuleStakesTracker
           ({
             bptTotalSupply,
             pspBalance,
-
-            //stkPSPBPtTotalSupply, // FIXME: see computeStakedPSPBalance
-            //bptBalanceOfStkPSPBpt, // FIXME: see computeStakedPSPBalance
+            stkPSPBPtTotalSupply,
+            bptBalanceOfStkPSPBpt,
           }) => {
             this.initState.bptPoolTotalSupply = new BigNumber(
               bptTotalSupply.toString(),
             );
             this.initState.bptPoolPSPBalance = new BigNumber(
               pspBalance.toString(),
+            );
+            this.initState.stkPSPBPtTotalSupply = new BigNumber(
+              stkPSPBPtTotalSupply.toString(),
+            );
+            this.initState.bptBalanceOfStkPSPBpt = new BigNumber(
+              bptBalanceOfStkPSPBpt.toString(),
             );
           },
         ),
@@ -173,6 +180,7 @@ export default class SafetyModuleStakesTracker
     return Promise.all([
       this.resolveStkPSPBptChanges(),
       this.resolveBPTPoolSupplyChanges(),
+      this.resolveBPTBalanceOfStkPSPBptChanges(),
       this.resolveBPTPoolPSPBalanceChangesFromLP(),
       this.resolveBPTPoolPSPBalanceChangesFromSwaps(),
     ]);
@@ -196,6 +204,7 @@ export default class SafetyModuleStakesTracker
       const to = e.args[1].toLowerCase();
       const amount = new BigNumber(e.args[2].toString());
 
+      // Mint or Burn
       if (from === NULL_ADDRESS || to === NULL_ADDRESS) {
         const isMint = from === NULL_ADDRESS;
 
@@ -214,9 +223,15 @@ export default class SafetyModuleStakesTracker
           value: isMint ? amount : amount.negated(),
         });
 
+        this.differentialStates.stkPSPBPtTotalSupply.push({
+          timestamp,
+          value: isMint ? amount : amount.negated(),
+        });
+
         return;
       }
 
+      // transfering stake between different accounts
       if (!this.differentialStates.stkPSPBptUsersBalances[from])
         this.differentialStates.stkPSPBptUsersBalances[from] = [];
 
@@ -330,13 +345,13 @@ export default class SafetyModuleStakesTracker
   async resolveBPTPoolSupplyChanges() {
     const events = (
       await Promise.all([
-        bptAsEERC20.queryFilter(
-          bptAsEERC20.filters.Transfer(NULL_ADDRESS),
+        bptAsERC20.queryFilter(
+          bptAsERC20.filters.Transfer(NULL_ADDRESS),
           this.startBlock,
           this.endBlock,
         ),
-        bptAsEERC20.queryFilter(
-          bptAsEERC20.filters.Transfer(null, NULL_ADDRESS),
+        bptAsERC20.queryFilter(
+          bptAsERC20.filters.Transfer(null, NULL_ADDRESS),
           this.startBlock,
           this.endBlock,
         ),
@@ -374,8 +389,56 @@ export default class SafetyModuleStakesTracker
     this.differentialStates.bptPoolTotalSupply.sort(timeseriesComparator);
   }
 
-  compute_BPT_to_PSP_Rate(timestamp: number) {
-    const pspBalance = reduceTimeSeries(
+  async resolveBPTBalanceOfStkPSPBptChanges() {
+    const events = (
+      await Promise.all([
+        bptAsERC20.queryFilter(
+          bptAsERC20.filters.Transfer(null, SAFETY_MODULE_ADDRESS), // stake: user -> safety module
+          this.startBlock,
+          this.endBlock,
+        ),
+        bptAsERC20.queryFilter(
+          bptAsERC20.filters.Transfer(SAFETY_MODULE_ADDRESS), // unstake: safety module -> user
+          this.startBlock,
+          this.endBlock,
+        ),
+      ])
+    ).flat() as Transfer[];
+
+    const blockNumToTimestamp = await fetchBlockTimestampForEvents(events);
+
+    const bptBalanceOfStkPSPBptChanges = events.map(e => {
+      const timestamp = blockNumToTimestamp[e.blockNumber];
+      assert(timestamp, 'block timestamp should be defined');
+      assert(e.event === 'Transfer', 'can only be Transfer event');
+
+      const [from, to, amount] = e.args;
+
+      assert(
+        from.toLowerCase() === SAFETY_MODULE_ADDRESS ||
+          to.toLowerCase() === SAFETY_MODULE_ADDRESS,
+        'can only stake or unstake from safety module',
+      );
+
+      const isStake = to.toLowerCase() === SAFETY_MODULE_ADDRESS;
+      const value = new BigNumber(amount.toString());
+
+      return {
+        timestamp,
+        value: isStake ? value : value.negated(),
+      };
+    });
+
+    this.differentialStates.bptBalanceOfStkPSPBpt =
+      this.differentialStates.bptBalanceOfStkPSPBpt.concat(
+        bptBalanceOfStkPSPBptChanges,
+      );
+    this.differentialStates.bptBalanceOfStkPSPBpt.sort(timeseriesComparator);
+  }
+
+  // @broken assumes all PSP in the balancer pool are detained by stkPSPBpt
+  compute_BPT_to_PSP_Rate__broken(timestamp: number) {
+    const bptPoolPSPBalance = reduceTimeSeries(
       timestamp,
       this.initState.bptPoolPSPBalance,
       this.differentialStates.bptPoolPSPBalance,
@@ -386,16 +449,10 @@ export default class SafetyModuleStakesTracker
       this.initState.bptPoolTotalSupply,
       this.differentialStates.bptPoolTotalSupply,
     );
-    return pspBalance.dividedBy(totalSupply);
+    return bptPoolPSPBalance.dividedBy(totalSupply);
   }
 
-  // PSP-BPT / stkPSPbpt = 1 till no slashing
-  compute_StkPSPBPT_to_PSP_Rate(timestamp: number) {
-    return this.compute_BPT_to_PSP_Rate(timestamp);
-  }
-
-  // @FIXME: current formula assumes all PSP in the balancer pool are detained by stkPSPBpt. Fix background compat
-  computeStakedPSPBalance(account: string, timestamp: number) {
+  computeStakedPSPBalanceBroken(account: string, timestamp: number) {
     this.assertTimestampWithinLoadInterval(timestamp);
 
     const stkPSPBPT = reduceTimeSeries(
@@ -403,12 +460,15 @@ export default class SafetyModuleStakesTracker
       this.initState.stkPSPBptUsersBalances[account],
       this.differentialStates.stkPSPBptUsersBalances[account],
     );
-    const stkPSP2PSPRate = this.compute_StkPSPBPT_to_PSP_Rate(timestamp);
+    const stkPSP2PSPRate = this.compute_BPT_to_PSP_Rate__broken(timestamp);
 
     return stkPSPBPT.multipliedBy(stkPSP2PSPRate);
   }
 
-  computeStakedPSPBalanceWithVirtualLockup(account: string, timestamp: number) {
+  computeStakedPSPBalanceWithVirtualLockupBroken(
+    account: string,
+    timestamp: number,
+  ) {
     const startOfVirtualLockupPeriod = timestamp - VIRTUAL_LOCKUP_PERIOD;
 
     this.assertTimestampWithinLoadInterval(timestamp);
@@ -430,10 +490,68 @@ export default class SafetyModuleStakesTracker
     if (minStkPSPBptAmountHoldDuringVirtualLockup.isZero())
       return minStkPSPBptAmountHoldDuringVirtualLockup;
 
-    const stkPSP2PSPRate = this.compute_StkPSPBPT_to_PSP_Rate(timestamp);
+    const stkPSP2PSPRate = this.compute_BPT_to_PSP_Rate__broken(timestamp);
 
     return minStkPSPBptAmountHoldDuringVirtualLockup.multipliedBy(
       stkPSP2PSPRate,
     );
+  }
+
+  computeStakedPSPBalanceWithVirtualLockup(account: string, timestamp: number) {
+    const startOfVirtualLockupPeriod = timestamp - VIRTUAL_LOCKUP_PERIOD;
+
+    this.assertTimestampWithinLoadInterval(timestamp);
+    this.assertTimestampWithinLoadInterval(startOfVirtualLockupPeriod);
+
+    const stakeAtStartOfVirtualLockup = reduceTimeSeries(
+      startOfVirtualLockupPeriod,
+      this.initState.stkPSPBptUsersBalances[account],
+      this.differentialStates.stkPSPBptUsersBalances[account],
+    );
+
+    const minStkPSPBptAmountHoldDuringVirtualLockup =
+      computeMinStakedBalanceDuringVirtualLockup(
+        timestamp,
+        stakeAtStartOfVirtualLockup,
+        this.differentialStates.stkPSPBptUsersBalances[account],
+      );
+
+    if (minStkPSPBptAmountHoldDuringVirtualLockup.isZero()) return ZERO_BN;
+
+    const stkPSPBalance = minStkPSPBptAmountHoldDuringVirtualLockup;
+
+    const bptPoolPSPBalance = reduceTimeSeries(
+      timestamp,
+      this.initState.bptPoolPSPBalance,
+      this.differentialStates.bptPoolPSPBalance,
+    );
+    const bptTotalSupply = reduceTimeSeries(
+      timestamp,
+      this.initState.bptPoolTotalSupply,
+      this.differentialStates.bptPoolTotalSupply,
+    );
+
+    const stkPSPBPtTotalSupply = reduceTimeSeries(
+      timestamp,
+      this.initState.stkPSPBPtTotalSupply,
+      this.differentialStates.stkPSPBPtTotalSupply,
+    );
+    const bptBalanceOfStkPSPBpt = reduceTimeSeries(
+      timestamp,
+      this.initState.bptBalanceOfStkPSPBpt,
+      this.differentialStates.bptBalanceOfStkPSPBpt,
+    );
+
+    // bignumber -> bigint, till whole code get refactoring with bigint
+    const pspStaked =
+      SafetyModuleHelper.getInstance().computePSPStakedInStkPSPBpt({
+        stkPSPBalance: BigInt(stkPSPBalance.toFixed()),
+        bptBalanceOfStkPSPBpt: BigInt(bptBalanceOfStkPSPBpt.toFixed()),
+        pspBalance: BigInt(bptPoolPSPBalance.toFixed()),
+        stkPSPBPtTotalSupply: BigInt(stkPSPBPtTotalSupply.toFixed()),
+        bptTotalSupply: BigInt(bptTotalSupply.toFixed()),
+      });
+
+    return new BigNumber(pspStaked.toString());
   }
 }
