@@ -54,7 +54,7 @@ export default class WebServer {
         '/healthz': healthCheckFunc,
         __unsafeExposeStackTraces: process.env.NODE_ENV !== 'production',
       },
-      logger: logger.error,
+      logger: logger.error.bind(logger),
     };
 
     this.httpServer = createTerminus(
