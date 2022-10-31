@@ -16,6 +16,14 @@ import {
 } from '../../../src/lib/utils/helpers';
 import { thegraphClient } from '../../../src/lib/utils/data-providers-clients';
 
+const REORGS_BLOCKHASH_BY_CHAIN_ID: Record<string, string[]> = {
+  [CHAIN_ID_POLYGON]: [
+    '0x2019b19233191f463805ce55f5aaedb139cff358408da5e3d145c20dab47dab5',
+    '0x4c48a4abde9207bcde996f3aa48741114d2eb8a0fea8ccecab9583ee5f6da235',
+    '0x59531b71968e5fff106aeb906d2cc8d0331fb29ed6b212c88d76657725786d99',
+  ],
+};
+
 // Note: txGasUsed from thegraph is unsafe as it's actually txGasLimit https://github.com/graphprotocol/graph-node/issues/2619
 const SwapsQuery = `
 query ($number_gte: BigInt, $number_lt: BigInt, $first: Int, $skip: Int) {
@@ -27,6 +35,29 @@ query ($number_gte: BigInt, $number_lt: BigInt, $first: Int, $skip: Int) {
 		where: {
 			timestamp_gte: $number_gte
 			timestamp_lt: $number_lt
+		}
+	) {
+    txHash
+		txOrigin
+		txGasPrice
+		blockNumber
+    timestamp
+    initiator
+	}
+}
+`;
+
+const SwapsQueryBlockHash = `
+query ($number_gte: BigInt, $number_lt: BigInt, $blockHashes: [Bytes!], $first: Int, $skip: Int) {
+	swaps(
+		first: $first
+    skip: $skip
+		orderBy: blockNumber
+		orderDirection: asc
+		where: {
+			timestamp_gte: $number_gte
+			timestamp_lt: $number_lt
+      blockHash_not_in: $blockHashes
 		}
 	) {
     txHash
@@ -67,16 +98,26 @@ export async function getSuccessfulSwaps({
 }: GetSuccessSwapsInput): Promise<SwapData[]> {
   const subgraphURL = SubgraphURLs[chainId];
 
+  const regorgBlockHashes = REORGS_BLOCKHASH_BY_CHAIN_ID[chainId];
+
   const fetchSwaps = async ({ skip, pageSize }: QueryPaginatedDataParams) => {
-    const variables = {
-      number_gte: startTimestamp,
-      number_lt: endTimestamp,
-      skip,
-      pageSize,
-    };
+    const variables = Object.assign(
+      {},
+      {
+        number_gte: startTimestamp,
+        number_lt: endTimestamp,
+        skip,
+        pageSize,
+      },
+      regorgBlockHashes
+        ? {
+            blockHashes: regorgBlockHashes,
+          }
+        : {},
+    );
 
     const { data } = await thegraphClient.post<SwapsGQLRespose>(subgraphURL, {
-      query: SwapsQuery,
+      query: regorgBlockHashes ? SwapsQueryBlockHash : SwapsQuery,
       variables,
     });
 
