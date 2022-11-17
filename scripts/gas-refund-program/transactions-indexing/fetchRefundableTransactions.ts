@@ -6,8 +6,8 @@ import {
 } from '../persistance/db-persistance';
 import { getAllTXs, getContractAddresses } from './transaction-resolver';
 import {
-  getRefundPercent,
-  GRP_MIN_STAKE,
+  getRefundPercentV1,
+  GRP_MIN_STAKE_V1,
   GasRefundTransactionData,
   TransactionStatus,
 } from '../../../src/lib/gas-refund';
@@ -96,7 +96,7 @@ export async function fetchRefundableTransactions({
               endTimestamp,
             );
 
-          if (swapperStake.isLessThan(GRP_MIN_STAKE)) {
+          if (swapperStake.isLessThan(GRP_MIN_STAKE_V1)) {
             return;
           }
 
@@ -124,7 +124,7 @@ export async function fetchRefundableTransactions({
           );
 
           const totalStakeAmountPSP = swapperStake.toFixed(0); // @todo irrelevant?
-          const refundPercent = getRefundPercent(totalStakeAmountPSP);
+          const refundPercent = getRefundPercentV1(totalStakeAmountPSP);
 
           assert(
             refundPercent,

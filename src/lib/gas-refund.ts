@@ -116,12 +116,12 @@ export interface GasRefundTransactionData {
 //                                                  psp decimals
 const scale = (num: number) => new BigNumber(num).multipliedBy(1e18);
 
-export const GRP_MIN_STAKE = scale(500);
+export const GRP_MIN_STAKE_V1 = scale(500);
 
-const gasRefundLevels: GasRefundLevelsDef[] = [
+const gasRefundLevelsV1: GasRefundLevelsDef[] = [
   {
     level: 'level_1' as const,
-    minStakedAmount: GRP_MIN_STAKE,
+    minStakedAmount: GRP_MIN_STAKE_V1,
     refundPercent: 0.25,
   },
   {
@@ -141,7 +141,7 @@ const gasRefundLevels: GasRefundLevelsDef[] = [
   },
 ].reverse(); // reverse for descending lookup
 
-export const getRefundPercent = (stakedAmount: string): number | undefined =>
-  gasRefundLevels.find(({ minStakedAmount }) =>
+export const getRefundPercentV1 = (stakedAmount: string): number | undefined =>
+  gasRefundLevelsV1.find(({ minStakedAmount }) =>
     new BigNumber(stakedAmount).gte(minStakedAmount),
   )?.refundPercent;

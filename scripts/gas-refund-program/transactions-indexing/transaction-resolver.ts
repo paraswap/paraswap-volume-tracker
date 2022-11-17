@@ -18,7 +18,7 @@ import { getSuccessfulSwaps } from './swaps-subgraph';
 import { GasRefundTransaction } from '../types';
 import {
   GasRefundConsiderContractTXsStartEpoch,
-  GRP_MIN_STAKE,
+  GRP_MIN_STAKE_V1,
 } from '../../../src/lib/gas-refund';
 import {
   CHAIN_ID_MAINNET,
@@ -114,7 +114,7 @@ export const getSwapTXs = async ({
       epochEndTimestamp,
     );
     // tx address must be a staker && must not be over their budget in order to be processed
-    return swapperStake.isGreaterThanOrEqualTo(GRP_MIN_STAKE);
+    return swapperStake.isGreaterThanOrEqualTo(GRP_MIN_STAKE_V1);
   });
 
   // augment with gas used and the pertaining contract the tx occured on
