@@ -1,6 +1,6 @@
-import * as ERC20ABI from '../../../src/lib/abi/erc20.abi.json';
-import * as BVaultABI from '../../../src/lib/abi/balancer-vault.abi.json';
-import * as MultiCallerABI from '../../../src/lib/abi/multicaller.abi.json';
+import * as ERC20ABI from '../../../../src/lib/abi/erc20.abi.json';
+import * as BVaultABI from '../../../../src/lib/abi/balancer-vault.abi.json';
+import * as MultiCallerABI from '../../../../src/lib/abi/multicaller.abi.json';
 import {
   BalancerVaultAddress,
   Balancer_80PSP_20WETH_address,
@@ -8,16 +8,16 @@ import {
   MulticallEncodedData,
   MULTICALL_ADDRESS,
   PSP_ADDRESS,
-  SAFETY_MODULE_ADDRESS,
-} from '../../../src/lib/constants';
-import { Provider } from '../../../src/lib/provider';
-import { BigNumber, Contract } from 'ethers';
+} from '../../../../src/lib/constants';
+import { Provider } from '../../../../src/lib/provider';
+import { BigNumber as EthersBN, Contract } from 'ethers';
 import { Interface } from '@ethersproject/abi';
+import BigNumber from 'bignumber.js';
 
-export type BPTState<BigIntType> = {
-  bptTotalSupply: BigIntType;
-  pspBalance: BigIntType;
-  ethBalance: BigIntType;
+export type BPTState = {
+  bptTotalSupply: BigNumber;
+  pspBalance: BigNumber;
+  ethBalance: BigNumber;
 };
 
 export class BPTHelper {
@@ -44,17 +44,11 @@ export class BPTHelper {
       provider,
     );
 
-    this.safetyModuleAsERC20 = new Contract(
-      SAFETY_MODULE_ADDRESS, // FIXME segment by chainId
-      ERC20ABI,
-      provider,
-    );
-
     this.bVaultIface = new Interface(BVaultABI);
     this.erc20Iface = new Interface(ERC20ABI);
   }
 
-  async fetchBPtState(blockNumber?: number): Promise<BPTState<bigint>> {
+  async fetchBPtState(blockNumber?: number): Promise<BPTState> {
     const multicallData = [
       {
         target: Balancer_80PSP_20WETH_address, // FIXME segment by chainId
@@ -73,7 +67,7 @@ export class BPTHelper {
         blockTag: blockNumber,
       });
 
-    const bptTotalSupply = BigInt(
+    const bptTotalSupply = new BigNumber(
       this.erc20Iface
         .decodeFunctionResult('totalSupply', rawResults.returnData[0])
         .toString(),
@@ -84,7 +78,7 @@ export class BPTHelper {
       rawResults.returnData[1],
     ) as unknown as {
       tokens: [string, string];
-      balances: [BigNumber, BigNumber];
+      balances: [EthersBN, EthersBN];
     };
 
     const isPSPToken0 =
@@ -95,8 +89,8 @@ export class BPTHelper {
 
     return {
       bptTotalSupply,
-      pspBalance: pspPoolBalance.toBigInt(),
-      ethBalance: etherPoolBalance.toBigInt(),
+      pspBalance: new BigNumber(pspPoolBalance.toString()),
+      ethBalance: new BigNumber(etherPoolBalance.toString()),
     };
   }
 }

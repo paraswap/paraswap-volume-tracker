@@ -1,4 +1,3 @@
-import BigNumber from 'bignumber.js';
 import { BigNumber as EthersBN, CallOverrides, Contract, Event } from 'ethers';
 import { assert } from 'ts-essentials';
 import {
@@ -8,21 +7,22 @@ import {
   CHAIN_ID_MAINNET,
   NULL_ADDRESS,
   PSP_ADDRESS,
-} from '../../../src/lib/constants';
-import { Provider } from '../../../src/lib/provider';
-import * as ERC20ABI from '../../../src/lib/abi/erc20.abi.json';
-import * as BVaultABI from '../../../src/lib/abi/balancer-vault.abi.json';
+} from '../../../../src/lib/constants';
+import { Provider } from '../../../../src/lib/provider';
+import * as ERC20ABI from '../../../../src/lib/abi/erc20.abi.json';
+import * as BVaultABI from '../../../../src/lib/abi/balancer-vault.abi.json';
 import {
   fetchBlockTimestampForEvents,
   ZERO_BN,
-} from '../../../src/lib/utils/helpers';
+} from '../../../../src/lib/utils/helpers';
 import {
   reduceTimeSeries,
   TimeSeries,
   timeseriesComparator,
-} from '../timeseries';
-import { AbstractStakesTracker } from './abstract-stakes-tracker';
+} from '../../timeseries';
 import { BPTHelper } from './bpt-helper';
+import { AbstractStateTracker } from './abstract-state-tracker';
+import BigNumber from 'bignumber.js';
 
 interface MinERC20 extends Contract {
   totalSupply(overrides?: CallOverrides): Promise<EthersBN>;
@@ -42,18 +42,6 @@ interface BVaultContract extends Contract {
     ]
   >;
 }
-
-const bVaultContract = new Contract(
-  BalancerVaultAddress,
-  BVaultABI,
-  Provider.getJsonRpcProvider(CHAIN_ID_MAINNET),
-) as BVaultContract;
-
-const bptAsERC20 = new Contract(
-  Balancer_80PSP_20WETH_address,
-  ERC20ABI,
-  Provider.getJsonRpcProvider(CHAIN_ID_MAINNET),
-) as MinERC20;
 
 interface Transfer extends Event {
   event: 'Transfer';
@@ -94,7 +82,7 @@ type DiffState = {
   totalSupply: TimeSeries;
 };
 
-export default class BPTStateTracker extends AbstractStakesTracker {
+export default class BPTStateTracker extends AbstractStateTracker {
   initState: InitState = {
     pspBalance: ZERO_BN,
     ethBalance: ZERO_BN,
@@ -108,8 +96,23 @@ export default class BPTStateTracker extends AbstractStakesTracker {
 
   static instance: { [chainId: number]: BPTStateTracker } = {};
 
+  bVaultContract: Contract;
+  bptAsERC20: Contract;
+
   constructor(protected chainId: number) {
-    super();
+    super(chainId);
+
+    this.bVaultContract = new Contract(
+      BalancerVaultAddress, // FIXM
+      BVaultABI,
+      Provider.getJsonRpcProvider(this.chainId),
+    ) as BVaultContract;
+
+    this.bptAsERC20 = new Contract(
+      Balancer_80PSP_20WETH_address, // FIXME
+      ERC20ABI,
+      Provider.getJsonRpcProvider(this.chainId),
+    ) as MinERC20;
   }
 
   static getInstance(chainId: number) {
@@ -131,9 +134,9 @@ export default class BPTStateTracker extends AbstractStakesTracker {
     await BPTHelper.getInstance(this.chainId)
       .fetchBPtState(initBlock)
       .then(({ bptTotalSupply, pspBalance, ethBalance }) => {
-        this.initState.totalSupply = new BigNumber(bptTotalSupply.toString());
-        this.initState.pspBalance = new BigNumber(pspBalance.toString());
-        this.initState.ethBalance = new BigNumber(ethBalance.toString());
+        this.initState.totalSupply = bptTotalSupply;
+        this.initState.pspBalance = pspBalance;
+        this.initState.ethBalance = ethBalance;
       });
   }
 
@@ -145,9 +148,12 @@ export default class BPTStateTracker extends AbstractStakesTracker {
     ]);
   }
 
+  // adjust to populate eth balance too
   async resolveBPTPoolPSPBalanceChangesFromLP() {
-    const events = (await bVaultContract.queryFilter(
-      bVaultContract.filters.PoolBalanceChanged(Balancer_80PSP_20WETH_poolId),
+    const events = (await this.bVaultContract.queryFilter(
+      this.bVaultContract.filters.PoolBalanceChanged(
+        Balancer_80PSP_20WETH_poolId,
+      ), // FIXME
       this.startBlock,
       this.endBlock,
     )) as PoolBalanceChanged[];
@@ -165,7 +171,7 @@ export default class BPTStateTracker extends AbstractStakesTracker {
       const [, , tokens, amountsInOrOut, paidProtocolSwapFeeAmounts] = e.args;
 
       assert(
-        tokens[1].toLowerCase() === PSP_ADDRESS[this.chainId].toLowerCase(),
+        tokens[1].toLowerCase() === PSP_ADDRESS[CHAIN_ID_MAINNET].toLowerCase(),
         'logic error',
       );
 
@@ -191,8 +197,8 @@ export default class BPTStateTracker extends AbstractStakesTracker {
   }
 
   async resolveBPTPoolPSPBalanceChangesFromSwaps() {
-    const events = (await bVaultContract.queryFilter(
-      bVaultContract.filters.Swap(Balancer_80PSP_20WETH_poolId), // TODO segment by chainId
+    const events = (await this.bVaultContract.queryFilter(
+      this.bVaultContract.filters.Swap(Balancer_80PSP_20WETH_poolId), // FIXME
       this.startBlock,
       this.endBlock,
     )) as Swap[];
@@ -236,13 +242,13 @@ export default class BPTStateTracker extends AbstractStakesTracker {
   async resolveBPTPoolSupplyChanges() {
     const events = (
       await Promise.all([
-        bptAsERC20.queryFilter(
-          bptAsERC20.filters.Transfer(NULL_ADDRESS),
+        this.bptAsERC20.queryFilter(
+          this.bptAsERC20.filters.Transfer(NULL_ADDRESS),
           this.startBlock,
           this.endBlock,
         ),
-        bptAsERC20.queryFilter(
-          bptAsERC20.filters.Transfer(null, NULL_ADDRESS),
+        this.bptAsERC20.queryFilter(
+          this.bptAsERC20.filters.Transfer(null, NULL_ADDRESS),
           this.startBlock,
           this.endBlock,
         ),
@@ -251,7 +257,7 @@ export default class BPTStateTracker extends AbstractStakesTracker {
 
     const blockNumToTimestamp = await fetchBlockTimestampForEvents(events);
 
-    const bptPoolTotalSupplyChanges = events.map(e => {
+    const totalSupplyChanges = events.map(e => {
       const timestamp = blockNumToTimestamp[e.blockNumber];
       assert(timestamp, 'block timestamp should be defined');
       assert(e.event === 'Transfer', 'can only be Transfer event');
@@ -274,7 +280,7 @@ export default class BPTStateTracker extends AbstractStakesTracker {
     });
 
     this.differentialStates.totalSupply =
-      this.differentialStates.totalSupply.concat(bptPoolTotalSupplyChanges);
+      this.differentialStates.totalSupply.concat(totalSupplyChanges);
     this.differentialStates.totalSupply.sort(timeseriesComparator);
   }
 

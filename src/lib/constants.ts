@@ -1,5 +1,6 @@
 export const CHAIN_ID_MAINNET = 1;
 export const CHAIN_ID_ROPSTEN = 3;
+export const CHAIN_ID_GOERLI = 5;
 export const CHAIN_ID_BINANCE = 56;
 export const CHAIN_ID_POLYGON = 137;
 export const CHAIN_ID_AVALANCHE = 43114;
