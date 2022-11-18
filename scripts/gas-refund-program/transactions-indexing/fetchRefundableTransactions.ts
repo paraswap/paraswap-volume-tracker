@@ -6,10 +6,11 @@ import {
 } from '../persistance/db-persistance';
 import { getAllTXs, getContractAddresses } from './transaction-resolver';
 import {
-  getRefundPercentV1,
   GRP_MIN_STAKE_V1,
   GasRefundTransactionData,
   TransactionStatus,
+  GasRefundV2EpochFlip,
+  getRefundPercent,
 } from '../../../src/lib/gas-refund';
 import * as _ from 'lodash';
 import { ONE_HOUR_SEC } from '../../../src/lib/utils/helpers';
@@ -96,8 +97,14 @@ export async function fetchRefundableTransactions({
               endTimestamp,
             );
 
-          if (swapperStake.isLessThan(GRP_MIN_STAKE_V1)) {
-            return;
+          if (epoch < GasRefundV2EpochFlip) {
+            if (swapperStake.isLessThan(GRP_MIN_STAKE_V1)) {
+              return;
+            }
+          } else {
+            if (swapperStake.isZero()) {
+              return;
+            }
           }
 
           const { txGasUsed, contract } = transaction;
@@ -124,7 +131,7 @@ export async function fetchRefundableTransactions({
           );
 
           const totalStakeAmountPSP = swapperStake.toFixed(0); // @todo irrelevant?
-          const refundPercent = getRefundPercentV1(totalStakeAmountPSP);
+          const refundPercent = getRefundPercent(epoch, totalStakeAmountPSP);
 
           assert(
             refundPercent,

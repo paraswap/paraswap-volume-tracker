@@ -30,6 +30,7 @@ export const GasRefundPrecisionGlitchRefundedAmountsEpoch = 12;
 export const GasRefundBudgetLimitEpochBasedStartEpoch = 16;
 export const GasRefundVirtualLockupStartEpoch = 17;
 export const GasRefundSafetyModuleAllPSPInBptFixStartEpoch = 20;
+export const GasRefundV2EpochFlip = 25; // FIXME
 
 interface BaseGasRefundData {
   epoch: number;
@@ -145,3 +146,28 @@ export const getRefundPercentV1 = (stakedAmount: string): number | undefined =>
   gasRefundLevelsV1.find(({ minStakedAmount }) =>
     new BigNumber(stakedAmount).gte(minStakedAmount),
   )?.refundPercent;
+
+/*
+ * curve plot: https://www.wolframalpha.com/input?key=&i2d=true&i=plot+abs\(40)0.126506+*+ln\(40)0.335487+*+x+++1.64295\(41)+-+0.789135\(41)\(44)+10000+<+x+<+1000000
+ * see proposal: https://gov.paraswap.network/t/psp-2-0-revised-voting-edition/1207
+ */
+const grpV2Func = (x: number) =>
+  Math.max(
+    Math.abs(0.126506 * Math.log(0.335487 * x + 1.64295) - 0.789135),
+    0.95,
+  );
+
+export const getRefundPercentV2 = (scoreNorm: string): number => {
+  const bScoreNorm = BigInt(scoreNorm);
+  const scoreDnorm = +(bScoreNorm / BigInt(10 ** 18)).toString();
+  const refundPercent = grpV2Func(scoreDnorm);
+  return refundPercent;
+};
+
+export const getRefundPercent = (
+  epoch: number,
+  stakedAmount: string,
+): number | undefined =>
+  (epoch < GasRefundV2EpochFlip ? getRefundPercentV1 : getRefundPercentV2)(
+    stakedAmount,
+  );

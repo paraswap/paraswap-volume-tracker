@@ -5,7 +5,7 @@ import {
   GasRefundBudgetLimitEpochBasedStartEpoch,
   GasRefundGenesisEpoch,
   GasRefundPrecisionGlitchRefundedAmountsEpoch,
-  getRefundPercentV1,
+  getRefundPercent,
   TOTAL_EPOCHS_IN_YEAR,
   TransactionStatus,
 } from '../../../src/lib/gas-refund';
@@ -116,7 +116,7 @@ export async function validateTransactions() {
         prevEpoch = tx.epoch;
       }
 
-      const refundPercentage = getRefundPercentV1(totalStakeAmountPSP);
+      const refundPercentage = getRefundPercent(tx.epoch, totalStakeAmountPSP);
 
       assert(refundPercentage, 'refundPercentage should be defined and > 0');
 
