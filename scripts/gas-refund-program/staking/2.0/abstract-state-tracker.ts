@@ -23,24 +23,20 @@ export class AbstractStateTracker extends EventEmitter {
   async loadHistoricalstatesWithinInterval({
     startTimestamp,
     endTimestamp,
-    chainId,
   }: {
     startTimestamp: number;
     endTimestamp: number;
-    chainId: number;
   }) {
-    await this.resolveBlockBoundary({ startTimestamp, endTimestamp, chainId });
+    await this.resolveBlockBoundary({ startTimestamp, endTimestamp });
     await this.loadStates();
   }
 
   async resolveBlockBoundary({
     startTimestamp,
     endTimestamp,
-    chainId,
   }: {
     startTimestamp: number;
     endTimestamp: number;
-    chainId: number;
   }) {
     const blockInfo = BlockInfo.getInstance(this.chainId);
     const [_startBlock, _endBlock] = await Promise.all([
