@@ -141,7 +141,7 @@ export default class ERC20StateTracker extends AbstractStateTracker {
     );
   }
 
-  getBalance(account: string, timestamp: number) {
+  getBalance(timestamp: number, account: string) {
     this.assertTimestampWithinLoadInterval(timestamp);
 
     const balance = reduceTimeSeries(
