@@ -1,5 +1,6 @@
 import BigNumber from 'bignumber.js';
 import { assert } from 'ts-essentials';
+import { BlockInfo } from '../../../../src/lib/block-info';
 import { AbstractStateTracker } from './AbstractStateTracker';
 import BPTStateTracker from './BPTStateTracker';
 import ERC20StateTracker from './ERC20StateTracker';
@@ -48,6 +49,38 @@ export class StakeV2Resolver extends AbstractStateTracker {
     return this.instance[chainId];
   }
 
+  async resolveBlockBoundary({
+    startTimestamp,
+    endTimestamp,
+  }: {
+    startTimestamp: number;
+    endTimestamp: number;
+  }) {
+    const blockInfo = BlockInfo.getInstance(this.chainId);
+    const [_startBlock, _endBlock] = await Promise.all([
+      blockInfo.getBlockAfterTimeStamp(startTimestamp),
+      blockInfo.getBlockAfterTimeStamp(endTimestamp),
+    ]);
+
+    assert(
+      typeof _endBlock === 'number' && _endBlock > 0,
+      '_endBlock should be a number greater than 0',
+    );
+    assert(
+      typeof _startBlock === 'number' &&
+        _startBlock > 0 &&
+        _startBlock < _endBlock,
+      '_startBlock should be a number and 0 < _startBlock < endBlock',
+    );
+
+    this.setBlockTimeBoundary({
+      startTimestamp,
+      endTimestamp,
+      startBlock: _startBlock,
+      endBlock: _endBlock,
+    });
+  }
+
   async loadWithinInterval(startTimestamp: number, endTimestamp: number) {
     await this.resolveBlockBoundary({ startTimestamp, endTimestamp });
 
@@ -61,6 +94,12 @@ export class StakeV2Resolver extends AbstractStateTracker {
     this.sePSP1Tracker.setBlockTimeBoundary(boundary);
     this.sePSP2Tracker.setBlockTimeBoundary(boundary);
     this.bptTracker.setBlockTimeBoundary(boundary);
+
+    await Promise.all([
+      this.sePSP1Tracker.loadStates(),
+      this.sePSP2Tracker.loadStates(),
+      this.bptTracker.loadStates(),
+    ]);
   }
 
   getStakeForRefund(timestamp: number, account: string): BigNumber {
@@ -71,13 +110,14 @@ export class StakeV2Resolver extends AbstractStateTracker {
     const { pspBalance: bptPSPBalance, totalSupply: bptTotalSupply } =
       this.bptTracker.getBPTState(timestamp);
 
+    // check precision
     const pspInSePSP2 = sePSP2Balance // 1 BPT = 1 sePSP2
       .multipliedBy(bptPSPBalance)
       .dividedBy(bptTotalSupply);
 
-    const stake = sePSP1Balance.plus(
-      pspInSePSP2.multipliedBy(SEPSP2_PSP_MULTIPLIER),
-    );
+    const stake = sePSP1Balance
+      .plus(pspInSePSP2.multipliedBy(SEPSP2_PSP_MULTIPLIER))
+      .decimalPlaces(0);
 
     return stake;
   }

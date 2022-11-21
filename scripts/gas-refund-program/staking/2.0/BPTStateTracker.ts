@@ -123,8 +123,7 @@ export default class BPTStateTracker extends AbstractStateTracker {
     return this.instance[chainId];
   }
 
-  // TODO: to rename to state
-  async loadStakes() {
+  async loadStates() {
     await Promise.all([this.loadInitialState(), this.loadStateChanges()]);
   }
 
