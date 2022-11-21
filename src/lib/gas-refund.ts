@@ -2,6 +2,7 @@ import BigNumber from 'bignumber.js';
 import {
   CHAIN_ID_BINANCE,
   CHAIN_ID_FANTOM,
+  CHAIN_ID_GOERLI,
   CHAIN_ID_MAINNET,
   CHAIN_ID_POLYGON,
 } from './constants';
@@ -11,6 +12,11 @@ export const GRP_SUPPORTED_CHAINS = [
   CHAIN_ID_POLYGON,
   CHAIN_ID_BINANCE,
   CHAIN_ID_FANTOM,
+];
+
+export const GRP_V2_SUPPORTED_CHAINS_STAKING = [
+  CHAIN_ID_MAINNET,
+  CHAIN_ID_GOERLI,
 ];
 
 const WEEKS_IN_YEAR = 52;
