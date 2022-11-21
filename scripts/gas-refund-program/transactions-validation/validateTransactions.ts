@@ -34,7 +34,8 @@ import {
  * - update in memory budget accountability through budgetGuardian on validated transactions
  * - write back status of tx in database if changed
  */
-//FIXME: handle overflow of 100% refund for sePSP2
+// FIXME: handle overflow of 100% refund for sePSP2
+// FIXME: handle double spending issue with 100% refund for sePSP2
 export async function validateTransactions() {
   const guardian = GRPBudgetGuardian.getInstance();
 
