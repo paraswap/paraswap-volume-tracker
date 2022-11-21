@@ -21,10 +21,13 @@ const config: {
   },
 };
 
+const SEPSP2_PSP_MULTIPLIER = 2.5;
+
 export class StakeV2Resolver extends AbstractStateTracker {
   sePSP1Tracker: ERC20StateTracker;
   sePSP2Tracker: ERC20StateTracker;
   bptTracker: BPTStateTracker;
+  static instance: { [chainId: string]: StakeV2Resolver };
 
   constructor(protected chainId: number) {
     super(chainId);
@@ -37,6 +40,14 @@ export class StakeV2Resolver extends AbstractStateTracker {
     this.bptTracker = BPTStateTracker.getInstance(chainId);
   }
 
+  static getInstance(chainId: number) {
+    if (!this.instance[chainId]) {
+      this.instance[chainId] = new StakeV2Resolver(chainId);
+    }
+
+    return this.instance[chainId];
+  }
+
   async loadWithinInterval(startTimestamp: number, endTimestamp: number) {
     await this.resolveBlockBoundary({ startTimestamp, endTimestamp });
 
@@ -46,7 +57,7 @@ export class StakeV2Resolver extends AbstractStateTracker {
         startTimestamp,
         endTimestamp,
       }),
-      this.sePSP1Tracker.loadHistoricalstatesWithinInterval({
+      this.sePSP2Tracker.loadHistoricalstatesWithinInterval({
         startTimestamp,
         endTimestamp,
       }),
@@ -68,7 +79,9 @@ export class StakeV2Resolver extends AbstractStateTracker {
       .multipliedBy(pspBalance)
       .dividedBy(totalSupply);
 
-    const stake = sePSP1Balance.plus(pspInSePSP2.multipliedBy(2.5));
+    const stake = sePSP1Balance.plus(
+      pspInSePSP2.multipliedBy(SEPSP2_PSP_MULTIPLIER),
+    );
 
     return stake;
   }

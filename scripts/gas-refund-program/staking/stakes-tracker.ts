@@ -1,14 +1,17 @@
 import { assert } from 'ts-essentials';
+import { CHAIN_ID_MAINNET } from '../../../src/lib/constants';
 import {
   GasRefundGenesisEpoch,
   GasRefundSafetyModuleAllPSPInBptFixStartEpoch,
   GasRefundSafetyModuleStartEpoch,
   GasRefundSPSPStakesAlgoFlipEpoch,
+  GasRefundV2EpochFlip,
   GasRefundVirtualLockupStartEpoch,
 } from '../../../src/lib/gas-refund';
 import { OFFSET_CALC_TIME, SCRIPT_START_TIME_SEC } from '../common';
-import { getEpochStartCalcTime } from '../epoch-helpers';
+import { getCurrentEpoch, getEpochStartCalcTime } from '../epoch-helpers';
 import { getLatestEpochRefundedAllChains } from '../persistance/db-persistance';
+import { StakeV2Resolver } from './2.0/stake-resolver';
 import SafetyModuleStakesTracker from './safety-module-stakes-tracker';
 import SPSPStakesTracker from './spsp-stakes-tracker';
 
@@ -30,6 +33,10 @@ export default class StakesTracker {
       latestEpochRefunded || GasRefundGenesisEpoch,
     );
 
+    const startTimeStakeV2 = await getEpochStartCalcTime(
+      latestEpochRefunded || GasRefundV2EpochFlip,
+    );
+
     const startTimeSM = await getEpochStartCalcTime(
       latestEpochRefunded &&
         latestEpochRefunded > GasRefundSafetyModuleStartEpoch
@@ -48,16 +55,26 @@ export default class StakesTracker {
     const spspStakesTracker = SPSPStakesTracker.getInstance();
     const stakeModuleStakesTracker = SafetyModuleStakesTracker.getInstance();
 
-    await Promise.all([
-      spspStakesTracker.loadHistoricalStakesWithinInterval({
-        startTimestamp: startTimeSPSP,
+    if (getCurrentEpoch() >= GasRefundV2EpochFlip) {
+      // FIXME
+      await StakeV2Resolver.getInstance(
+        CHAIN_ID_MAINNET,
+      ).loadHistoricalstatesWithinInterval({
+        startTimestamp: startTimeStakeV2, // fixme ?
         endTimestamp: endTime,
-      }),
-      stakeModuleStakesTracker.loadHistoricalStakesWithinInterval({
-        startTimestamp: startTimeSM,
-        endTimestamp: endTime,
-      }),
-    ]);
+      });
+    } else {
+      await Promise.all([
+        spspStakesTracker.loadHistoricalStakesWithinInterval({
+          startTimestamp: startTimeSPSP,
+          endTimestamp: endTime,
+        }),
+        stakeModuleStakesTracker.loadHistoricalStakesWithinInterval({
+          startTimestamp: startTimeSM,
+          endTimestamp: endTime,
+        }),
+      ]);
+    }
   }
 
   computeStakedPSPBalance(
@@ -67,6 +84,13 @@ export default class StakesTracker {
     eofEpochTimestampForBackwardCompat: number,
   ) {
     const account = _account.toLowerCase();
+
+    if (epoch >= GasRefundV2EpochFlip) {
+      return StakeV2Resolver.getInstance(CHAIN_ID_MAINNET).getStakeForRefund(
+        timestamp,
+        account,
+      );
+    }
 
     const spspStakesTracker = SPSPStakesTracker.getInstance();
     const safetyModuleTracker = SafetyModuleStakesTracker.getInstance();
