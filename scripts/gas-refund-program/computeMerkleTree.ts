@@ -17,9 +17,12 @@ import {
 } from '../../src/lib/gas-refund';
 import { GasRefundTransaction } from '../../src/models/GasRefundTransaction';
 import { saveMerkleTreeInFile } from './persistance/file-persistance';
-import { init, resolveEpochCalcTimeInterval } from './common';
-import { EpochInfo } from '../../src/lib/epoch-info';
-import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
+import {
+  getCurrentEpoch,
+  loadEpochMetaData,
+  resolveEpochCalcTimeInterval,
+} from './epoch-helpers';
+import Database from '../../src/database';
 
 const logger = global.LOGGER('GRP:COMPUTE_MERKLE_TREE');
 
@@ -82,7 +85,8 @@ export async function computeAndStoreMerkleTreeForChain({
 }
 
 async function startComputingMerkleTreesAllChains() {
-  await init();
+  await Database.connectAndSync();
+  await loadEpochMetaData();
 
   const latestEpochRefunded = await fetchLastEpochRefunded();
   let startEpoch = latestEpochRefunded
@@ -94,12 +98,7 @@ async function startComputingMerkleTreesAllChains() {
     'cannot compute grp merkle data for epoch < genesis_epoch',
   );
 
-  const currentEpoch = EpochInfo.getInstance(
-    CHAIN_ID_MAINNET,
-    true,
-  ).currentEpoch;
-
-  assert(currentEpoch, 'currentEpoch should defined');
+  const currentEpoch = getCurrentEpoch();
 
   for (let epoch = startEpoch; epoch <= currentEpoch; epoch++) {
     const { isEpochEnded } = await resolveEpochCalcTimeInterval(epoch);

@@ -1,6 +1,4 @@
 import { assert } from 'ts-essentials';
-import { CHAIN_ID_MAINNET } from '../../../src/lib/constants';
-import { EpochInfo } from '../../../src/lib/epoch-info';
 import {
   GasRefundGenesisEpoch,
   GasRefundSafetyModuleAllPSPInBptFixStartEpoch,
@@ -9,6 +7,7 @@ import {
   GasRefundVirtualLockupStartEpoch,
 } from '../../../src/lib/gas-refund';
 import { OFFSET_CALC_TIME, SCRIPT_START_TIME_SEC } from '../common';
+import { getEpochStartCalcTime } from '../epoch-helpers';
 import { getLatestEpochRefundedAllChains } from '../persistance/db-persistance';
 import SafetyModuleStakesTracker from './safety-module-stakes-tracker';
 import SPSPStakesTracker from './spsp-stakes-tracker';
@@ -24,16 +23,14 @@ export default class StakesTracker {
   }
 
   async loadHistoricalStakes() {
-    const epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET, true);
-
     const latestEpochRefunded = await getLatestEpochRefundedAllChains();
 
     // Note: since we take start of latest epoch refunded, we don't need adjust start times with VIRTUAL_LOCKUP_PERIOD
-    const startTimeSPSP = await epochInfo.getEpochStartCalcTime(
+    const startTimeSPSP = await getEpochStartCalcTime(
       latestEpochRefunded || GasRefundGenesisEpoch,
     );
 
-    const startTimeSM = await epochInfo.getEpochStartCalcTime(
+    const startTimeSM = await getEpochStartCalcTime(
       latestEpochRefunded &&
         latestEpochRefunded > GasRefundSafetyModuleStartEpoch
         ? latestEpochRefunded
