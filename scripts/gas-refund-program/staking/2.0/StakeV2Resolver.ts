@@ -1,8 +1,8 @@
 import BigNumber from 'bignumber.js';
 import { assert } from 'ts-essentials';
-import { AbstractStateTracker } from './abstract-state-tracker';
-import BPTStateTracker from './bpt-state-tracker';
-import ERC20StateTracker from './erc20-state-tracker';
+import { AbstractStateTracker } from './AbstractStateTracker';
+import BPTStateTracker from './BPTStateTracker';
+import ERC20StateTracker from './ERC20StateTracker';
 
 type V2Params = {
   sePSP1: string;

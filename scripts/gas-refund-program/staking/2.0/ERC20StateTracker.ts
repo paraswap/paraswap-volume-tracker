@@ -4,7 +4,7 @@ import * as ERC20ABI from '../../../../src/lib/abi/erc20.abi.json';
 import { fetchBlockTimestampForEvents } from '../../../../src/lib/utils/helpers';
 import { reduceTimeSeries, TimeSeries } from '../../timeseries';
 import BigNumber from 'bignumber.js';
-import { AbstractStateTracker } from './abstract-state-tracker';
+import { AbstractStateTracker } from './AbstractStateTracker';
 import { getTokenHolders } from '../../../../src/lib/utils/covalent';
 
 const logger = global.LOGGER('ERC20StateTracker');

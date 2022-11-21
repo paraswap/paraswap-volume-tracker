@@ -20,8 +20,8 @@ import {
   TimeSeries,
   timeseriesComparator,
 } from '../../timeseries';
-import { BPTHelper } from './bpt-helper';
-import { AbstractStateTracker } from './abstract-state-tracker';
+import { BPTHelper } from './BPTHelper';
+import { AbstractStateTracker } from './AbstractStateTracker';
 import BigNumber from 'bignumber.js';
 
 interface MinERC20 extends Contract {

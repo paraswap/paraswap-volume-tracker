@@ -11,7 +11,7 @@ import {
 import { OFFSET_CALC_TIME, SCRIPT_START_TIME_SEC } from '../common';
 import { getCurrentEpoch, getEpochStartCalcTime } from '../epoch-helpers';
 import { getLatestEpochRefundedAllChains } from '../persistance/db-persistance';
-import { StakeV2Resolver } from './2.0/stake-resolver';
+import { StakeV2Resolver } from './2.0/StakeV2Resolver';
 import SafetyModuleStakesTracker from './safety-module-stakes-tracker';
 import SPSPStakesTracker from './spsp-stakes-tracker';
 
