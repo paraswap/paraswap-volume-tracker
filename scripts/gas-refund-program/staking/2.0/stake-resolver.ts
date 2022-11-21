@@ -73,11 +73,11 @@ export class StakeV2Resolver extends AbstractStateTracker {
 
     const sePSP1Balance = this.sePSP1Tracker.getBalance(timestamp, account);
     const sePSP2Balance = this.sePSP2Tracker.getBalance(timestamp, account);
-    const { pspBalance, totalSupply } = this.bptTracker.getBPTState(timestamp);
+    const { pspBalance: bptPSPBalance, totalSupply: bptTotalSupply } = this.bptTracker.getBPTState(timestamp);
 
-    const pspInSePSP2 = sePSP2Balance
-      .multipliedBy(pspBalance)
-      .dividedBy(totalSupply);
+    const pspInSePSP2 = sePSP2Balance // 1 BPT = 1 sePSP2
+      .multipliedBy(bptPSPBalance)
+      .dividedBy(bptTotalSupply);
 
     const stake = sePSP1Balance.plus(
       pspInSePSP2.multipliedBy(SEPSP2_PSP_MULTIPLIER),
