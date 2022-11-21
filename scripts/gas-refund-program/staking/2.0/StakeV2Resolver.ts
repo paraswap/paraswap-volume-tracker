@@ -3,24 +3,8 @@ import { assert } from 'ts-essentials';
 import { BlockInfo } from '../../../../src/lib/block-info';
 import { AbstractStateTracker } from './AbstractStateTracker';
 import BPTStateTracker from './BPTStateTracker';
+import { config } from './config';
 import ERC20StateTracker from './ERC20StateTracker';
-
-type V2Params = {
-  sePSP1: string;
-  sePSP2: string;
-  bpt: string;
-  poolId: string;
-};
-const config: {
-  [chainId: number]: V2Params;
-} = {
-  5: {
-    sePSP1: '',
-    sePSP2: '',
-    bpt: '',
-    poolId: '',
-  },
-};
 
 const SEPSP2_PSP_MULTIPLIER = 2.5;
 

@@ -9,9 +9,13 @@ import { getTokenHolders } from '../../../../src/lib/utils/covalent';
 
 const logger = global.LOGGER('ERC20StateTracker');
 
-interface Transfer extends Event {
+export interface Transfer extends Event {
   event: 'Transfer';
-  args: [from: string, to: string, value: EthersBN];
+  args: [from: string, to: string, value: EthersBN] & {
+    from: string;
+    to: string;
+    value: BigNumber;
+  };
 }
 
 type InitState = {
@@ -35,6 +39,8 @@ export default class ERC20StateTracker extends AbstractStateTracker {
   differentialStates: DiffState = {
     balance: {},
   };
+
+  transferEvents: Transfer[];
 
   static instance: {
     [chainId: number]: {
@@ -95,11 +101,11 @@ export default class ERC20StateTracker extends AbstractStateTracker {
       `loadStateChanges: loading psp balance related events for all pools`,
     );
 
-    const events = (await this.contract.queryFilter(
+    const events = (this.transferEvents = (await this.contract.queryFilter(
       this.contract.filters.Transfer(),
       this.startBlock,
       this.endBlock,
-    )) as Transfer[];
+    )) as Transfer[]);
 
     logger.info(
       `loadStateChanges: completed loading ${events.length} psp balance related events for all pools`,

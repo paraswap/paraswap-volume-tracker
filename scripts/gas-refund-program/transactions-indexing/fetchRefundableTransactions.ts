@@ -16,7 +16,7 @@ import * as _ from 'lodash';
 import { ONE_HOUR_SEC } from '../../../src/lib/utils/helpers';
 import { PriceResolverFn } from '../token-pricing/psp-chaincurrency-pricing';
 import StakesTracker from '../staking/stakes-tracker';
-import { GRPBudgetGuardian } from '../transactions-validation/GRPBudgetGuardian';
+import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/migrations';
 
 // empirically set to maximise on processing time without penalising memory and fetching constraigns
 const SLICE_DURATION = 6 * ONE_HOUR_SEC;
@@ -131,7 +131,10 @@ export async function fetchRefundableTransactions({
           );
 
           const totalStakeAmountPSP = swapperStake.toFixed(0); // @todo irrelevant?
-          const refundPercent = getRefundPercent(epoch, totalStakeAmountPSP);
+          const refundPercent =
+            contractAddress === MIGRATION_SEPSP2_100_PERCENT_KEY
+              ? 1
+              : getRefundPercent(epoch, totalStakeAmountPSP);
 
           assert(
             refundPercent,

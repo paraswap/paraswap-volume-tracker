@@ -21,6 +21,7 @@ export type SePSPMigrationsData = {
   chainId: number;
   epoch: number;
   txHash: string;
+  blockNumber: number;
 };
 
 @Table
@@ -38,4 +39,7 @@ export class sePSPMigrations extends Model<SePSPMigrationsData> {
 
   @Column(DataType_KECCAK256_HASHED_VALUE)
   txHash!: string;
+
+  @Column(DataType.INTEGER)
+  blockNumber!: number;
 }

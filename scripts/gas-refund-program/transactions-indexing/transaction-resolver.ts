@@ -18,6 +18,7 @@ import { getSuccessfulSwaps } from './swaps-subgraph';
 import { GasRefundTransaction } from '../types';
 import {
   GasRefundConsiderContractTXsStartEpoch,
+  GasRefundV2EpochFlip,
   GRP_MIN_STAKE_V1,
 } from '../../../src/lib/gas-refund';
 import {
@@ -25,6 +26,10 @@ import {
   SAFETY_MODULE_ADDRESS,
   AUGUSTUS_V5_ADDRESS,
 } from '../../../src/lib/constants';
+import {
+  getMigrationsTxs,
+  MIGRATION_SEPSP2_100_PERCENT_KEY,
+} from '../staking/2.0/migrations';
 
 type GetAllTXsInput = {
   startTimestamp: number;
@@ -35,8 +40,12 @@ type GetAllTXsInput = {
   contractAddress: string;
 };
 
-const CovalentAddressesByChain: Record<number, string[]> = {
+const StakingV1ContractAddressByChain: Record<number, string[]> = {
   [CHAIN_ID_MAINNET]: [...SPSPAddresses, SAFETY_MODULE_ADDRESS],
+};
+
+const StakingV2ContractAddressByChain: Record<number, string[]> = {
+  [CHAIN_ID_MAINNET]: [MIGRATION_SEPSP2_100_PERCENT_KEY], // TODO construct config config
 };
 
 export const getContractAddresses = ({
@@ -49,7 +58,15 @@ export const getContractAddresses = ({
   if (epoch < GasRefundConsiderContractTXsStartEpoch)
     return [AUGUSTUS_V5_ADDRESS];
 
-  return (CovalentAddressesByChain[chainId] || []).concat(AUGUSTUS_V5_ADDRESS);
+  if (epoch < GasRefundV2EpochFlip) {
+    return (StakingV1ContractAddressByChain[chainId] || []).concat(
+      AUGUSTUS_V5_ADDRESS,
+    );
+  }
+
+  return (StakingV2ContractAddressByChain[chainId] || []).concat(
+    AUGUSTUS_V5_ADDRESS,
+  );
 };
 
 export const getAllTXs = async ({
@@ -61,21 +78,26 @@ export const getAllTXs = async ({
   contractAddress,
 }: GetAllTXsInput): Promise<GasRefundTransaction[]> => {
   // fetch swaps and contract (staking pools, safety module) txs
-  return contractAddress === AUGUSTUS_V5_ADDRESS
-    ? getSwapTXs({
-        epoch,
-        chainId,
-        startTimestamp,
-        endTimestamp,
-        epochEndTimestamp,
-      })
-    : getTransactionForContract({
-        epoch,
-        chainId,
-        startTimestamp,
-        endTimestamp,
-        contractAddress,
-      });
+  if (contractAddress === AUGUSTUS_V5_ADDRESS)
+    return getSwapTXs({
+      epoch,
+      chainId,
+      startTimestamp,
+      endTimestamp,
+      epochEndTimestamp,
+    });
+
+  if (contractAddress === MIGRATION_SEPSP2_100_PERCENT_KEY) {
+    return getMigrationsTxs({ epoch, startTimestamp, endTimestamp });
+  }
+
+  return getTransactionForContract({
+    epoch,
+    chainId,
+    startTimestamp,
+    endTimestamp,
+    contractAddress,
+  });
 };
 
 /**
