@@ -1,4 +1,3 @@
-import EventEmitter from 'events';
 import { assert } from 'ts-essentials';
 import { BlockInfo } from '../../../../src/lib/block-info';
 import {
@@ -6,7 +5,13 @@ import {
   CHAIN_ID_MAINNET,
 } from '../../../../src/lib/constants';
 
-export class AbstractStateTracker extends EventEmitter {
+type BlockTimeBoundary = {
+  startTimestamp: number;
+  endTimestamp: number;
+  startBlock: number;
+  endBlock: number;
+};
+export class AbstractStateTracker {
   startBlock: number;
   endBlock: number;
   startTimestamp: number;
@@ -17,7 +22,6 @@ export class AbstractStateTracker extends EventEmitter {
       chainId == CHAIN_ID_MAINNET || chainId === CHAIN_ID_GOERLI,
       'only ethereum mainnet or testnet allowed',
     );
-    super();
   }
 
   async loadHistoricalstatesWithinInterval({
@@ -55,10 +59,33 @@ export class AbstractStateTracker extends EventEmitter {
       '_startBlock should be a number and 0 < _startBlock < endBlock',
     );
 
+    this.setBlockTimeBoundary({
+      startTimestamp,
+      endTimestamp,
+      startBlock: _startBlock,
+      endBlock: _endBlock,
+    });
+  }
+
+  getBlockTimeBoundary(): BlockTimeBoundary {
+    return {
+      startTimestamp: this.startTimestamp,
+      endTimestamp: this.endTimestamp,
+      startBlock: this.startBlock,
+      endBlock: this.endBlock,
+    };
+  }
+
+  setBlockTimeBoundary({
+    startTimestamp,
+    endTimestamp,
+    startBlock,
+    endBlock,
+  }: BlockTimeBoundary) {
     this.startTimestamp = startTimestamp;
     this.endTimestamp = endTimestamp;
-    this.startBlock = _startBlock;
-    this.endBlock = _endBlock;
+    this.startBlock = startBlock;
+    this.endBlock = endBlock;
   }
 
   protected loadStates() {

@@ -51,21 +51,16 @@ export class StakeV2Resolver extends AbstractStateTracker {
   async loadWithinInterval(startTimestamp: number, endTimestamp: number) {
     await this.resolveBlockBoundary({ startTimestamp, endTimestamp });
 
-    // TODOe prevent loading blocks data everytime
-    await Promise.all([
-      this.sePSP1Tracker.loadHistoricalstatesWithinInterval({
-        startTimestamp,
-        endTimestamp,
-      }),
-      this.sePSP2Tracker.loadHistoricalstatesWithinInterval({
-        startTimestamp,
-        endTimestamp,
-      }),
-      this.bptTracker.loadHistoricalstatesWithinInterval({
-        startTimestamp,
-        endTimestamp,
-      }),
-    ]);
+    const boundary = this.getBlockTimeBoundary();
+    assert(
+      boundary.startTimestamp === startTimestamp &&
+        boundary.endTimestamp == endTimestamp,
+      'wrong boundary resolved',
+    );
+
+    this.sePSP1Tracker.setBlockTimeBoundary(boundary);
+    this.sePSP2Tracker.setBlockTimeBoundary(boundary);
+    this.bptTracker.setBlockTimeBoundary(boundary);
   }
 
   getStakeForRefund(timestamp: number, account: string): BigNumber {
@@ -73,7 +68,8 @@ export class StakeV2Resolver extends AbstractStateTracker {
 
     const sePSP1Balance = this.sePSP1Tracker.getBalance(timestamp, account);
     const sePSP2Balance = this.sePSP2Tracker.getBalance(timestamp, account);
-    const { pspBalance: bptPSPBalance, totalSupply: bptTotalSupply } = this.bptTracker.getBPTState(timestamp);
+    const { pspBalance: bptPSPBalance, totalSupply: bptTotalSupply } =
+      this.bptTracker.getBPTState(timestamp);
 
     const pspInSePSP2 = sePSP2Balance // 1 BPT = 1 sePSP2
       .multipliedBy(bptPSPBalance)
