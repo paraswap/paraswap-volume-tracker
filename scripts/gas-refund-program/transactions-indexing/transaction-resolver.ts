@@ -88,7 +88,12 @@ export const getAllTXs = async ({
     });
 
   if (contractAddress === MIGRATION_SEPSP2_100_PERCENT_KEY) {
-    return getMigrationsTxs({ epoch, startTimestamp, endTimestamp });
+    return getMigrationsTxs({
+      epoch,
+      chainId,
+      startTimestamp,
+      endTimestamp,
+    });
   }
 
   return getTransactionForContract({

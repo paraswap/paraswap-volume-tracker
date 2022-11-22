@@ -9,13 +9,12 @@ import {
   GasRefundVirtualLockupStartEpoch,
 } from '../../../src/lib/gas-refund';
 import { OFFSET_CALC_TIME, SCRIPT_START_TIME_SEC } from '../common';
+import { chainIdV2 } from '../config';
 import { getCurrentEpoch, getEpochStartCalcTime } from '../epoch-helpers';
 import { getLatestEpochRefundedAllChains } from '../persistance/db-persistance';
 import { StakeV2Resolver } from './2.0/StakeV2Resolver';
 import SafetyModuleStakesTracker from './safety-module-stakes-tracker';
 import SPSPStakesTracker from './spsp-stakes-tracker';
-
-const chainIdV2 = CHAIN_ID_GOERLI; // FIXME
 
 export default class StakesTracker {
   static instance: StakesTracker;
@@ -38,7 +37,7 @@ export default class StakesTracker {
       const startTimeStakeV2 = await getEpochStartCalcTime(
         latestEpochRefunded || GasRefundV2EpochFlip,
       );
-      // FIXME
+      // FIXME forcing chainId as shortcut to ease testing
       await StakeV2Resolver.getInstance(chainIdV2).loadWithinInterval(
         startTimeStakeV2,
         endTime,

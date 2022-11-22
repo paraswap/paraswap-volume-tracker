@@ -4,7 +4,6 @@ import {
   BalancerVaultAddress,
   Balancer_80PSP_20WETH_address,
   Balancer_80PSP_20WETH_poolId,
-  CHAIN_ID_MAINNET,
   NULL_ADDRESS,
   PSP_ADDRESS,
 } from '../../../../src/lib/constants';
@@ -172,7 +171,7 @@ export default class BPTStateTracker extends AbstractStateTracker {
       const [, , tokens, amountsInOrOut, paidProtocolSwapFeeAmounts] = e.args;
 
       assert(
-        tokens[1].toLowerCase() === PSP_ADDRESS[CHAIN_ID_MAINNET].toLowerCase(),
+        tokens[1].toLowerCase() === PSP_ADDRESS[this.chainId].toLowerCase(),
         'logic error',
       );
 

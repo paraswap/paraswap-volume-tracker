@@ -1,5 +1,7 @@
 import { CHAIN_ID_GOERLI } from '../../src/lib/constants';
 
+export const chainIdV2 = CHAIN_ID_GOERLI; // FIXME
+
 type V2Params = {
   sePSP1: string;
   sePSP2: string;

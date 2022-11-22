@@ -1,15 +1,16 @@
 import { assert } from 'ts-essentials';
-import { CHAIN_ID_MAINNET } from '../../../../src/lib/constants';
+import {
+  CHAIN_ID_GOERLI,
+  CHAIN_ID_MAINNET,
+} from '../../../../src/lib/constants';
 import { getTransaction } from '../../../../src/lib/utils/covalent';
 import {
   sePSPMigrations,
   SePSPMigrationsData,
 } from '../../../../src/models/sePSPMigrations';
 import { GasRefundTransaction } from '../../types';
-import { configByChain } from '../../config';
+import { chainIdV2, configByChain } from '../../config';
 import ERC20StateTracker, { Transfer } from './ERC20StateTracker';
-
-const chainId = CHAIN_ID_MAINNET;
 
 export const MIGRATION_SEPSP2_100_PERCENT_KEY =
   'MIGRATION_SEPSP2_100_PERCENT_KEY'; // trick
@@ -28,16 +29,24 @@ const transform = (
     txTimestamp: event.blockNumber,
   }));
 
+type GetMigrationsTXsInput = {
+  epoch: number;
+  chainId: number;
+  startTimestamp: number;
+  endTimestamp: number;
+};
+
 // FIXME handle collision between refund 100% one time and casual tx refunding
 export async function getMigrationsTxs({
   epoch,
+  chainId: _chaindId,
   startTimestamp,
   endTimestamp,
-}: {
-  epoch: number;
-  startTimestamp: number;
-  endTimestamp: number;
-}): Promise<GasRefundTransaction[]> {
+}: GetMigrationsTXsInput): Promise<GasRefundTransaction[]> {
+  if (![CHAIN_ID_MAINNET, CHAIN_ID_GOERLI].includes(_chaindId)) return [];
+
+  const chainId = chainIdV2; // FIXME forcing chainId as shortcut to ease testing
+
   const { sePSP2, migrator } = configByChain[chainId];
   assert(sePSP2, 'sePSP2 should be defined');
   assert(migrator, 'migrator should be defined');
