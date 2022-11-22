@@ -105,12 +105,17 @@ const GRP2EpochResolver: EpochReseolverV2 = {
   async resolveEpochCalcTimeInterval(epoch: number): Promise<EpochCalcTime> {
     const { startTimestamp, endTimestamp } =
       GRP2EpochResolver.getEpochTimeBoundary(epoch);
+    const isEpochEnded =
+      SCRIPT_START_TIME_SEC >= endTimestamp + OFFSET_CALC_TIME;
+    const endCalcTime = Math.min(
+      SCRIPT_START_TIME_SEC - OFFSET_CALC_TIME,
+      endTimestamp,
+    );
 
     return {
-      // FIXME take into account SCRIPT_START_TIME_SEC and OFFSET_CALC_TIME
       startCalcTime: startTimestamp,
-      endCalcTime: endTimestamp,
-      isEpochEnded: true,
+      endCalcTime: endCalcTime,
+      isEpochEnded,
     };
   },
 };
