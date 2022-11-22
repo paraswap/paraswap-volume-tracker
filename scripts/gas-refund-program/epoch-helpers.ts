@@ -86,7 +86,9 @@ const GRP2EpochResolver: EpochReseolverV2 = {
   },
 
   getEpochTimeBoundary(epoch: number) {
-    const startTimestamp = START_EPOCH_TIMESTAMP_V2 + EPOCH_DURATION_V2 * epoch;
+    const startTimestamp =
+      START_EPOCH_TIMESTAMP_V2 +
+      EPOCH_DURATION_V2 * (epoch - GasRefundV2EpochFlip);
     const endTimestamp = startTimestamp + EPOCH_DURATION_V2;
 
     return {
