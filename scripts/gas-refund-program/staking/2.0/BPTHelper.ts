@@ -51,7 +51,7 @@ export class BPTHelper {
   async fetchBPtState(blockNumber?: number): Promise<BPTState> {
     const multicallData = [
       {
-        target: Balancer_80PSP_20WETH_address[this.chainId], // FIXME segment by chainId
+        target: Balancer_80PSP_20WETH_address[this.chainId],
         callData: this.erc20Iface.encodeFunctionData('totalSupply', []),
       },
       {
