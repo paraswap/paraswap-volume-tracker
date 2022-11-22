@@ -152,7 +152,7 @@ export default class BPTStateTracker extends AbstractStateTracker {
     const events = (await this.bVaultContract.queryFilter(
       this.bVaultContract.filters.PoolBalanceChanged(
         Balancer_80PSP_20WETH_poolId[this.chainId],
-      ), // FIXME
+      ),
       this.startBlock,
       this.endBlock,
     )) as PoolBalanceChanged[];
