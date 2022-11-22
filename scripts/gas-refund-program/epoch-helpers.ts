@@ -107,7 +107,7 @@ const GRP2EpochResolver: EpochReseolverV2 = {
       GRP2EpochResolver.getEpochTimeBoundary(epoch);
 
     return {
-      // FIXME
+      // FIXME take into account SCRIPT_START_TIME_SEC and OFFSET_CALC_TIME
       startCalcTime: startTimestamp,
       endCalcTime: endTimestamp,
       isEpochEnded: true,
