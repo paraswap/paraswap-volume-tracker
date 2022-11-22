@@ -35,7 +35,7 @@ export default class StakesTracker {
     const currentEpoch = getCurrentEpoch();
     if (currentEpoch >= GasRefundV2EpochFlip) {
       const startTimeStakeV2 = await getEpochStartCalcTime(
-        latestEpochRefunded || GasRefundV2EpochFlip,
+        GasRefundV2EpochFlip, // TODO: take lastEpoch || v2 start epoch to avoid overfetching
       );
       // FIXME forcing chainId as shortcut to ease testing
       await StakeV2Resolver.getInstance(chainIdV2).loadWithinInterval(
