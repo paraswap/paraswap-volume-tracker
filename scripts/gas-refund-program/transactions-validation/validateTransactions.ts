@@ -21,6 +21,10 @@ import {
   MAX_USD_ADDRESS_BUDGET_YEARLY,
   MAX_USD_ADDRESS_BUDGET_EPOCH,
 } from './GRPBudgetGuardian';
+import {
+  fetchMigrationsTxHashesSet,
+  MIGRATION_SEPSP2_100_PERCENT_KEY,
+} from '../staking/2.0/utils';
 
 /**
  * This function guarantees that the order of transactions refunded will always be stable.
@@ -35,11 +39,11 @@ import {
  * - write back status of tx in database if changed
  */
 // FIXME: handle overflow of 100% refund for sePSP2
-// FIXME: handle double spending issue with 100% refund for sePSP2
 export async function validateTransactions() {
   const guardian = GRPBudgetGuardian.getInstance();
 
   const lastEpochRefunded = await fetchLastEpochRefunded();
+  const migrationsTxsHashesSet = await fetchMigrationsTxHashesSet();
 
   const firstEpochOfYear = !!lastEpochRefunded
     ? GasRefundGenesisEpoch +
@@ -82,6 +86,7 @@ export async function validateTransactions() {
         'pspUsd',
         'refundedAmountUSD',
         'refundedAmountPSP',
+        'contract',
       ],
     });
 
@@ -144,7 +149,9 @@ export async function validateTransactions() {
         guardian.isMaxYearlyPSPGlobalBudgetSpent() ||
         guardian.hasSpentYearlyUSDBudget(address) ||
         (tx.epoch >= GasRefundBudgetLimitEpochBasedStartEpoch &&
-          guardian.hasSpentUSDBudgetForEpoch(address))
+          guardian.hasSpentUSDBudgetForEpoch(address)) ||
+        (tx.contract !== MIGRATION_SEPSP2_100_PERCENT_KEY &&
+          migrationsTxsHashesSet.has(tx.hash.toLowerCase()))
       ) {
         newStatus = TransactionStatus.REJECTED;
       } else {

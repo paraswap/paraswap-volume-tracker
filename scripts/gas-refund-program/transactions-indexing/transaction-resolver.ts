@@ -26,10 +26,8 @@ import {
   SAFETY_MODULE_ADDRESS,
   AUGUSTUS_V5_ADDRESS,
 } from '../../../src/lib/constants';
-import {
-  getMigrationsTxs,
-  MIGRATION_SEPSP2_100_PERCENT_KEY,
-} from '../staking/2.0/migrations';
+import { getMigrationsTxs } from '../staking/2.0/migrations';
+import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/utils';
 
 type GetAllTXsInput = {
   startTimestamp: number;

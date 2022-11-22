@@ -12,9 +12,6 @@ import { GasRefundTransaction } from '../../types';
 import { chainIdV2, configByChain } from '../../config';
 import ERC20StateTracker, { Transfer } from './ERC20StateTracker';
 
-export const MIGRATION_SEPSP2_100_PERCENT_KEY =
-  'MIGRATION_SEPSP2_100_PERCENT_KEY'; // trick
-
 const transform = (
   events: Transfer[],
   chainId: number,
