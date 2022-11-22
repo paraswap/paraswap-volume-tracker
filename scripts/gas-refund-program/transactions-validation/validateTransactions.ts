@@ -19,7 +19,6 @@ import {
   GRPBudgetGuardian,
   MAX_PSP_GLOBAL_BUDGET_YEARLY,
   MAX_USD_ADDRESS_BUDGET_YEARLY,
-  MAX_USD_ADDRESS_BUDGET_EPOCH,
 } from './GRPBudgetGuardian';
 import {
   fetchMigrationsTxHashesSet,
@@ -38,7 +37,6 @@ import {
  * - update in memory budget accountability through budgetGuardian on validated transactions
  * - write back status of tx in database if changed
  */
-// FIXME: handle overflow of 100% refund for sePSP2
 export async function validateTransactions() {
   const guardian = GRPBudgetGuardian.getInstance();
 
@@ -111,6 +109,11 @@ export async function validateTransactions() {
       } = tx;
       let newStatus;
 
+      // a migration from staking V1 to V2 should be refunded exactly once
+      // as staking txs are subject to refunding, we have to prevent double spending on marginal cases
+      const isMigrationToV2Tx =
+        tx.contract === MIGRATION_SEPSP2_100_PERCENT_KEY;
+
       if (prevEpoch !== tx.epoch) {
         // clean epoch based state on each epoch change
         guardian.resetEpochBudgetState();
@@ -146,34 +149,44 @@ export async function validateTransactions() {
       let cappedRefundedAmountUSD: BigNumber | undefined;
 
       if (
-        guardian.isMaxYearlyPSPGlobalBudgetSpent() ||
-        guardian.hasSpentYearlyUSDBudget(address) ||
-        (tx.epoch >= GasRefundBudgetLimitEpochBasedStartEpoch &&
-          guardian.hasSpentUSDBudgetForEpoch(address)) ||
-        (tx.contract !== MIGRATION_SEPSP2_100_PERCENT_KEY &&
-          migrationsTxsHashesSet.has(tx.hash.toLowerCase()))
+        !isMigrationToV2Tx && // always refund migration txs (100%)
+        (guardian.isMaxYearlyPSPGlobalBudgetSpent() ||
+          guardian.hasSpentYearlyUSDBudget(address) ||
+          (tx.epoch >= GasRefundBudgetLimitEpochBasedStartEpoch &&
+            guardian.hasSpentUSDBudgetForEpoch(address, tx.epoch)) ||
+          migrationsTxsHashesSet.has(tx.hash.toLowerCase())) // avoid double spending for twin migration txs (with contract set to actual contract address)
       ) {
         newStatus = TransactionStatus.REJECTED;
       } else {
         newStatus = TransactionStatus.VALIDATED;
 
-        ({ cappedRefundedAmountPSP, cappedRefundedAmountUSD } =
-          tx.epoch < GasRefundBudgetLimitEpochBasedStartEpoch
-            ? capRefundedAmountsBasedOnYearlyDollarBudget(
-                address,
-                refundedAmountUSD,
-                pspUsd,
-              )
-            : capRefundedAmountsBasedOnEpochDollarBudget(
-                address,
-                refundedAmountUSD,
-                pspUsd,
-              ));
+        // should never cap migration txs
+        if (isMigrationToV2Tx) {
+          assert(
+            tx.status === TransactionStatus.VALIDATED &&
+              tx.gasUsedUSD == tx.refundedAmountUSD,
+            'migration tx should always be valid and get fully refunded',
+          );
+        } else {
+          ({ cappedRefundedAmountPSP, cappedRefundedAmountUSD } =
+            tx.epoch < GasRefundBudgetLimitEpochBasedStartEpoch
+              ? capRefundedAmountsBasedOnYearlyDollarBudget(
+                  address,
+                  refundedAmountUSD,
+                  pspUsd,
+                )
+              : capRefundedAmountsBasedOnEpochDollarBudget(
+                  address,
+                  refundedAmountUSD,
+                  pspUsd,
+                  tx.epoch,
+                ));
 
-        cappedRefundedAmountPSP = capRefundedPSPAmountBasedOnYearlyPSPBudget(
-          cappedRefundedAmountPSP,
-          refundedAmountPSP,
-        );
+          cappedRefundedAmountPSP = capRefundedPSPAmountBasedOnYearlyPSPBudget(
+            cappedRefundedAmountPSP,
+            refundedAmountPSP,
+          );
+        }
 
         if (tx.epoch >= GasRefundBudgetLimitEpochBasedStartEpoch) {
           guardian.increaseRefundedUSDForEpoch(
@@ -272,8 +285,12 @@ function capRefundedAmountsBasedOnEpochDollarBudget(
   address: string,
   refundedAmountUSD: BigNumber,
   pspUsd: number,
+  epoch: number,
 ): CappedAmounts {
   const guardian = GRPBudgetGuardian.getInstance();
+
+  const maxUsdBudgetPerEpochPerAcc =
+    guardian.getMaxRefundUSDBudgetForEpoch(epoch);
 
   if (
     guardian
@@ -295,9 +312,9 @@ function capRefundedAmountsBasedOnEpochDollarBudget(
     guardian
       .totalRefundedUSDForEpoch(address)
       .plus(refundedAmountUSD)
-      .isGreaterThan(MAX_USD_ADDRESS_BUDGET_EPOCH)
+      .isGreaterThan(maxUsdBudgetPerEpochPerAcc)
   ) {
-    cappedRefundedAmountUSD = MAX_USD_ADDRESS_BUDGET_EPOCH.minus(
+    cappedRefundedAmountUSD = maxUsdBudgetPerEpochPerAcc.minus(
       guardian.totalRefundedUSDForEpoch(address),
     );
 

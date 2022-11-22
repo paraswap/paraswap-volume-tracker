@@ -5,12 +5,14 @@ import {
   fetchTotalRefundedPSP,
 } from '../persistance/db-persistance';
 import { ZERO_BN } from '../../../src/lib/utils/helpers';
+import { GasRefundV2EpochFlip } from '../../../src/lib/gas-refund';
 
 export const MAX_PSP_GLOBAL_BUDGET_YEARLY = new BigNumber(
   30_000_000,
 ).multipliedBy(10 ** 18);
 export const MAX_USD_ADDRESS_BUDGET_YEARLY = new BigNumber(30_000);
-export const MAX_USD_ADDRESS_BUDGET_EPOCH = new BigNumber(1_250); // should have been MAX_USD_ADDRESS_BUDGET_YEARLY.dividedBy(TOTAL_EPOCHS_IN_YEAR) but voted 1250
+export const MAX_USD_ADDRESS_BUDGET_EPOCH_V1 = new BigNumber(1_250); // should have been MAX_USD_ADDRESS_BUDGET_YEARLY.dividedBy(TOTAL_EPOCHS_IN_YEAR) but voted 1250
+export const MAX_USD_ADDRESS_BUDGET_EPOCH_V2 = new BigNumber(2_500);
 
 export type GRPSystemState = {
   totalPSPRefundedForYear: BigNumber;
@@ -47,6 +49,12 @@ export class GRPBudgetGuardian {
       totalRefundedUSDByAddressForYear,
       totalRefundedUSDByAddressForEpoch: {}, // no need to preload as validation runs on full epoch from scratch
     };
+  }
+
+  getMaxRefundUSDBudgetForEpoch(epoch: number) {
+    return epoch < GasRefundV2EpochFlip
+      ? MAX_USD_ADDRESS_BUDGET_EPOCH_V1
+      : MAX_USD_ADDRESS_BUDGET_EPOCH_V2;
   }
 
   // ---------  PSP Global Yearly Budget Limit ---------
@@ -90,9 +98,11 @@ export class GRPBudgetGuardian {
     return this.state.totalRefundedUSDByAddressForEpoch[account] || ZERO_BN;
   }
 
-  hasSpentUSDBudgetForEpoch(account: string) {
+  hasSpentUSDBudgetForEpoch(account: string, epoch: number) {
+    const maxBudgetEpoch = this.getMaxRefundUSDBudgetForEpoch(epoch);
+
     return this.totalRefundedUSDForEpoch(account).isGreaterThanOrEqualTo(
-      MAX_USD_ADDRESS_BUDGET_EPOCH,
+      maxBudgetEpoch,
     );
   }
 
