@@ -170,10 +170,9 @@ const grpV2Func = (x: number) => {
   );
 };
 
-export const getRefundPercentV2 = (scoreNorm: string): number => {
-  const bScoreNorm = BigInt(scoreNorm);
-  const scoreDnorm = +(bScoreNorm / BigInt(10 ** 18)).toString();
-  const refundPercent = grpV2Func(scoreDnorm);
+export const getRefundPercentV2 = (score: string): number => {
+  const scoreNorm = +(BigInt(score) / BigInt(10 ** 18)).toString();
+  const refundPercent = grpV2Func(scoreNorm);
   return refundPercent;
 };
 
