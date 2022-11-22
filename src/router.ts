@@ -245,6 +245,15 @@ export default class Router {
       }
     });
 
+    router.get(
+      '/gas-refund/stake-migration/:network/:address',
+      async (req, res) => {
+        return res.json({
+          hasMigrated: false,
+        });
+      },
+    );
+
     router.use('/onboarding', OnboardingRouter);
 
     return router;
