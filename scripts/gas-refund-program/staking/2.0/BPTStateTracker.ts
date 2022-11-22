@@ -22,6 +22,7 @@ import {
 import { BPTHelper } from './BPTHelper';
 import { AbstractStateTracker } from './AbstractStateTracker';
 import BigNumber from 'bignumber.js';
+import { imReserve } from '../../../../src/lib/utils';
 
 interface MinERC20 extends Contract {
   totalSupply(overrides?: CallOverrides): Promise<EthersBN>;
@@ -131,13 +132,11 @@ export default class BPTStateTracker extends AbstractStateTracker {
   async loadInitialState() {
     const initBlock = this.startBlock - 1;
 
-    await BPTHelper.getInstance(this.chainId)
-      .fetchBPtState(initBlock)
-      .then(({ bptTotalSupply, pspBalance, ethBalance }) => {
-        this.initState.totalSupply = bptTotalSupply;
-        this.initState.pspBalance = pspBalance;
-        this.initState.ethBalance = ethBalance;
-      });
+    const { bptTotalSupply, pspBalance, ethBalance } =
+      await BPTHelper.getInstance(this.chainId).fetchBPtState(initBlock);
+    this.initState.totalSupply = bptTotalSupply;
+    this.initState.pspBalance = pspBalance;
+    this.initState.ethBalance = ethBalance;
   }
 
   async loadStateChanges() {
@@ -160,7 +159,7 @@ export default class BPTStateTracker extends AbstractStateTracker {
 
     const blockNumToTimestamp = await fetchBlockTimestampForEvents(events);
 
-    const bptPoolPSPBalanceChanges = events.flatMap(e => {
+    events.forEach(e => {
       const timestamp = blockNumToTimestamp[e.blockNumber];
       assert(timestamp, 'block timestamp should be defined');
 
@@ -168,44 +167,47 @@ export default class BPTStateTracker extends AbstractStateTracker {
         e.event === 'PoolBalanceChanged',
         'can only be poolBalanceChanged event',
       );
-      const [, , tokens, amountsInOrOut, paidProtocolSwapFeeAmounts] = e.args;
+      const [, , _tokens, amountsInOrOut, paidProtocolSwapFeeAmounts] = e.args;
+      const tokens = _tokens.map(t => t.toLowerCase());
+
+      const isPSPToken0 = tokens[0] === PSP_ADDRESS[this.chainId].toLowerCase();
 
       assert(
-        tokens[1].toLowerCase() === PSP_ADDRESS[this.chainId].toLowerCase(),
-        'logic error',
+        tokens.includes(PSP_ADDRESS[this.chainId].toLowerCase()),
+        'psp should be either token0 or token 1',
       );
 
-      const pspAmountInOrOut = amountsInOrOut[1];
+      const [[pspAmount, ethAmount], [pspFees, ethFees]] = isPSPToken0
+        ? [amountsInOrOut, paidProtocolSwapFeeAmounts]
+        : [imReserve(amountsInOrOut), imReserve(paidProtocolSwapFeeAmounts)];
 
-      return [
-        {
-          timestamp,
-          value: new BigNumber(pspAmountInOrOut.toString()), // onPoolJoin / onPoolExit amount is positive / negative
-        },
-        {
-          timestamp,
-          value: new BigNumber(
-            paidProtocolSwapFeeAmounts[1].toString(),
-          ).negated(),
-        },
-      ];
+      this.differentialStates.pspBalance.push({
+        timestamp,
+        value: new BigNumber(pspAmount.toString()).minus(pspFees.toString()),
+      });
+
+      this.differentialStates.ethBalance.push({
+        timestamp,
+        value: new BigNumber(ethAmount.toString()).minus(ethFees.toString()),
+      });
     });
 
-    this.differentialStates.pspBalance =
-      this.differentialStates.pspBalance.concat(bptPoolPSPBalanceChanges);
     this.differentialStates.pspBalance.sort(timeseriesComparator);
+    this.differentialStates.ethBalance.sort(timeseriesComparator);
   }
 
   async resolveBPTPoolPSPBalanceChangesFromSwaps() {
     const events = (await this.bVaultContract.queryFilter(
-      this.bVaultContract.filters.Swap(Balancer_80PSP_20WETH_poolId), // FIXME
+      this.bVaultContract.filters.Swap(
+        Balancer_80PSP_20WETH_poolId[this.chainId],
+      ),
       this.startBlock,
       this.endBlock,
     )) as Swap[];
 
     const blockNumToTimestamp = await fetchBlockTimestampForEvents(events);
 
-    const bptPoolPSPBalanceChanges = events.map(e => {
+    events.forEach(e => {
       const timestamp = blockNumToTimestamp[e.blockNumber];
       assert(timestamp, 'block timestamp should be defined');
       assert(e.event === 'Swap', 'can only be Swap Event event');
@@ -222,21 +224,25 @@ export default class BPTStateTracker extends AbstractStateTracker {
         'logic error PSP should be in token in or out',
       );
 
-      if (isPSPTokenIn)
-        return {
-          timestamp,
-          value: new BigNumber(amountIn.toString()),
-        };
+      const isEthTokenIn = isPSPTokenOut;
 
-      return {
+      this.differentialStates.pspBalance.push({
         timestamp,
-        value: new BigNumber(amountOut.toString()).negated(),
-      };
+        value: isPSPTokenIn
+          ? new BigNumber(amountIn.toString())
+          : new BigNumber(amountOut.toString()).negated(),
+      });
+
+      this.differentialStates.ethBalance.push({
+        timestamp,
+        value: isEthTokenIn
+          ? new BigNumber(amountIn.toString())
+          : new BigNumber(amountOut.toString()).negated(),
+      });
     });
 
-    this.differentialStates.pspBalance =
-      this.differentialStates.pspBalance.concat(bptPoolPSPBalanceChanges);
     this.differentialStates.pspBalance.sort(timeseriesComparator);
+    this.differentialStates.ethBalance.sort(timeseriesComparator);
   }
 
   async resolveBPTPoolSupplyChanges() {

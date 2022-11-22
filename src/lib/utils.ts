@@ -64,3 +64,5 @@ export const sortTokens = (tokenA: string, tokenB: string): [string, string] =>
   [tokenA.toLowerCase(), tokenB.toLowerCase()].sort((a, b) =>
     a > b ? 1 : -1,
   ) as [string, string];
+
+export const imReserve = <T>(arr: T[]): T[] => [...arr].reverse();
