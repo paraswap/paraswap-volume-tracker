@@ -4,6 +4,7 @@ import {
   CHAIN_ID_BINANCE,
   CHAIN_ID_POLYGON,
   CHAIN_ID_FANTOM,
+  CHAIN_ID_GOERLI,
 } from './constants';
 import { Utils } from './utils';
 import { thegraphClient } from './utils/data-providers-clients';
@@ -16,7 +17,9 @@ export const SUBGRAPH_URL: { [network: number]: string } = {
   [CHAIN_ID_ROPSTEN]:
     'https://api.thegraph.com/subgraphs/name/blocklytics/ropsten-blocks',
   [CHAIN_ID_BINANCE]:
-    'https://api.thegraph.com/subgraphs/name/polytoken/blocks-bsc',
+    'https://api.thegraph.com/subgraphs/name/blocklytics/ropsten-blocks',
+  [CHAIN_ID_GOERLI]:
+    'https://api.thegraph.com/subgraphs/name/blocklytics/goerli-blocks',
   [CHAIN_ID_POLYGON]:
     'https://api.thegraph.com/subgraphs/name/matthewlilley/polygon-blocks',
   [CHAIN_ID_FANTOM]:

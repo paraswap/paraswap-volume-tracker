@@ -133,7 +133,7 @@ export async function fetchRefundableTransactions({
           const totalStakeAmountPSP = swapperStake.toFixed(0); // @todo irrelevant?
           const refundPercent =
             contractAddress === MIGRATION_SEPSP2_100_PERCENT_KEY
-              ? 1
+              ? 1 // 100%
               : getRefundPercent(epoch, totalStakeAmountPSP);
 
           assert(

@@ -3,20 +3,19 @@ import { assert } from 'ts-essentials';
 import { BlockInfo } from '../../../../src/lib/block-info';
 import { AbstractStateTracker } from './AbstractStateTracker';
 import BPTStateTracker from './BPTStateTracker';
-import { config } from './config';
+import { configByChain } from '../../config';
 import ERC20StateTracker from './ERC20StateTracker';
 
 const SEPSP2_PSP_MULTIPLIER = 2.5;
-
 export class StakeV2Resolver extends AbstractStateTracker {
   sePSP1Tracker: ERC20StateTracker;
   sePSP2Tracker: ERC20StateTracker;
   bptTracker: BPTStateTracker;
-  static instance: { [chainId: string]: StakeV2Resolver };
+  static instance: { [chainId: string]: StakeV2Resolver } = {};
 
   constructor(protected chainId: number) {
     super(chainId);
-    const { sePSP1, sePSP2 } = config[chainId] || {};
+    const { sePSP1, sePSP2 } = configByChain[chainId] || {};
     assert(sePSP1);
     assert(sePSP2);
 

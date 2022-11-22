@@ -51,13 +51,13 @@ export class BPTHelper {
   async fetchBPtState(blockNumber?: number): Promise<BPTState> {
     const multicallData = [
       {
-        target: Balancer_80PSP_20WETH_address, // FIXME segment by chainId
+        target: Balancer_80PSP_20WETH_address[this.chainId], // FIXME segment by chainId
         callData: this.erc20Iface.encodeFunctionData('totalSupply', []),
       },
       {
         target: BalancerVaultAddress,
         callData: this.bVaultIface.encodeFunctionData('getPoolTokens', [
-          Balancer_80PSP_20WETH_poolId, // FIXME segment by chainId
+          Balancer_80PSP_20WETH_poolId[this.chainId],
         ]),
       },
     ];

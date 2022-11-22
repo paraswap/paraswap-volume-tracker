@@ -6,7 +6,7 @@ import {
   SePSPMigrationsData,
 } from '../../../../src/models/sePSPMigrations';
 import { GasRefundTransaction } from '../../types';
-import { config } from './config';
+import { configByChain } from '../../config';
 import ERC20StateTracker, { Transfer } from './ERC20StateTracker';
 
 const chainId = CHAIN_ID_MAINNET;
@@ -38,7 +38,7 @@ export async function getMigrationsTxs({
   startTimestamp: number;
   endTimestamp: number;
 }): Promise<GasRefundTransaction[]> {
-  const { sePSP2, migrator } = config[chainId];
+  const { sePSP2, migrator } = configByChain[chainId];
   assert(sePSP2, 'sePSP2 should be defined');
   assert(migrator, 'migrator should be defined');
 

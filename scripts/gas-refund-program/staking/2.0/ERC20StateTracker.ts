@@ -46,7 +46,7 @@ export default class ERC20StateTracker extends AbstractStateTracker {
     [chainId: number]: {
       [contractAddress: string]: ERC20StateTracker;
     };
-  };
+  } = {};
 
   static getInstance(chainId: number, contractAddress: string) {
     if (!this.instance[chainId]) {

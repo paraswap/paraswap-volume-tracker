@@ -103,13 +103,15 @@ export default class BPTStateTracker extends AbstractStateTracker {
     super(chainId);
 
     this.bVaultContract = new Contract(
-      BalancerVaultAddress, // FIXM
+      BalancerVaultAddress, // same address for all chains
       BVaultABI,
       Provider.getJsonRpcProvider(this.chainId),
     ) as BVaultContract;
 
+    const poolId = Balancer_80PSP_20WETH_address[this.chainId];
+
     this.bptAsERC20 = new Contract(
-      Balancer_80PSP_20WETH_address, // FIXME
+      poolId,
       ERC20ABI,
       Provider.getJsonRpcProvider(this.chainId),
     ) as MinERC20;
@@ -151,7 +153,7 @@ export default class BPTStateTracker extends AbstractStateTracker {
   async resolveBPTPoolPSPBalanceChangesFromLP() {
     const events = (await this.bVaultContract.queryFilter(
       this.bVaultContract.filters.PoolBalanceChanged(
-        Balancer_80PSP_20WETH_poolId,
+        Balancer_80PSP_20WETH_poolId[this.chainId],
       ), // FIXME
       this.startBlock,
       this.endBlock,

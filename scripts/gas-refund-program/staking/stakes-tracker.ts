@@ -1,5 +1,5 @@
 import { assert } from 'ts-essentials';
-import { CHAIN_ID_MAINNET } from '../../../src/lib/constants';
+import { CHAIN_ID_GOERLI } from '../../../src/lib/constants';
 import {
   GasRefundGenesisEpoch,
   GasRefundSafetyModuleAllPSPInBptFixStartEpoch,
@@ -14,6 +14,8 @@ import { getLatestEpochRefundedAllChains } from '../persistance/db-persistance';
 import { StakeV2Resolver } from './2.0/StakeV2Resolver';
 import SafetyModuleStakesTracker from './safety-module-stakes-tracker';
 import SPSPStakesTracker from './spsp-stakes-tracker';
+
+const chainIdV2 = CHAIN_ID_GOERLI; // FIXME
 
 export default class StakesTracker {
   static instance: StakesTracker;
@@ -31,12 +33,13 @@ export default class StakesTracker {
     const endTime = SCRIPT_START_TIME_SEC - OFFSET_CALC_TIME;
 
     // V2
-    if (getCurrentEpoch() >= GasRefundV2EpochFlip) {
+    const currentEpoch = getCurrentEpoch();
+    if (currentEpoch >= GasRefundV2EpochFlip) {
       const startTimeStakeV2 = await getEpochStartCalcTime(
         latestEpochRefunded || GasRefundV2EpochFlip,
       );
       // FIXME
-      await StakeV2Resolver.getInstance(CHAIN_ID_MAINNET).loadWithinInterval(
+      await StakeV2Resolver.getInstance(chainIdV2).loadWithinInterval(
         startTimeStakeV2,
         endTime,
       );
@@ -86,7 +89,7 @@ export default class StakesTracker {
 
     // V2
     if (epoch >= GasRefundV2EpochFlip) {
-      return StakeV2Resolver.getInstance(CHAIN_ID_MAINNET).getStakeForRefund(
+      return StakeV2Resolver.getInstance(chainIdV2).getStakeForRefund(
         timestamp,
         account,
       );
