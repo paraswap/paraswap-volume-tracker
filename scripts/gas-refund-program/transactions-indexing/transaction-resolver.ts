@@ -28,6 +28,7 @@ import {
 } from '../../../src/lib/constants';
 import { getMigrationsTxs } from '../staking/2.0/migrations';
 import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/utils';
+import { configByChain } from '../config';
 
 type GetAllTXsInput = {
   startTimestamp: number;
@@ -42,8 +43,13 @@ const StakingV1ContractAddressByChain: Record<number, string[]> = {
   [CHAIN_ID_MAINNET]: [...SPSPAddresses, SAFETY_MODULE_ADDRESS],
 };
 
+// FIXME verify with final contract addresses
 const StakingV2ContractAddressByChain: Record<number, string[]> = {
-  [CHAIN_ID_MAINNET]: [MIGRATION_SEPSP2_100_PERCENT_KEY], // TODO construct config config
+  [CHAIN_ID_MAINNET]: [
+    MIGRATION_SEPSP2_100_PERCENT_KEY,
+    configByChain[CHAIN_ID_MAINNET].sePSP1,
+    configByChain[CHAIN_ID_MAINNET].sePSP2,
+  ],
 };
 
 export const getContractAddresses = ({
