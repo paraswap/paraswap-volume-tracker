@@ -22,7 +22,7 @@ import {
 import { BPTHelper } from './BPTHelper';
 import { AbstractStateTracker } from './AbstractStateTracker';
 import BigNumber from 'bignumber.js';
-import { imReserve } from '../../../../src/lib/utils';
+import { imReverse } from '../../../../src/lib/utils';
 
 interface MinERC20 extends Contract {
   totalSupply(overrides?: CallOverrides): Promise<EthersBN>;
@@ -179,7 +179,7 @@ export default class BPTStateTracker extends AbstractStateTracker {
 
       const [[pspAmount, ethAmount], [pspFees, ethFees]] = isPSPToken0
         ? [amountsInOrOut, paidProtocolSwapFeeAmounts]
-        : [imReserve(amountsInOrOut), imReserve(paidProtocolSwapFeeAmounts)];
+        : [imReverse(amountsInOrOut), imReverse(paidProtocolSwapFeeAmounts)];
 
       this.differentialStates.pspBalance.push({
         timestamp,
