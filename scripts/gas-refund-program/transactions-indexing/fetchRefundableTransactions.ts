@@ -6,17 +6,17 @@ import {
 } from '../persistance/db-persistance';
 import { getAllTXs, getContractAddresses } from './transaction-resolver';
 import {
-  GRP_MIN_STAKE_V1,
   GasRefundTransactionData,
   TransactionStatus,
   GasRefundV2EpochFlip,
   getRefundPercent,
+  getMinStake,
 } from '../../../src/lib/gas-refund';
 import * as _ from 'lodash';
 import { ONE_HOUR_SEC } from '../../../src/lib/utils/helpers';
 import { PriceResolverFn } from '../token-pricing/psp-chaincurrency-pricing';
 import StakesTracker from '../staking/stakes-tracker';
-import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/migrations';
+import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/utils';
 
 // empirically set to maximise on processing time without penalising memory and fetching constraigns
 const SLICE_DURATION = 6 * ONE_HOUR_SEC;
@@ -98,7 +98,7 @@ export async function fetchRefundableTransactions({
             );
 
           if (epoch < GasRefundV2EpochFlip) {
-            if (swapperStake.isLessThan(GRP_MIN_STAKE_V1)) {
+            if (swapperStake.isLessThan(getMinStake(epoch))) {
               return;
             }
           } else {

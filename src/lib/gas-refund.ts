@@ -123,12 +123,16 @@ export interface GasRefundTransactionData {
 //                                                  psp decimals
 const scale = (num: number) => new BigNumber(num).multipliedBy(1e18);
 
-export const GRP_MIN_STAKE_V1 = scale(500);
+const GRP_MIN_STAKE_V1_BN = scale(500);
+const GRP_MIN_STAKE_V2_NORM = 10_000;
+const GRP_MIN_STAKE_V2_BN = scale(GRP_MIN_STAKE_V2_NORM);
+export const getMinStake = (epoch: number) =>
+  epoch < GasRefundV2EpochFlip ? GRP_MIN_STAKE_V1_BN : GRP_MIN_STAKE_V2_BN;
 
 const gasRefundLevelsV1: GasRefundLevelsDef[] = [
   {
     level: 'level_1' as const,
-    minStakedAmount: GRP_MIN_STAKE_V1,
+    minStakedAmount: GRP_MIN_STAKE_V1_BN,
     refundPercent: 0.25,
   },
   {
@@ -157,11 +161,14 @@ export const getRefundPercentV1 = (stakedAmount: string): number | undefined =>
  * curve plot: https://www.wolframalpha.com/input?key=&i2d=true&i=plot+abs\(40)0.126506+*+ln\(40)0.335487+*+x+++1.64295\(41)+-+0.789135\(41)\(44)+10000+<+x+<+1000000
  * see proposal: https://gov.paraswap.network/t/psp-2-0-revised-voting-edition/1207
  */
-const grpV2Func = (x: number) =>
-  Math.max(
+const grpV2Func = (x: number) => {
+  if (x < GRP_MIN_STAKE_V2_NORM) return 0;
+
+  return Math.min(
     Math.abs(0.126506 * Math.log(0.335487 * x + 1.64295) - 0.789135),
     0.95,
   );
+};
 
 export const getRefundPercentV2 = (scoreNorm: string): number => {
   const bScoreNorm = BigInt(scoreNorm);
