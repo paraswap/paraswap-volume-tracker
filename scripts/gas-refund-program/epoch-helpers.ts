@@ -79,8 +79,9 @@ const GRP2EpochResolver: EpochReseolverV2 = {
     return GRP2EpochResolver.resolveEpochNumber(Math.floor(Date.now() / 1000));
   },
   resolveEpochNumber(timestamp: number) {
-    return Math.floor(
-      (timestamp - START_EPOCH_TIMESTAMP_V2) / EPOCH_DURATION_V2,
+    return (
+      Math.floor((timestamp - START_EPOCH_TIMESTAMP_V2) / EPOCH_DURATION_V2) +
+      GasRefundV2EpochFlip
     );
   },
 
