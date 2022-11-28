@@ -17,6 +17,7 @@ import BigNumber from 'bignumber.js';
 import VolumeTracker from './volume-tracker';
 import { BlockInfo } from './block-info';
 import { EpochInfo } from './epoch-info';
+import { ZERO_BN } from './utils/helpers';
 
 export enum PoolType {
   AMMPool = 'AMMPool',
@@ -696,6 +697,23 @@ export class PoolInfo {
     return rewards;
   }
 
+  private calculatePoolRewardStableAPY(
+    marketMakerVolumes: string[],
+    poolStakedUnderlyingTokens: string[],
+    epochReward: string,
+  ): BigNumber[] {
+    const EpochDurationDays =
+      this.epochInfo.getEpochDuration() / (60 * 60 * 24);
+    const factor = new BigNumber(100).times(365 / EpochDurationDays);
+    const apy = 15; // average APY
+
+    const rewards = poolStakedUnderlyingTokens.map(stake =>
+      new BigNumber(stake).multipliedBy(apy).div(factor),
+    );
+
+    return rewards;
+  }
+
   private calculatePoolProjectedRewards(
     marketMakerVolumes: string[],
     poolStakedUnderlyingTokens: string[],
@@ -725,11 +743,14 @@ export class PoolInfo {
     marketMakerVolumes: string[],
     onChainPoolStates: OnChainPoolState[],
     epochReward: string,
-  ): { poolAPYs: BigNumber[]; projectedPoolAPYs: BigNumber[][] } {
+  ): {
+    poolAPYs: BigNumber[];
+    projectedPoolAPYs: BigNumber[][];
+  } {
     const poolStakedUnderlyingTokens = onChainPoolStates.map(s =>
       (s.underlyingTokenBalance - s.underlyingTokenLocked).toString(),
     );
-    const rewards = this.calculatePoolRewards(
+    const rewards = this.calculatePoolRewardStableAPY(
       marketMakerVolumes,
       poolStakedUnderlyingTokens,
       epochReward,
@@ -818,26 +839,32 @@ export class PoolInfo {
       (s.underlyingTokenBalance - s.underlyingTokenLocked).toString(),
     );
 
-    const amounts = this.calculatePoolRewards(
+    const amounts = this.calculatePoolRewardStableAPY(
       marketMakerVolumes,
       stakes,
       epochReward,
     ).map(a => a.toFixed(0, BigNumber.ROUND_FLOOR));
+
+    const _epochReward = amounts
+      .reduce((acc, curr) => acc.plus(curr), ZERO_BN)
+      .toString();
 
     const addresses = this.poolConfigs.map(p => p.address);
 
     let vestingBeneficiaries: string[] = [];
     let vestingAmounts: string[] = [];
     let vestingDurations: number[] = [];
-    this.poolConfigs.forEach((p, i) =>
-      VestingSchedule.forEach(v => {
-        vestingBeneficiaries.push(p.beneficiary);
-        vestingAmounts.push(
-          ((BigInt(amounts[i]) * BigInt(v.percent)) / BigInt(100)).toString(),
-        );
-        vestingDurations.push(v.duration);
-      }),
-    );
+
+    ////// COMMENTED APY SMOOTHING
+    // this.poolConfigs.forEach((p, i) =>
+    //   VestingSchedule.forEach(v => {
+    //     vestingBeneficiaries.push(p.beneficiary);
+    //     vestingAmounts.push(
+    //       ((BigInt(amounts[i]) * BigInt(v.percent)) / BigInt(100)).toString(),
+    //     );
+    //     vestingDurations.push(v.duration);
+    //   }),
+    // );
 
     const calldata = this.rewardDistributionInterface.encodeFunctionData(
       'multiSendReward',
@@ -858,8 +885,8 @@ export class PoolInfo {
       volumes: marketMakerVolumes,
       stakes,
       calcTimeStamp,
-      epochPoolReward: epochReward,
-      epochMarketMakerReward: epochReward,
+      epochPoolReward: _epochReward,
+      epochMarketMakerReward: '0',
       blockNumber: epochEndBlockNumber,
       vestingBeneficiaries,
       vesting: RewardVestingAddress[this.network],
