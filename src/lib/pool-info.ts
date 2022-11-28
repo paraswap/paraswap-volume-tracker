@@ -702,13 +702,13 @@ export class PoolInfo {
     poolStakedUnderlyingTokens: string[],
     epochReward: string,
   ): BigNumber[] {
-    const EpochDurationDays =
-      this.epochInfo.getEpochDuration() / (60 * 60 * 24);
-    const factor = new BigNumber(100).times(365 / EpochDurationDays);
-    const apy = 15; // average APY
+    const totalStaked = poolStakedUnderlyingTokens.reduce(
+      (acc, curr) => acc.plus(curr),
+      ZERO_BN,
+    );
 
     const rewards = poolStakedUnderlyingTokens.map(stake =>
-      new BigNumber(stake).multipliedBy(apy).div(factor),
+      new BigNumber(stake).multipliedBy(epochReward).dividedBy(totalStaked),
     );
 
     return rewards;
@@ -845,10 +845,6 @@ export class PoolInfo {
       epochReward,
     ).map(a => a.toFixed(0, BigNumber.ROUND_FLOOR));
 
-    const _epochReward = amounts
-      .reduce((acc, curr) => acc.plus(curr), ZERO_BN)
-      .toString();
-
     const addresses = this.poolConfigs.map(p => p.address);
 
     let vestingBeneficiaries: string[] = [];
@@ -885,7 +881,7 @@ export class PoolInfo {
       volumes: marketMakerVolumes,
       stakes,
       calcTimeStamp,
-      epochPoolReward: _epochReward,
+      epochPoolReward: epochReward,
       epochMarketMakerReward: '0',
       blockNumber: epochEndBlockNumber,
       vestingBeneficiaries,
