@@ -773,12 +773,14 @@ export class PoolInfo {
     const BN0 = new BigNumber(0);
 
     const projectedPoolAPYs = projectedRewards.map((poolRewards, i) =>
-      poolRewards.map((r, j) =>
-        poolStakedUnderlyingTokens[i] == '0' && ProjectedVolumes[j].eq(BN0)
-          ? new BigNumber(0)
-          : r
-              .times(factor)
-              .div(ProjectedVolumes[j].plus(poolStakedUnderlyingTokens[i])),
+      poolRewards.map(
+        (r, j) => poolAPYs[i],
+        /////// comment for stable APY
+        // poolStakedUnderlyingTokens[i] == '0' && ProjectedVolumes[j].eq(BN0)
+        //     ? new BigNumber(0)
+        //     : r
+        //         .times(factor)
+        //         .div(ProjectedVolumes[j].plus(poolStakedUnderlyingTokens[i])),
       ),
     );
     return { poolAPYs, projectedPoolAPYs };
