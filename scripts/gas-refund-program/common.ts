@@ -19,6 +19,7 @@ export async function init(options?: Params) {
     logger.info('successful got into');
   } catch (e) {
     logger.error('issue with getEpochInfo', e);
+    throw e;
   }
 }
 
