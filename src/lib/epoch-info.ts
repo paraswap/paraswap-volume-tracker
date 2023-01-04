@@ -84,25 +84,33 @@ export class EpochInfo {
     return this.instances[network];
   }
 
-  getEpochInfo = () => retry(() => this.getEpochDetails(), { retries: 5, timeout: 120_000 });
+  getEpochInfo = () =>
+    retry(() => this.getEpochDetails(), { retries: 5, timeout: 120_000 });
 
   startEpochInfoPolling = () =>
     setInterval(this.getEpochInfo, EpochPollingTime);
 
   async getEpochDetails() {
     try {
+      logger.info('start getEpochDetails');
       const [currentEpoch] =
         await this.rewardDistribution.functions.currentEpoch();
+      logger.info('retrieved currentEpoch', currentEpoch);
       if (this.currentEpoch && this.currentEpoch >= currentEpoch.toNumber())
         return;
+      logger.info('retrieved start fetching epoch history', currentEpoch);
       for (let i = 0; i < currentEpoch.toNumber(); i++) {
         const epochHistory =
           await this.rewardDistribution.functions.epochHistory(i);
+        logger.info('successfully fetched epoch = ', i);
         const eventBlockNumber = epochHistory.sendBlockNumber.toNumber();
         const events = await this.rewardDistribution.queryFilter(
           this.rewardDistribution.filters.RewardDistribution(),
           eventBlockNumber,
           eventBlockNumber,
+        );
+        logger.info(
+          `successfully fetched for epoch=${i} and eventBlockNumber=${eventBlockNumber} ${events.length} events`,
         );
 
         if (events.length !== 1)
@@ -111,6 +119,11 @@ export class EpochInfo {
         this.epochDetails[i] = this.parseEpochDetailsLog(
           events[0],
           epochHistory,
+        );
+        logger.info(
+          `successfully parsed epochDetails for epoch=${i}, epochDetails=${JSON.stringify(
+            this.epochDetails[i],
+          )}`,
         );
       }
 
