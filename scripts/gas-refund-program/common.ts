@@ -7,10 +7,19 @@ type Params = {
   dbTransactionNamespace?: string;
 };
 
+const logger = global.LOGGER('GRP');
+
 export async function init(options?: Params) {
+  logger.info('connect to db');
   await Database.connectAndSync(options?.dbTransactionNamespace);
+  logger.info('successfully connected to db');
   const epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET, true);
-  await epochInfo.getEpochInfo();
+  try {
+    await epochInfo.getEpochInfo();
+    logger.info('successful got into');
+  } catch (e) {
+    logger.error('issue with getEpochInfo', e);
+  }
 }
 
 export const SCRIPT_START_TIME_SEC = Math.round(Date.now() / 1000); // stable script start time to align stakes and transactions fetching time intervals

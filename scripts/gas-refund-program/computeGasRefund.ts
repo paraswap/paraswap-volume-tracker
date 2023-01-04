@@ -34,6 +34,6 @@ startComputingGasRefundAllChains()
     process.exit(0);
   })
   .catch(err => {
-    logger.error('startComputingGasRefundAllChains exited with error:', err, err.stack);
+    logger.error('startComputingGasRefundAllChains exited with error:', err);
     process.exit(1);
   });
