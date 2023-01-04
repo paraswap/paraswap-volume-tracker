@@ -5,6 +5,7 @@ import {
   GasRefundBudgetLimitEpochBasedStartEpoch,
   GasRefundGenesisEpoch,
   GasRefundPrecisionGlitchRefundedAmountsEpoch,
+  GasRefundV2EpochFlip,
   getRefundPercent,
   TOTAL_EPOCHS_IN_YEAR,
   TransactionStatus,
@@ -37,6 +38,7 @@ import {
  * - update in memory budget accountability through budgetGuardian on validated transactions
  * - write back status of tx in database if changed
  */
+const logger = global.LOGGER('GRP::validateTransactions');
 export async function validateTransactions() {
   const guardian = GRPBudgetGuardian.getInstance();
 
@@ -128,12 +130,14 @@ export async function validateTransactions() {
 
       const refundPercentage = getRefundPercent(tx.epoch, totalStakeAmountPSP);
 
-      assert(refundPercentage, 'refundPercentage should be defined and > 0');
+      if (tx.epoch < GasRefundV2EpochFlip) {
+        assert(refundPercentage, 'refundPercentage should be defined and > 0');
+      }
 
       // recompute refundedAmountPSP/refundedAmountUSD as logic alters those values as we reach limits
       let _refundedAmountPSP = new BigNumber(gasUsedChainCurrency)
         .dividedBy(pspChainCurrency)
-        .multipliedBy(refundPercentage); // keep it decimals to avoid rounding errors
+        .multipliedBy(refundPercentage || 0); // keep it decimals to avoid rounding errors
 
       if (tx.epoch === GasRefundPrecisionGlitchRefundedAmountsEpoch) {
         _refundedAmountPSP = _refundedAmountPSP.decimalPlaces(0);

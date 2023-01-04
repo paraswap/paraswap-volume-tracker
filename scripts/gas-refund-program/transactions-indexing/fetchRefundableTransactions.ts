@@ -136,13 +136,16 @@ export async function fetchRefundableTransactions({
               ? 1 // 100%
               : getRefundPercent(epoch, totalStakeAmountPSP);
 
-          assert(
-            refundPercent,
-            `Logic Error: failed to find refund percent for ${address}`,
-          );
+          if (epoch < GasRefundV2EpochFlip) {
+            assert(
+              refundPercent,
+              `Logic Error: failed to find refund percent for ${address}`,
+            );
+          }
 
-          const currRefundedAmountPSP =
-            currGasFeePSP.multipliedBy(refundPercent);
+          const currRefundedAmountPSP = currGasFeePSP.multipliedBy(
+            refundPercent || 0,
+          );
 
           const currRefundedAmountUSD = currRefundedAmountPSP
             .multipliedBy(currencyRate.pspPrice)
