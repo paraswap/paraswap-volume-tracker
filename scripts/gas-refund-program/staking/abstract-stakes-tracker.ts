@@ -35,7 +35,7 @@ export class AbstractStakesTracker {
 
     assert(
       typeof _endBlock === 'number' && _endBlock > 0,
-      '_endBlock should be a number greater than 0',
+      `_endBlock should be a number greater than 0 for endTimestamp=${endTimestamp}`,
     );
     assert(
       typeof _startBlock === 'number' &&
