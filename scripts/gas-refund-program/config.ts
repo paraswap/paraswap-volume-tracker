@@ -32,6 +32,7 @@ const l = (s: string) => s.toLowerCase();
 export const grp2ConfigByChain: {
   [chainId: number]: GRPV2ConfigByChain;
 } = {
+  /// TODO MAINNET
   [CHAIN_ID_GOERLI]: {
     sePSP1: l('0xFef5392ac7cE391dD63838a73E6506F9948A9Afa'),
     sePSP2: l('0x2e445Be127FC9d406dC4eD3E320B0f5A020cb4A0'),
