@@ -1,8 +1,5 @@
 import { assert } from 'ts-essentials';
-import {
-  CHAIN_ID_GOERLI,
-  CHAIN_ID_MAINNET,
-} from '../../../../src/lib/constants';
+import { GRP_V2_SUPPORTED_CHAINS_STAKING } from '../../../../src/lib/gas-refund';
 
 type BlockTimeBoundary = {
   startTimestamp: number;
@@ -18,8 +15,8 @@ export class AbstractStateTracker {
 
   constructor(protected chainId: number) {
     assert(
-      chainId == CHAIN_ID_MAINNET || chainId === CHAIN_ID_GOERLI,
-      'only ethereum mainnet or testnet allowed',
+      GRP_V2_SUPPORTED_CHAINS_STAKING.has(chainId),
+      `chainId=${chainId} is not support for staking`,
     );
   }
 

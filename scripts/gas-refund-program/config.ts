@@ -1,8 +1,25 @@
-import { CHAIN_ID_GOERLI } from '../../src/lib/constants';
+import { identity } from 'lodash';
+import { CHAIN_ID_GOERLI, CHAIN_ID_MAINNET } from '../../src/lib/constants';
+import {
+  GasRefundV2EpochFlip,
+  isMainnetStaking,
+} from '../../src/lib/gas-refund';
 
-export const chainIdV2 = CHAIN_ID_GOERLI; // FIXME
+type GRPV2GlobalConfig = {
+  startEpochTimestamp: number;
+  epochDuration: number;
+  lastEpochForSePSP2MigrationRefund: number;
+  sePSP2PowerMultiplier: number;
+};
 
-type V2Params = {
+export const grp2GlobalConfig: GRPV2GlobalConfig = {
+  startEpochTimestamp: 1673305200, // FIXME for testing
+  epochDuration: 4 * 7 * 24 * 60 * 60,
+  lastEpochForSePSP2MigrationRefund: GasRefundV2EpochFlip + 1, // first 2 epochs inclusive
+  sePSP2PowerMultiplier: 2.5,
+};
+
+type GRPV2ConfigByChain = {
   sePSP1: string;
   sePSP2: string;
   bpt: string;
@@ -12,8 +29,8 @@ type V2Params = {
 
 const l = (s: string) => s.toLowerCase();
 
-export const configByChain: {
-  [chainId: number]: V2Params;
+export const grp2ConfigByChain: {
+  [chainId: number]: GRPV2ConfigByChain;
 } = {
   [CHAIN_ID_GOERLI]: {
     sePSP1: l('0xFef5392ac7cE391dD63838a73E6506F9948A9Afa'),
@@ -25,3 +42,14 @@ export const configByChain: {
     migrator: l('0x8580D057198E80ddE65522180fd8edBeA67D61E6'),
   },
 };
+
+const twistChains = (chain1: number, chain2: number) => (chainId: number) =>
+  chainId === chain1 ? chain2 : chain2;
+
+type ChainTwister = (chainId: number) => number;
+export const forceStakingChainId: ChainTwister = !isMainnetStaking
+  ? twistChains(CHAIN_ID_MAINNET, CHAIN_ID_GOERLI)
+  : identity;
+export const forceEthereumMainnet: ChainTwister = !isMainnetStaking
+  ? twistChains(CHAIN_ID_GOERLI, CHAIN_ID_MAINNET)
+  : identity;

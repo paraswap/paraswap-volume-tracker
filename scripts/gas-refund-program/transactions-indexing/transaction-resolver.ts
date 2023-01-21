@@ -20,15 +20,17 @@ import {
   GasRefundConsiderContractTXsStartEpoch,
   GasRefundV2EpochFlip,
   getMinStake,
+  isMainnetStaking,
 } from '../../../src/lib/gas-refund';
 import {
   CHAIN_ID_MAINNET,
+  CHAIN_ID_GOERLI,
   SAFETY_MODULE_ADDRESS,
   AUGUSTUS_V5_ADDRESS,
 } from '../../../src/lib/constants';
 import { getMigrationsTxs } from '../staking/2.0/migrations';
 import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/utils';
-import { configByChain } from '../config';
+import { grp2ConfigByChain } from '../config';
 
 type GetAllTXsInput = {
   startTimestamp: number;
@@ -44,11 +46,21 @@ const StakingV1ContractAddressByChain: Record<number, string[]> = {
 };
 
 // FIXME verify with final contract addresses
-const StakingV2ContractAddressByChain: Record<number, string[]> = {
+const contractAddressesByChain: Record<number, string[]> = {
   [CHAIN_ID_MAINNET]: [
+    ...(isMainnetStaking
+      ? [
+          MIGRATION_SEPSP2_100_PERCENT_KEY,
+          grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP1,
+          grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP2,
+        ]
+      : []),
+    AUGUSTUS_V5_ADDRESS,
+  ],
+  [CHAIN_ID_GOERLI]: [
     MIGRATION_SEPSP2_100_PERCENT_KEY,
-    configByChain[CHAIN_ID_MAINNET].sePSP1,
-    configByChain[CHAIN_ID_MAINNET].sePSP2,
+    grp2ConfigByChain[CHAIN_ID_GOERLI].sePSP1,
+    grp2ConfigByChain[CHAIN_ID_GOERLI].sePSP2,
   ],
 };
 
@@ -68,9 +80,7 @@ export const getContractAddresses = ({
     );
   }
 
-  return (StakingV2ContractAddressByChain[chainId] || []).concat(
-    AUGUSTUS_V5_ADDRESS,
-  );
+  return contractAddressesByChain[chainId] ?? [AUGUSTUS_V5_ADDRESS];
 };
 
 export const getAllTXs = async ({

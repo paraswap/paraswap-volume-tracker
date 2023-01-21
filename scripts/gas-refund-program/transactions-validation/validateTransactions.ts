@@ -45,7 +45,7 @@ export async function validateTransactions() {
   const lastEpochRefunded = await fetchLastEpochRefunded();
   const migrationsTxsHashesSet = await fetchMigrationsTxHashesSet();
 
-  const firstEpochOfYear = !!lastEpochRefunded
+  const firstEpochOfYear = !!lastEpochRefunded // Verify logic add assert?
     ? GasRefundGenesisEpoch +
       lastEpochRefunded -
       (lastEpochRefunded % TOTAL_EPOCHS_IN_YEAR)
@@ -86,6 +86,7 @@ export async function validateTransactions() {
         'pspUsd',
         'refundedAmountUSD',
         'refundedAmountPSP',
+        'gasUsedUSD',
         'contract',
       ],
     });
@@ -167,10 +168,10 @@ export async function validateTransactions() {
         // should never cap migration txs
         if (isMigrationToV2Tx) {
           assert(
-            tx.status === TransactionStatus.VALIDATED &&
-              tx.gasUsedUSD == tx.refundedAmountUSD,
+            Math.abs(+tx.refundedAmountUSD - +tx.gasUsedUSD) < 10 ** -4, // epsilon value
             'migration tx should always be valid and get fully refunded',
           );
+          migrationsTxsHashesSet.add(tx.hash);
         } else {
           ({ cappedRefundedAmountPSP, cappedRefundedAmountUSD } =
             tx.epoch < GasRefundBudgetLimitEpochBasedStartEpoch
@@ -190,23 +191,23 @@ export async function validateTransactions() {
             cappedRefundedAmountPSP,
             refundedAmountPSP,
           );
-        }
 
-        if (tx.epoch >= GasRefundBudgetLimitEpochBasedStartEpoch) {
-          guardian.increaseRefundedUSDForEpoch(
+          if (tx.epoch >= GasRefundBudgetLimitEpochBasedStartEpoch) {
+            guardian.increaseRefundedUSDForEpoch(
+              address,
+              cappedRefundedAmountUSD || refundedAmountUSD,
+            );
+          }
+
+          guardian.increaseYearlyRefundedUSD(
             address,
             cappedRefundedAmountUSD || refundedAmountUSD,
           );
+
+          guardian.increaseTotalRefundedPSP(
+            cappedRefundedAmountPSP || refundedAmountPSP,
+          );
         }
-
-        guardian.increaseYearlyRefundedUSD(
-          address,
-          cappedRefundedAmountUSD || refundedAmountUSD,
-        );
-
-        guardian.increaseTotalRefundedPSP(
-          cappedRefundedAmountPSP || refundedAmountPSP,
-        );
       }
 
       assert(

@@ -49,6 +49,7 @@ export async function fetchRefundableTransactions({
 
   await Promise.all(
     contractAddresses.map(async contractAddress => {
+      assert(contractAddress, 'contractAddress should be defined');
       const lastTimestampProcessed =
         lastTimestampTxByContract[contractAddress] || 0;
 

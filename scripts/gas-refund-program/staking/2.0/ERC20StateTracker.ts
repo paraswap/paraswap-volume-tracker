@@ -112,7 +112,10 @@ export default class ERC20StateTracker extends AbstractStateTracker {
     );
 
     logger.info(`loadStateChanges: loading blockNumToTimestamp`);
-    const blockNumToTimestamp = await fetchBlockTimestampForEvents(events);
+    const blockNumToTimestamp = await fetchBlockTimestampForEvents(
+      this.chainId,
+      events,
+    );
     logger.info(`loadStateChanges: completed loading blockNumToTimestamp`);
 
     events.forEach(e => {

@@ -3,6 +3,7 @@ import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
 import { EpochInfo } from '../../src/lib/epoch-info';
 import { GasRefundV2EpochFlip } from '../../src/lib/gas-refund';
 import { OFFSET_CALC_TIME, SCRIPT_START_TIME_SEC } from './common';
+import { grp2GlobalConfig } from './config';
 
 type EpochCalcTime = {
   startCalcTime: number;
@@ -59,10 +60,6 @@ const GRP1EpochResolver: BaseEpochResolver = {
   },
 };
 
-// TODO: move to config
-const START_EPOCH_TIMESTAMP_V2 = 1667260800; // 1 nov sept to test // TODO move config
-const EPOCH_DURATION_V2 = 30 * 24 * 60 * 60; // TODO move config
-
 type EpochReseolverV2 = BaseEpochResolver & {
   resolveEpochNumber: (timestamp: number) => number;
   getEpochTimeBoundary: (epoch: number) => {
@@ -73,23 +70,25 @@ type EpochReseolverV2 = BaseEpochResolver & {
 
 const GRP2EpochResolver: EpochReseolverV2 = {
   init() {
-    // nothing to do ?
+    console.log('PSP2.0: nothing to do on initialising GRP2EpochResolver !');
   },
   getCurrentEpoch() {
     return GRP2EpochResolver.resolveEpochNumber(Math.floor(Date.now() / 1000));
   },
   resolveEpochNumber(timestamp: number) {
     return (
-      Math.floor((timestamp - START_EPOCH_TIMESTAMP_V2) / EPOCH_DURATION_V2) +
-      GasRefundV2EpochFlip
+      Math.floor(
+        (timestamp - grp2GlobalConfig.startEpochTimestamp) /
+          grp2GlobalConfig.epochDuration,
+      ) + GasRefundV2EpochFlip
     );
   },
 
   getEpochTimeBoundary(epoch: number) {
     const startTimestamp =
-      START_EPOCH_TIMESTAMP_V2 +
-      EPOCH_DURATION_V2 * (epoch - GasRefundV2EpochFlip);
-    const endTimestamp = startTimestamp + EPOCH_DURATION_V2;
+      grp2GlobalConfig.startEpochTimestamp +
+      grp2GlobalConfig.epochDuration * (epoch - GasRefundV2EpochFlip);
+    const endTimestamp = startTimestamp + grp2GlobalConfig.epochDuration;
 
     return {
       startTimestamp,
@@ -126,7 +125,7 @@ const getEpochResolverForEpoch = (epoch: number): BaseEpochResolver =>
   epoch >= GasRefundV2EpochFlip ? GRP2EpochResolver : GRP1EpochResolver;
 
 const getEpochResolverForNow = (): BaseEpochResolver =>
-  Math.floor(Date.now() / 1000) >= START_EPOCH_TIMESTAMP_V2
+  Math.floor(Date.now() / 1000) >= grp2GlobalConfig.startEpochTimestamp
     ? GRP2EpochResolver
     : GRP1EpochResolver;
 

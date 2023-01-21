@@ -1,16 +1,18 @@
 import { assert } from 'ts-essentials';
-import {
-  CHAIN_ID_GOERLI,
-  CHAIN_ID_MAINNET,
-} from '../../../../src/lib/constants';
 import { getTransaction } from '../../../../src/lib/utils/covalent';
 import {
   sePSPMigrations,
   SePSPMigrationsData,
 } from '../../../../src/models/sePSPMigrations';
 import { GasRefundTransaction } from '../../types';
-import { chainIdV2, configByChain } from '../../config';
+import {
+  grp2ConfigByChain,
+  grp2GlobalConfig,
+  forceStakingChainId,
+} from '../../config';
 import ERC20StateTracker, { Transfer } from './ERC20StateTracker';
+import { GRP_V2_SUPPORTED_CHAINS_STAKING } from '../../../../src/lib/gas-refund';
+import { MIGRATION_SEPSP2_100_PERCENT_KEY } from './utils';
 
 const transform = (
   events: Transfer[],
@@ -33,22 +35,22 @@ type GetMigrationsTXsInput = {
   endTimestamp: number;
 };
 
-// FIXME handle collision between refund 100% one time and casual tx refunding
 export async function getMigrationsTxs({
   epoch,
   chainId: _chaindId,
   startTimestamp,
   endTimestamp,
 }: GetMigrationsTXsInput): Promise<GasRefundTransaction[]> {
-  if (![CHAIN_ID_MAINNET, CHAIN_ID_GOERLI].includes(_chaindId)) return [];
+  if (!GRP_V2_SUPPORTED_CHAINS_STAKING.has(_chaindId)) return [];
+  if (epoch > grp2GlobalConfig.lastEpochForSePSP2MigrationRefund) return []; // 100% refund is only valid first two epochs
 
-  const chainId = chainIdV2; // FIXME forcing chainId as shortcut to ease testing
+  const chainId = forceStakingChainId(_chaindId);
 
-  const { sePSP2, migrator } = configByChain[chainId];
+  const { sePSP2, migrator } = grp2ConfigByChain[chainId];
   assert(sePSP2, 'sePSP2 should be defined');
   assert(migrator, 'migrator should be defined');
 
-  const sePSP2Tracker = ERC20StateTracker.getInstance(chainId, sePSP2);
+  const sePSP2Tracker = ERC20StateTracker.getInstance(chainId, sePSP2); // TODO: add check to verify that singleton got loaded
   const { transferEvents } = sePSP2Tracker;
   const migrationsEvents = transferEvents.filter(
     e => e.args.from.toLowerCase() === migrator.toLowerCase(),
@@ -61,7 +63,7 @@ export async function getMigrationsTxs({
   });
 
   // should only get migrations txs of the epoch
-  // FIXME avoid overfetching
+  // TODO avoid overfetching
   const allMigrationsEpoch = await sePSPMigrations.findAll({
     where: {
       epoch,
@@ -93,7 +95,7 @@ export async function getMigrationsTxs({
         blockNumber: blockNumber.toString(), // legacy
         timestamp: txTimestamp,
         txGasUsed: tx.gas_spent.toString(), // legacy
-        contract: 'sePSP2 migrations', // TODO
+        contract: MIGRATION_SEPSP2_100_PERCENT_KEY,
       };
     }),
   );

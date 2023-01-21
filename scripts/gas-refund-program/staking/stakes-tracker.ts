@@ -1,5 +1,5 @@
 import { assert } from 'ts-essentials';
-import { CHAIN_ID_GOERLI } from '../../../src/lib/constants';
+import { CHAIN_ID_MAINNET } from '../../../src/lib/constants';
 import {
   GasRefundGenesisEpoch,
   GasRefundSafetyModuleAllPSPInBptFixStartEpoch,
@@ -9,7 +9,7 @@ import {
   GasRefundVirtualLockupStartEpoch,
 } from '../../../src/lib/gas-refund';
 import { OFFSET_CALC_TIME, SCRIPT_START_TIME_SEC } from '../common';
-import { chainIdV2 } from '../config';
+import { forceStakingChainId } from '../config';
 import { getCurrentEpoch, getEpochStartCalcTime } from '../epoch-helpers';
 import { getLatestEpochRefundedAllChains } from '../persistance/db-persistance';
 import { StakeV2Resolver } from './2.0/StakeV2Resolver';
@@ -17,6 +17,8 @@ import SafetyModuleStakesTracker from './safety-module-stakes-tracker';
 import SPSPStakesTracker from './spsp-stakes-tracker';
 
 export default class StakesTracker {
+  stakingChainId = forceStakingChainId(CHAIN_ID_MAINNET);
+
   static instance: StakesTracker;
 
   static getInstance() {
@@ -37,8 +39,7 @@ export default class StakesTracker {
       const startTimeStakeV2 = await getEpochStartCalcTime(
         GasRefundV2EpochFlip, // TODO: take lastEpoch || v2 start epoch to avoid overfetching
       );
-      // FIXME forcing chainId as shortcut to ease testing
-      await StakeV2Resolver.getInstance(chainIdV2).loadWithinInterval(
+      await StakeV2Resolver.getInstance(this.stakingChainId).loadWithinInterval(
         startTimeStakeV2,
         endTime,
       );
@@ -88,7 +89,7 @@ export default class StakesTracker {
 
     // V2
     if (epoch >= GasRefundV2EpochFlip) {
-      return StakeV2Resolver.getInstance(chainIdV2).getStakeForRefund(
+      return StakeV2Resolver.getInstance(this.stakingChainId).getStakeForRefund(
         timestamp,
         account,
       );

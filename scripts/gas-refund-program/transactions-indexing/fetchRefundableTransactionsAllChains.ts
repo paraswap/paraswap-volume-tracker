@@ -3,6 +3,7 @@ import {
   GasRefundGenesisEpoch,
   GRP_SUPPORTED_CHAINS,
 } from '../../../src/lib/gas-refund';
+import { forceEthereumMainnet } from '../config';
 import {
   getCurrentEpoch,
   resolveEpochCalcTimeInterval,
@@ -18,7 +19,9 @@ const logger = global.LOGGER('GRP::fetchRefundableTransactionsAllChains');
 export async function fetchRefundableTransactionsAllChains() {
   return Promise.all(
     GRP_SUPPORTED_CHAINS.map(async chainId => {
-      const lastEpochRefunded = await getLatestEpochRefunded(chainId);
+      const lastEpochRefunded = await getLatestEpochRefunded(
+        forceEthereumMainnet(chainId),
+      );
 
       const startEpoch = lastEpochRefunded
         ? lastEpochRefunded + 1

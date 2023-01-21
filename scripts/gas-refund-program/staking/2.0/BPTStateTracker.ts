@@ -157,7 +157,10 @@ export default class BPTStateTracker extends AbstractStateTracker {
       this.endBlock,
     )) as PoolBalanceChanged[];
 
-    const blockNumToTimestamp = await fetchBlockTimestampForEvents(events);
+    const blockNumToTimestamp = await fetchBlockTimestampForEvents(
+      this.chainId,
+      events,
+    );
 
     events.forEach(e => {
       const timestamp = blockNumToTimestamp[e.blockNumber];
@@ -205,7 +208,10 @@ export default class BPTStateTracker extends AbstractStateTracker {
       this.endBlock,
     )) as Swap[];
 
-    const blockNumToTimestamp = await fetchBlockTimestampForEvents(events);
+    const blockNumToTimestamp = await fetchBlockTimestampForEvents(
+      this.chainId,
+      events,
+    );
 
     events.forEach(e => {
       const timestamp = blockNumToTimestamp[e.blockNumber];
@@ -261,7 +267,10 @@ export default class BPTStateTracker extends AbstractStateTracker {
       ])
     ).flat() as Transfer[];
 
-    const blockNumToTimestamp = await fetchBlockTimestampForEvents(events);
+    const blockNumToTimestamp = await fetchBlockTimestampForEvents(
+      this.chainId,
+      events,
+    );
 
     const totalSupplyChanges = events.map(e => {
       const timestamp = blockNumToTimestamp[e.blockNumber];

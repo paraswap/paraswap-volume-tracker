@@ -3,10 +3,9 @@ import { assert } from 'ts-essentials';
 import { BlockInfo } from '../../../../src/lib/block-info';
 import { AbstractStateTracker } from './AbstractStateTracker';
 import BPTStateTracker from './BPTStateTracker';
-import { configByChain } from '../../config';
+import { grp2ConfigByChain, grp2GlobalConfig } from '../../config';
 import ERC20StateTracker from './ERC20StateTracker';
 
-const SEPSP2_PSP_MULTIPLIER = 2.5;
 export class StakeV2Resolver extends AbstractStateTracker {
   sePSP1Tracker: ERC20StateTracker;
   sePSP2Tracker: ERC20StateTracker;
@@ -15,7 +14,7 @@ export class StakeV2Resolver extends AbstractStateTracker {
 
   constructor(protected chainId: number) {
     super(chainId);
-    const { sePSP1, sePSP2 } = configByChain[chainId] || {};
+    const { sePSP1, sePSP2 } = grp2ConfigByChain[chainId] || {};
     assert(sePSP1);
     assert(sePSP2);
 
@@ -93,14 +92,14 @@ export class StakeV2Resolver extends AbstractStateTracker {
     const { pspBalance: bptPSPBalance, totalSupply: bptTotalSupply } =
       this.bptTracker.getBPTState(timestamp);
 
-    // check precision
     const pspInSePSP2 = sePSP2Balance // 1 BPT = 1 sePSP2
       .multipliedBy(bptPSPBalance)
-      .dividedBy(bptTotalSupply);
+      .dividedBy(bptTotalSupply)
+      .decimalPlaces(0, BigNumber.ROUND_DOWN);
 
     const stake = sePSP1Balance
-      .plus(pspInSePSP2.multipliedBy(SEPSP2_PSP_MULTIPLIER))
-      .decimalPlaces(0);
+      .plus(pspInSePSP2.multipliedBy(grp2GlobalConfig.sePSP2PowerMultiplier))
+      .decimalPlaces(0, BigNumber.ROUND_DOWN);
 
     return stake;
   }

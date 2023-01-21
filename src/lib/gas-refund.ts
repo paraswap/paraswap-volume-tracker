@@ -6,18 +6,21 @@ import {
   CHAIN_ID_MAINNET,
   CHAIN_ID_POLYGON,
 } from './constants';
+import { isTruthy } from './utils';
+
+export const isMainnetStaking = false; // TODO FIXME move to env var
 
 export const GRP_SUPPORTED_CHAINS = [
+  !isMainnetStaking && CHAIN_ID_GOERLI,
   CHAIN_ID_MAINNET,
   CHAIN_ID_POLYGON,
   CHAIN_ID_BINANCE,
   CHAIN_ID_FANTOM,
-];
+].filter(isTruthy);
 
-export const GRP_V2_SUPPORTED_CHAINS_STAKING = [
-  CHAIN_ID_MAINNET,
-  CHAIN_ID_GOERLI,
-];
+export const GRP_V2_SUPPORTED_CHAINS_STAKING = new Set(
+  isMainnetStaking ? [CHAIN_ID_MAINNET] : [CHAIN_ID_GOERLI],
+);
 
 const WEEKS_IN_YEAR = 52;
 const EPOCH_LENGTH_IN_WEEK = 2;
@@ -36,7 +39,7 @@ export const GasRefundPrecisionGlitchRefundedAmountsEpoch = 12;
 export const GasRefundBudgetLimitEpochBasedStartEpoch = 16;
 export const GasRefundVirtualLockupStartEpoch = 17;
 export const GasRefundSafetyModuleAllPSPInBptFixStartEpoch = 20;
-export const GasRefundV2EpochFlip = 26; // FIXME
+export const GasRefundV2EpochFlip = 30; // FIXME
 
 interface BaseGasRefundData {
   epoch: number;

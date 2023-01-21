@@ -128,10 +128,11 @@ async function fetchBlocksTimestamps({
 }
 
 export const fetchBlockTimestampForEvents = async (
+  chainId: number,
   events: Event[],
 ): Promise<{ [blockNumber: string]: number }> =>
   fetchBlocksTimestamps({
-    chainId: CHAIN_ID_MAINNET,
+    chainId,
     blockNumbers: events.map(event => event.blockNumber),
   });
 

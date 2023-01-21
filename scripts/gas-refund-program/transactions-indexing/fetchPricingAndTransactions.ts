@@ -1,4 +1,5 @@
 import { GasRefundPricingAlgoFlipEpoch } from '../../../src/lib/gas-refund';
+import { forceEthereumMainnet } from '../config';
 import {
   constructPriceResolver,
   fetchDailyPSPChainCurrencyRate,
@@ -23,7 +24,7 @@ export async function fetchPricingAndTransactions({
     `start fetching daily psp/native currency rate for chainId=${chainId}`,
   );
   const pspNativeCurrencyDailyRate = await fetchDailyPSPChainCurrencyRate({
-    chainId,
+    chainId: forceEthereumMainnet(chainId), // no pricing for tokens on testnet
     startTimestamp:
       epoch < GasRefundPricingAlgoFlipEpoch
         ? startTimestamp

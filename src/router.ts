@@ -255,7 +255,7 @@ export default class Router {
 
         try {
           const network = Number(req.params.network);
-          if (!GRP_V2_SUPPORTED_CHAINS_STAKING.includes(network))
+          if (!GRP_V2_SUPPORTED_CHAINS_STAKING.has(network))
             return res
               .status(403)
               .send({ error: `Unsupported network: ${network}` });

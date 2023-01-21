@@ -66,3 +66,6 @@ export const sortTokens = (tokenA: string, tokenB: string): [string, string] =>
   ) as [string, string];
 
 export const imReverse = <T>(arr: T[]): T[] => [...arr].reverse();
+
+export const isTruthy = <T>(x: T | false | undefined | null | '' | 0): x is T =>
+  !!x;

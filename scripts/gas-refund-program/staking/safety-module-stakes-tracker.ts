@@ -193,7 +193,10 @@ export default class SafetyModuleStakesTracker extends AbstractStakesTracker {
       this.endBlock,
     )) as Transfer[];
 
-    const blockNumToTimestamp = await fetchBlockTimestampForEvents(events);
+    const blockNumToTimestamp = await fetchBlockTimestampForEvents(
+      CHAIN_ID_MAINNET,
+      events,
+    );
 
     events.forEach(e => {
       const timestamp = blockNumToTimestamp[e.blockNumber];
@@ -259,7 +262,10 @@ export default class SafetyModuleStakesTracker extends AbstractStakesTracker {
       this.endBlock,
     )) as PoolBalanceChanged[];
 
-    const blockNumToTimestamp = await fetchBlockTimestampForEvents(events);
+    const blockNumToTimestamp = await fetchBlockTimestampForEvents(
+      CHAIN_ID_MAINNET,
+      events,
+    );
 
     const bptPoolPSPBalanceChanges = events.flatMap(e => {
       const timestamp = blockNumToTimestamp[e.blockNumber];
@@ -308,7 +314,10 @@ export default class SafetyModuleStakesTracker extends AbstractStakesTracker {
       this.endBlock,
     )) as Swap[];
 
-    const blockNumToTimestamp = await fetchBlockTimestampForEvents(events);
+    const blockNumToTimestamp = await fetchBlockTimestampForEvents(
+      CHAIN_ID_MAINNET,
+      events,
+    );
 
     const bptPoolPSPBalanceChanges = events.map(e => {
       const timestamp = blockNumToTimestamp[e.blockNumber];
@@ -362,7 +371,10 @@ export default class SafetyModuleStakesTracker extends AbstractStakesTracker {
       ])
     ).flat() as Transfer[];
 
-    const blockNumToTimestamp = await fetchBlockTimestampForEvents(events);
+    const blockNumToTimestamp = await fetchBlockTimestampForEvents(
+      CHAIN_ID_MAINNET,
+      events,
+    );
 
     const bptPoolTotalSupplyChanges = events.map(e => {
       const timestamp = blockNumToTimestamp[e.blockNumber];
@@ -409,7 +421,10 @@ export default class SafetyModuleStakesTracker extends AbstractStakesTracker {
       ])
     ).flat() as Transfer[];
 
-    const blockNumToTimestamp = await fetchBlockTimestampForEvents(events);
+    const blockNumToTimestamp = await fetchBlockTimestampForEvents(
+      CHAIN_ID_MAINNET,
+      events,
+    );
 
     const bptBalanceOfStkPSPBptChanges = events.map(e => {
       const timestamp = blockNumToTimestamp[e.blockNumber];
