@@ -21,20 +21,20 @@ export async function startApp() {
     server = new WebServer();
     await server.start(checkDependenciesHealth, stopDependencies);
 
-    await Promise.all(
-      VOLUME_TRACKER_SUPPORTED_NETWORKS.map(network => {
-        if (!VOLUME_TRACKER_INIT_TIME[network]) {
-          throw new Error(
-            'VolumeTracker INIT_TIME env var is missing for network ' + network,
-          );
-        }
-        return VolumeTracker.createInstance(
-          VOLUME_TRACKER_INIT_TIME[network],
-          network,
-        ).startIndexing();
-      }),
-    );
-    await PoolInfo.initStartListening();
+    // await Promise.all(
+    //   VOLUME_TRACKER_SUPPORTED_NETWORKS.map(network => {
+    //     if (!VOLUME_TRACKER_INIT_TIME[network]) {
+    //       throw new Error(
+    //         'VolumeTracker INIT_TIME env var is missing for network ' + network,
+    //       );
+    //     }
+    //     return VolumeTracker.createInstance(
+    //       VOLUME_TRACKER_INIT_TIME[network],
+    //       network,
+    //     ).startIndexing();
+    //   }),
+    // );
+    // await PoolInfo.initStartListening();
 
     logger.info(`Started app (pid=${process.pid})`);
   } catch (e) {
