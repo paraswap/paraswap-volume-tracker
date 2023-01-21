@@ -269,7 +269,7 @@ export default class Router {
         } catch (e) {
           logger.error(req.path, e);
           res.status(403).send({
-            error: `GasRefundError: could not retrieve merkle data for ${address}`,
+            error: `GasRefundError: could not migration data for ${address}`,
           });
         }
       },
