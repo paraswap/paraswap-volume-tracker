@@ -98,14 +98,8 @@ export async function fetchRefundableTransactions({
               endTimestamp,
             );
 
-          if (epoch < GasRefundV2EpochFlip) {
-            if (swapperStake.isLessThan(getMinStake(epoch))) {
-              return;
-            }
-          } else {
-            if (swapperStake.isZero()) {
-              return;
-            }
+          if (swapperStake.isLessThan(getMinStake(epoch))) {
+            return;
           }
 
           const { txGasUsed, contract } = transaction;

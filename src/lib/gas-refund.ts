@@ -128,7 +128,7 @@ const scale = (num: number) => new BigNumber(num).multipliedBy(1e18);
 
 const GRP_MIN_STAKE_V1_BN = scale(500);
 export const getMinStake = (epoch: number) =>
-  epoch < GasRefundV2EpochFlip ? GRP_MIN_STAKE_V1_BN : 0;
+  epoch < GasRefundV2EpochFlip ? GRP_MIN_STAKE_V1_BN : 1; // set min of 1wei to avoid overfetching
 
 const gasRefundLevelsV1: GasRefundLevelsDef[] = [
   {
