@@ -39,7 +39,7 @@ export const GasRefundPrecisionGlitchRefundedAmountsEpoch = 12;
 export const GasRefundBudgetLimitEpochBasedStartEpoch = 16;
 export const GasRefundVirtualLockupStartEpoch = 17;
 export const GasRefundSafetyModuleAllPSPInBptFixStartEpoch = 20;
-export const GasRefundV2EpochFlip = 30; // FIXME
+export const GasRefundV2EpochFlip = 31; // FIXME
 
 interface BaseGasRefundData {
   epoch: number;
