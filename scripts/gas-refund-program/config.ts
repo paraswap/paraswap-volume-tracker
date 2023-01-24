@@ -32,7 +32,15 @@ const l = (s: string) => s.toLowerCase();
 export const grp2ConfigByChain: {
   [chainId: number]: GRPV2ConfigByChain;
 } = {
-  /// TODO MAINNET
+  [CHAIN_ID_MAINNET]: {
+    sePSP1: l('0x716fbc68e0c761684d9280484243ff094cc5ffab'),
+    sePSP2: l('0x593f39a4ba26a9c8ed2128ac95d109e8e403c485'),
+    bpt: l('0xCB0e14e96f2cEFA8550ad8e4aeA344F211E5061d'),
+    poolId: l(
+      '0xcb0e14e96f2cefa8550ad8e4aea344f211e5061d00020000000000000000011a',
+    ),
+    migrator: l('0x81DF863E89429B0d4230a2A922DE4f37f718EED3'),
+  },
   [CHAIN_ID_GOERLI]: {
     sePSP1: l('0xFef5392ac7cE391dD63838a73E6506F9948A9Afa'),
     sePSP2: l('0x2e445Be127FC9d406dC4eD3E320B0f5A020cb4A0'),

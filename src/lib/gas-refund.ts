@@ -8,7 +8,7 @@ import {
 } from './constants';
 import { isTruthy } from './utils';
 
-export const isMainnetStaking = false; // TODO FIXME move to env var
+export const isMainnetStaking = true; // TODO FIXME move to env var
 
 export const GRP_SUPPORTED_CHAINS = [
   !isMainnetStaking && CHAIN_ID_GOERLI,
