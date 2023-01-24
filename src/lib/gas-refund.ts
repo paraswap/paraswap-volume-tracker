@@ -11,7 +11,7 @@ import { isTruthy } from './utils';
 export const isMainnetStaking = true; // TODO FIXME move to env var
 
 export const GRP_SUPPORTED_CHAINS = [
-  !isMainnetStaking && CHAIN_ID_GOERLI,
+  isMainnetStaking ? undefined : CHAIN_ID_GOERLI,
   CHAIN_ID_MAINNET,
   CHAIN_ID_POLYGON,
   CHAIN_ID_BINANCE,
