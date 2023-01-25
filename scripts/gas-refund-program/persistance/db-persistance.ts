@@ -132,23 +132,23 @@ export async function getLatestEpochRefundedAllChains() {
 }
 
 export async function fetchLastEpochRefunded(): Promise<number | undefined> {
-  const chainToEpoch = (await GasRefundDistribution.findAll({
-    attributes: [
-      'chainId',
-      [Sequelize.fn('max', Sequelize.col('epoch')), 'lastEpoch'],
-    ],
-    group: 'chainId',
-    raw: true,
-  })) as unknown as { chainId: number; lastEpoch: number }[];
+  // const chainToEpoch = (await GasRefundDistribution.findAll({
+  //   attributes: [
+  //     'chainId',
+  //     [Sequelize.fn('max', Sequelize.col('epoch')), 'lastEpoch'],
+  //   ],
+  //   group: 'chainId',
+  //   raw: true,
+  // })) as unknown as { chainId: number; lastEpoch: number }[];
 
-  const lastEpochRefunded = chainToEpoch?.[0]?.lastEpoch;
+  // const lastEpochRefunded = chainToEpoch?.[0]?.lastEpoch;
 
-  assert(
-    chainToEpoch.every(t => t.lastEpoch === lastEpochRefunded),
-    'should compute merkle data of all chains at same time to not skew validation step',
-  );
+  // assert(
+  //   chainToEpoch.every(t => t.lastEpoch === lastEpochRefunded),
+  //   'should compute merkle data of all chains at same time to not skew validation step',
+  // );
 
-  return lastEpochRefunded;
+  return GasRefundV2EpochFlip -1;
 }
 
 export const writeTransactions = async (
