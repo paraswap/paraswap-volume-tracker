@@ -13,7 +13,7 @@ type GRPV2GlobalConfig = {
 };
 
 export const grp2GlobalConfig: GRPV2GlobalConfig = {
-  startEpochTimestamp: 1674580030, // FIXME for testing
+  startEpochTimestamp: 1674640979, 
   epochDuration: 4 * 7 * 24 * 60 * 60,
   lastEpochForSePSP2MigrationRefund: GasRefundV2EpochFlip + 1, // first 2 epochs inclusive
   sePSP2PowerMultiplier: 2.5,
