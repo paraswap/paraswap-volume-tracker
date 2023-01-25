@@ -1,7 +1,7 @@
 import '../../src/lib/log4js';
 import * as dotenv from 'dotenv';
 dotenv.config();
-import { acquireLock, releaseLock } from '../../src/lib/lock-utils';
+//import { acquireLock, releaseLock } from '../../src/lib/lock-utils.ts.old';
 import Database from '../../src/database';
 import StakesTracker from './staking/stakes-tracker';
 import { validateTransactions } from './transactions-validation/validateTransactions';
@@ -16,7 +16,7 @@ async function startComputingGasRefundAllChains() {
   await loadEpochMetaData();
 
   return Database.sequelize.transaction(async () => {
-    await acquireLock(GasRefundTransaction.tableName);
+    //await acquireLock(GasRefundTransaction.tableName);
 
     await StakesTracker.getInstance().loadHistoricalStakes();
 
@@ -24,7 +24,7 @@ async function startComputingGasRefundAllChains() {
 
     await validateTransactions();
 
-    await releaseLock(GasRefundTransaction.tableName);
+    //await releaseLock(GasRefundTransaction.tableName);
   });
 }
 
