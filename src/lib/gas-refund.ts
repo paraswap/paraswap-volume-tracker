@@ -2,16 +2,25 @@ import BigNumber from 'bignumber.js';
 import {
   CHAIN_ID_BINANCE,
   CHAIN_ID_FANTOM,
+  CHAIN_ID_GOERLI,
   CHAIN_ID_MAINNET,
   CHAIN_ID_POLYGON,
 } from './constants';
+import { isTruthy } from './utils';
+
+export const isMainnetStaking = true; // TODO FIXME move to env var
 
 export const GRP_SUPPORTED_CHAINS = [
+  isMainnetStaking ? undefined : CHAIN_ID_GOERLI,
   CHAIN_ID_MAINNET,
   CHAIN_ID_POLYGON,
   CHAIN_ID_BINANCE,
   CHAIN_ID_FANTOM,
-];
+].filter(isTruthy);
+
+export const GRP_V2_SUPPORTED_CHAINS_STAKING = new Set(
+  isMainnetStaking ? [CHAIN_ID_MAINNET] : [CHAIN_ID_GOERLI],
+);
 
 const WEEKS_IN_YEAR = 52;
 const EPOCH_LENGTH_IN_WEEK = 2;
@@ -30,6 +39,7 @@ export const GasRefundPrecisionGlitchRefundedAmountsEpoch = 12;
 export const GasRefundBudgetLimitEpochBasedStartEpoch = 16;
 export const GasRefundVirtualLockupStartEpoch = 17;
 export const GasRefundSafetyModuleAllPSPInBptFixStartEpoch = 20;
+export const GasRefundV2EpochFlip = 31; // FIXME
 
 interface BaseGasRefundData {
   epoch: number;
@@ -116,12 +126,14 @@ export interface GasRefundTransactionData {
 //                                                  psp decimals
 const scale = (num: number) => new BigNumber(num).multipliedBy(1e18);
 
-export const GRP_MIN_STAKE = scale(500);
+const GRP_MIN_STAKE_V1_BN = scale(500);
+export const getMinStake = (epoch: number) =>
+  epoch < GasRefundV2EpochFlip ? GRP_MIN_STAKE_V1_BN : 1; // set min of 1wei to avoid overfetching
 
-const gasRefundLevels: GasRefundLevelsDef[] = [
+const gasRefundLevelsV1: GasRefundLevelsDef[] = [
   {
     level: 'level_1' as const,
-    minStakedAmount: GRP_MIN_STAKE,
+    minStakedAmount: GRP_MIN_STAKE_V1_BN,
     refundPercent: 0.25,
   },
   {
@@ -141,7 +153,36 @@ const gasRefundLevels: GasRefundLevelsDef[] = [
   },
 ].reverse(); // reverse for descending lookup
 
-export const getRefundPercent = (stakedAmount: string): number | undefined =>
-  gasRefundLevels.find(({ minStakedAmount }) =>
+export const getRefundPercentV1 = (stakedAmount: string): number | undefined =>
+  gasRefundLevelsV1.find(({ minStakedAmount }) =>
     new BigNumber(stakedAmount).gte(minStakedAmount),
   )?.refundPercent;
+
+// as voted in https://vote.paraswap.network/#/proposal/0xa288047720c94db99b0405b665d3724dc0329d11968420ba1357ccbb2225ab39
+const GRP_MIN_REFUND_ALLOWED = 0.25;
+const GRP_MAX_REFUND_PERCENT = 0.95;
+
+export const grpV2Func = (x: number): number => {
+  const rawRefundPecent = 0.152003 * Math.log(0.000517947 * x);
+
+  const cappedRefundPercent =
+    rawRefundPecent < GRP_MIN_REFUND_ALLOWED
+      ? 0
+      : Math.min(rawRefundPecent, GRP_MAX_REFUND_PERCENT);
+
+  return cappedRefundPercent;
+};
+
+export const getRefundPercentV2 = (score: string): number => {
+  const scoreNorm = +(BigInt(score) / BigInt(10 ** 18)).toString();
+  const refundPercent = grpV2Func(scoreNorm);
+  return refundPercent;
+};
+
+export const getRefundPercent = (
+  epoch: number,
+  stakedAmount: string,
+): number | undefined =>
+  (epoch < GasRefundV2EpochFlip ? getRefundPercentV1 : getRefundPercentV2)(
+    stakedAmount,
+  );

@@ -1,11 +1,13 @@
 import { assert } from 'ts-essentials';
-import { CHAIN_ID_MAINNET } from '../../../src/lib/constants';
-import { EpochInfo } from '../../../src/lib/epoch-info';
 import {
   GasRefundGenesisEpoch,
   GRP_SUPPORTED_CHAINS,
 } from '../../../src/lib/gas-refund';
-import { resolveEpochCalcTimeInterval } from '../common';
+import { forceEthereumMainnet } from '../config';
+import {
+  getCurrentEpoch,
+  resolveEpochCalcTimeInterval,
+} from '../epoch-helpers';
 import {
   getLatestEpochRefunded,
   merkleRootExists,
@@ -15,11 +17,11 @@ import { fetchPricingAndTransactions } from './fetchPricingAndTransactions';
 const logger = global.LOGGER('GRP::fetchRefundableTransactionsAllChains');
 
 export async function fetchRefundableTransactionsAllChains() {
-  const epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET, true);
-
   return Promise.all(
     GRP_SUPPORTED_CHAINS.map(async chainId => {
-      const lastEpochRefunded = await getLatestEpochRefunded(chainId);
+      const lastEpochRefunded = await getLatestEpochRefunded(
+        forceEthereumMainnet(chainId),
+      );
 
       const startEpoch = lastEpochRefunded
         ? lastEpochRefunded + 1
@@ -30,11 +32,7 @@ export async function fetchRefundableTransactionsAllChains() {
         'cannot compute refund data for epoch < genesis_epoch',
       );
 
-      for (
-        let epoch = startEpoch;
-        epoch <= epochInfo.getCurrentEpoch();
-        epoch++
-      ) {
+      for (let epoch = startEpoch; epoch <= getCurrentEpoch(); epoch++) {
         const { startCalcTime, endCalcTime } =
           await resolveEpochCalcTimeInterval(epoch);
 

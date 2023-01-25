@@ -6,16 +6,17 @@ import {
 } from '../persistance/db-persistance';
 import { getAllTXs, getContractAddresses } from './transaction-resolver';
 import {
-  getRefundPercent,
-  GRP_MIN_STAKE,
   GasRefundTransactionData,
   TransactionStatus,
+  GasRefundV2EpochFlip,
+  getRefundPercent,
+  getMinStake,
 } from '../../../src/lib/gas-refund';
 import * as _ from 'lodash';
 import { ONE_HOUR_SEC } from '../../../src/lib/utils/helpers';
 import { PriceResolverFn } from '../token-pricing/psp-chaincurrency-pricing';
 import StakesTracker from '../staking/stakes-tracker';
-import { GRPBudgetGuardian } from '../transactions-validation/GRPBudgetGuardian';
+import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/utils';
 
 // empirically set to maximise on processing time without penalising memory and fetching constraigns
 const SLICE_DURATION = 6 * ONE_HOUR_SEC;
@@ -48,6 +49,7 @@ export async function fetchRefundableTransactions({
 
   await Promise.all(
     contractAddresses.map(async contractAddress => {
+      assert(contractAddress, 'contractAddress should be defined');
       const lastTimestampProcessed =
         lastTimestampTxByContract[contractAddress] || 0;
 
@@ -96,7 +98,7 @@ export async function fetchRefundableTransactions({
               endTimestamp,
             );
 
-          if (swapperStake.isLessThan(GRP_MIN_STAKE)) {
+          if (swapperStake.isLessThan(getMinStake(epoch))) {
             return;
           }
 
@@ -124,15 +126,21 @@ export async function fetchRefundableTransactions({
           );
 
           const totalStakeAmountPSP = swapperStake.toFixed(0); // @todo irrelevant?
-          const refundPercent = getRefundPercent(totalStakeAmountPSP);
+          const refundPercent =
+            contractAddress === MIGRATION_SEPSP2_100_PERCENT_KEY
+              ? 1 // 100%
+              : getRefundPercent(epoch, totalStakeAmountPSP);
 
-          assert(
-            refundPercent,
-            `Logic Error: failed to find refund percent for ${address}`,
+          if (epoch < GasRefundV2EpochFlip) {
+            assert(
+              refundPercent,
+              `Logic Error: failed to find refund percent for ${address}`,
+            );
+          }
+
+          const currRefundedAmountPSP = currGasFeePSP.multipliedBy(
+            refundPercent || 0,
           );
-
-          const currRefundedAmountPSP =
-            currGasFeePSP.multipliedBy(refundPercent);
 
           const currRefundedAmountUSD = currRefundedAmountPSP
             .multipliedBy(currencyRate.pspPrice)

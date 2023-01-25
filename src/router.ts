@@ -11,10 +11,12 @@ import {
 } from './lib/constants';
 import { GasRefundApi } from './lib/gas-refund-api';
 import { EpochInfo } from './lib/epoch-info';
-import { GRP_SUPPORTED_CHAINS } from './lib/gas-refund';
+import {
+  GRP_SUPPORTED_CHAINS,
+  GRP_V2_SUPPORTED_CHAINS_STAKING,
+} from './lib/gas-refund';
 import { StakingService } from './lib/staking/staking';
 import { assert } from 'ts-essentials';
-import OnboardingRouter from './lib/onboarding/router';
 
 const logger = global.LOGGER();
 
@@ -248,13 +250,29 @@ export default class Router {
     router.get(
       '/gas-refund/stake-migration/:network/:address',
       async (req, res) => {
-        return res.json({
-          hasMigrated: false,
-        });
+        const address = req.params.address.toLowerCase();
+
+        try {
+          const network = Number(req.params.network);
+          if (!GRP_V2_SUPPORTED_CHAINS_STAKING.has(network))
+            return res
+              .status(403)
+              .send({ error: `Unsupported network: ${network}` });
+          const gasRefundApi = GasRefundApi.getInstance(network);
+          const migration = await gasRefundApi.getMigrationData(
+            address,
+            network,
+          );
+
+          return res.json(migration);
+        } catch (e) {
+          logger.error(req.path, e);
+          res.status(403).send({
+            error: `GasRefundError: could not migration data for ${address}`,
+          });
+        }
       },
     );
-
-    router.use('/onboarding', OnboardingRouter);
 
     return router;
   }

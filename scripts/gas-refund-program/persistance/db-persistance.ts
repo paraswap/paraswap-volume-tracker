@@ -3,6 +3,7 @@ import {
   GasRefundTransactionData,
   GasRefundParticipantData,
   TransactionStatus,
+  GasRefundV2EpochFlip,
 } from '../../../src/lib/gas-refund';
 import { GasRefundParticipation } from '../../../src/models/GasRefundParticipation';
 import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
@@ -99,11 +100,13 @@ export async function fetchTotalRefundedAmountUSDByAddress(
 }
 
 export async function getLatestEpochRefunded(chainId: number): Promise<number> {
-  return GasRefundDistribution.max<number, GasRefundDistribution>('epoch', {
-    where: {
-      chainId,
-    },
-  });
+  // return GasRefundDistribution.max<number, GasRefundDistribution>('epoch', {
+  //   where: {
+  //     chainId,
+  //   },
+  // });
+
+  return GasRefundV2EpochFlip - 1;
 }
 
 export async function getLatestEpochRefundedAllChains() {

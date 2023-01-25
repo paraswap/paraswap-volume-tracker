@@ -10,6 +10,7 @@ import { GasRefundTransaction } from '../models/GasRefundTransaction';
 import {
   CHAIN_ID_BINANCE,
   CHAIN_ID_FANTOM,
+  CHAIN_ID_GOERLI,
   CHAIN_ID_MAINNET,
   CHAIN_ID_POLYGON,
 } from './constants';
@@ -17,6 +18,10 @@ import { EpochInfo } from './epoch-info';
 import { GasRefundGenesisEpoch, TransactionStatus } from './gas-refund';
 import { Provider } from './provider';
 import * as MerkleRedeemAbi from '../lib/abi/merkle-redeem.abi.json';
+import {
+  sePSPMigrations,
+  SePSPMigrationsData,
+} from '../models/sePSPMigrations';
 
 interface MerkleRedeem extends Contract {
   callStatic: {
@@ -30,6 +35,7 @@ interface MerkleRedeem extends Contract {
 
 const MerkleRedeemAddress: { [chainId: number]: string } = {
   [CHAIN_ID_MAINNET]: '0xFEB7e2D8584BEf7BB21dA0B70C148DABf1388031',
+  [CHAIN_ID_GOERLI]: '0xFEB7e2D8584BEf7BB21dA0B70C148DABf1388031', // mainnet addr used as placeholder
   [CHAIN_ID_POLYGON]: '0xD15Fe65BCf0B612343E879434dc72DB1721F732D',
   [CHAIN_ID_FANTOM]: '0xCA82162e3666dbDf97814197Ae82731D857125dE',
   [CHAIN_ID_BINANCE]: '0x8fdcdAc765128F2A5CB2EB7Ed8990B2B24Cb66d7',
@@ -53,6 +59,14 @@ type GasRefundClaimsResponse = BaseGasRefundClaimsResponse<string> & {
     chainId: number;
   };
 };
+
+type MigrationData =
+  | {
+      hasMigrated: false;
+    }
+  | ({
+      hasMigrated: true;
+    } & SePSPMigrationsData);
 
 export class GasRefundApi {
   epochInfo: EpochInfo;
@@ -136,6 +150,7 @@ export class GasRefundApi {
     startEpoch: number,
     endEpoch: number,
   ): Promise<Record<number, boolean>> {
+    if (this.network === CHAIN_ID_GOERLI) return {};
     const claimStatus = await this.merkleRedem.callStatic.claimStatus(
       address,
       startEpoch,
@@ -192,7 +207,7 @@ export class GasRefundApi {
   async getAllGasRefundDataForAddress(
     address: string,
   ): Promise<GasRefundClaimsResponse> {
-    const lastEpoch = (await this.epochInfo.getCurrentEpoch()) - 1;
+    const lastEpoch = (await this.epochInfo.getCurrentEpoch()) - 1; // FIXME epochInfo is not safe for v2
 
     const startEpoch = GasRefundGenesisEpoch;
     const endEpoch = Math.max(lastEpoch, GasRefundGenesisEpoch);
@@ -259,5 +274,34 @@ export class GasRefundApi {
     });
 
     return grpData;
+  }
+
+  async getMigrationData(
+    _account: string,
+    chainId: number,
+  ): Promise<MigrationData> {
+    const account = _account.toLowerCase();
+    const migrations = await sePSPMigrations.findAll({
+      where: { account, chainId },
+      raw: true,
+    });
+
+    assert(
+      migrations.length <= 1,
+      'logic error should only track at most one migration',
+    );
+
+    const migration = migrations[0];
+
+    if (!migration) {
+      return {
+        hasMigrated: false,
+      };
+    }
+
+    return {
+      ...migration,
+      hasMigrated: true,
+    };
   }
 }

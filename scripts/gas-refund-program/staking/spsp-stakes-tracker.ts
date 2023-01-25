@@ -167,6 +167,7 @@ export default class SPSPStakesTracker extends AbstractStakesTracker {
 
     logger.info(`resolveInternalPoolChanges: loading blockNumToTimestamp`);
     const blockNumToTimestamp = await fetchBlockTimestampForEvents(
+      CHAIN_ID_MAINNET,
       allEventsAllPools,
     );
     logger.info(
@@ -316,7 +317,10 @@ export default class SPSPStakesTracker extends AbstractStakesTracker {
     );
 
     logger.info(`resolvePSPBalanceChanges: loading blockNumToTimestamp`);
-    const blockNumToTimestamp = await fetchBlockTimestampForEvents(events);
+    const blockNumToTimestamp = await fetchBlockTimestampForEvents(
+      CHAIN_ID_MAINNET,
+      events,
+    );
     logger.info(
       `resolvePSPBalanceChanges: completed loading blockNumToTimestamp`,
     );

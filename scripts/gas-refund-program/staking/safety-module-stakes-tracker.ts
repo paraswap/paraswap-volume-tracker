@@ -59,7 +59,7 @@ const bVaultContract = new Contract(
 ) as BVaultContract;
 
 const bptAsERC20 = new Contract(
-  Balancer_80PSP_20WETH_address,
+  Balancer_80PSP_20WETH_address[CHAIN_ID_MAINNET],
   ERC20ABI,
   Provider.getJsonRpcProvider(CHAIN_ID_MAINNET),
 ) as MinERC20;
@@ -193,7 +193,10 @@ export default class SafetyModuleStakesTracker extends AbstractStakesTracker {
       this.endBlock,
     )) as Transfer[];
 
-    const blockNumToTimestamp = await fetchBlockTimestampForEvents(events);
+    const blockNumToTimestamp = await fetchBlockTimestampForEvents(
+      CHAIN_ID_MAINNET,
+      events,
+    );
 
     events.forEach(e => {
       const timestamp = blockNumToTimestamp[e.blockNumber];
@@ -252,12 +255,17 @@ export default class SafetyModuleStakesTracker extends AbstractStakesTracker {
 
   async resolveBPTPoolPSPBalanceChangesFromLP() {
     const events = (await bVaultContract.queryFilter(
-      bVaultContract.filters.PoolBalanceChanged(Balancer_80PSP_20WETH_poolId),
+      bVaultContract.filters.PoolBalanceChanged(
+        Balancer_80PSP_20WETH_poolId[CHAIN_ID_MAINNET],
+      ),
       this.startBlock,
       this.endBlock,
     )) as PoolBalanceChanged[];
 
-    const blockNumToTimestamp = await fetchBlockTimestampForEvents(events);
+    const blockNumToTimestamp = await fetchBlockTimestampForEvents(
+      CHAIN_ID_MAINNET,
+      events,
+    );
 
     const bptPoolPSPBalanceChanges = events.flatMap(e => {
       const timestamp = blockNumToTimestamp[e.blockNumber];
@@ -299,12 +307,17 @@ export default class SafetyModuleStakesTracker extends AbstractStakesTracker {
 
   async resolveBPTPoolPSPBalanceChangesFromSwaps() {
     const events = (await bVaultContract.queryFilter(
-      bVaultContract.filters.Swap(Balancer_80PSP_20WETH_poolId),
+      bVaultContract.filters.Swap(
+        Balancer_80PSP_20WETH_poolId[CHAIN_ID_MAINNET],
+      ),
       this.startBlock,
       this.endBlock,
     )) as Swap[];
 
-    const blockNumToTimestamp = await fetchBlockTimestampForEvents(events);
+    const blockNumToTimestamp = await fetchBlockTimestampForEvents(
+      CHAIN_ID_MAINNET,
+      events,
+    );
 
     const bptPoolPSPBalanceChanges = events.map(e => {
       const timestamp = blockNumToTimestamp[e.blockNumber];
@@ -358,7 +371,10 @@ export default class SafetyModuleStakesTracker extends AbstractStakesTracker {
       ])
     ).flat() as Transfer[];
 
-    const blockNumToTimestamp = await fetchBlockTimestampForEvents(events);
+    const blockNumToTimestamp = await fetchBlockTimestampForEvents(
+      CHAIN_ID_MAINNET,
+      events,
+    );
 
     const bptPoolTotalSupplyChanges = events.map(e => {
       const timestamp = blockNumToTimestamp[e.blockNumber];
@@ -405,7 +421,10 @@ export default class SafetyModuleStakesTracker extends AbstractStakesTracker {
       ])
     ).flat() as Transfer[];
 
-    const blockNumToTimestamp = await fetchBlockTimestampForEvents(events);
+    const blockNumToTimestamp = await fetchBlockTimestampForEvents(
+      CHAIN_ID_MAINNET,
+      events,
+    );
 
     const bptBalanceOfStkPSPBptChanges = events.map(e => {
       const timestamp = blockNumToTimestamp[e.blockNumber];

@@ -45,28 +45,39 @@ interface TransactionQueryOptions {
   txHash: string;
 }
 
+interface TransactionItem {
+  gas_spent: number;
+  gas_price: number;
+  block_height: number;
+  block_signed_at: string;
+}
 interface TransactionResponse {
   data: {
-    items: [
-      {
-        gas_spent: number;
-      },
-    ];
+    items: [TransactionItem];
   };
+}
+
+export async function getTransaction({
+  chainId,
+  txHash,
+}: TransactionQueryOptions): Promise<TransactionItem> {
+  const url = `/${chainId}/transaction_v2/${txHash}/?key=${COVALENT_API_KEY}`;
+
+  const { data } = await covalentClient.get<TransactionResponse>(url);
+
+  assert(data.data.items.length === 1, 'Expected exactly one transaction');
+
+  const tx = data.data.items[0];
+  return tx;
 }
 
 export async function getTransactionGasUsed({
   chainId,
   txHash,
 }: TransactionQueryOptions): Promise<number> {
-  const url = `/${chainId}/transaction_v2/${txHash}/?key=${COVALENT_API_KEY}`;
-
-  const { data } = await covalentClient.get<TransactionResponse>(url);
-
-  assert(data.data.items.length === 1, 'Expected exactly one transaction');
-  const gasUsed = data.data.items[0].gas_spent;
+  const tx = await getTransaction({ chainId, txHash });
+  const gasUsed = tx.gas_spent;
   assert(gasUsed > 0, 'Expected transaction to non zero gas_spent');
-
   return gasUsed;
 }
 

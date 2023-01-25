@@ -117,19 +117,19 @@ export class SafetyModuleHelper {
         callData: this.erc20Iface.encodeFunctionData('totalSupply', []),
       },
       {
-        target: Balancer_80PSP_20WETH_address,
+        target: Balancer_80PSP_20WETH_address[this.chainId],
         callData: this.erc20Iface.encodeFunctionData('balanceOf', [
           SAFETY_MODULE_ADDRESS,
         ]),
       },
       {
-        target: Balancer_80PSP_20WETH_address,
+        target: Balancer_80PSP_20WETH_address[this.chainId],
         callData: this.erc20Iface.encodeFunctionData('totalSupply', []),
       },
       {
         target: BalancerVaultAddress,
         callData: this.bVaultIface.encodeFunctionData('getPoolTokenInfo', [
-          Balancer_80PSP_20WETH_poolId,
+          Balancer_80PSP_20WETH_poolId[this.chainId],
           PSP_ADDRESS[this.chainId],
         ]),
       },

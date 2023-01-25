@@ -1,20 +1,19 @@
 import '../../src/lib/log4js';
 import * as dotenv from 'dotenv';
 dotenv.config();
-import { init } from './common';
 import { acquireLock, releaseLock } from '../../src/lib/lock-utils';
 import Database from '../../src/database';
 import StakesTracker from './staking/stakes-tracker';
 import { validateTransactions } from './transactions-validation/validateTransactions';
 import { fetchRefundableTransactionsAllChains } from './transactions-indexing/fetchRefundableTransactionsAllChains';
 import { GasRefundTransaction } from '../../src/models/GasRefundTransaction';
+import { loadEpochMetaData } from './epoch-helpers';
 
 const logger = global.LOGGER('GRP');
 
 async function startComputingGasRefundAllChains() {
-  await init({
-    dbTransactionNamespace: 'gas-refund-computation',
-  });
+  await Database.connectAndSync('gas-refund-computation');
+  await loadEpochMetaData();
 
   return Database.sequelize.transaction(async () => {
     await acquireLock(GasRefundTransaction.tableName);

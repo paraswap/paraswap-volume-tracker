@@ -18,13 +18,19 @@ import { getSuccessfulSwaps } from './swaps-subgraph';
 import { GasRefundTransaction } from '../types';
 import {
   GasRefundConsiderContractTXsStartEpoch,
-  GRP_MIN_STAKE,
+  GasRefundV2EpochFlip,
+  getMinStake,
+  isMainnetStaking,
 } from '../../../src/lib/gas-refund';
 import {
   CHAIN_ID_MAINNET,
+  CHAIN_ID_GOERLI,
   SAFETY_MODULE_ADDRESS,
   AUGUSTUS_V5_ADDRESS,
 } from '../../../src/lib/constants';
+import { getMigrationsTxs } from '../staking/2.0/migrations';
+import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/utils';
+import { grp2ConfigByChain } from '../config';
 
 type GetAllTXsInput = {
   startTimestamp: number;
@@ -35,8 +41,27 @@ type GetAllTXsInput = {
   contractAddress: string;
 };
 
-const CovalentAddressesByChain: Record<number, string[]> = {
+const StakingV1ContractAddressByChain: Record<number, string[]> = {
   [CHAIN_ID_MAINNET]: [...SPSPAddresses, SAFETY_MODULE_ADDRESS],
+};
+
+// FIXME verify with final contract addresses
+const contractAddressesByChain: Record<number, string[]> = {
+  [CHAIN_ID_MAINNET]: [
+    ...(isMainnetStaking
+      ? [
+          MIGRATION_SEPSP2_100_PERCENT_KEY,
+          grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP1,
+          grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP2,
+        ]
+      : []),
+    AUGUSTUS_V5_ADDRESS,
+  ],
+  [CHAIN_ID_GOERLI]: [
+    MIGRATION_SEPSP2_100_PERCENT_KEY,
+    grp2ConfigByChain[CHAIN_ID_GOERLI].sePSP1,
+    grp2ConfigByChain[CHAIN_ID_GOERLI].sePSP2,
+  ],
 };
 
 export const getContractAddresses = ({
@@ -49,7 +74,13 @@ export const getContractAddresses = ({
   if (epoch < GasRefundConsiderContractTXsStartEpoch)
     return [AUGUSTUS_V5_ADDRESS];
 
-  return (CovalentAddressesByChain[chainId] || []).concat(AUGUSTUS_V5_ADDRESS);
+  if (epoch < GasRefundV2EpochFlip) {
+    return (StakingV1ContractAddressByChain[chainId] || []).concat(
+      AUGUSTUS_V5_ADDRESS,
+    );
+  }
+
+  return contractAddressesByChain[chainId] ?? [AUGUSTUS_V5_ADDRESS];
 };
 
 export const getAllTXs = async ({
@@ -61,21 +92,31 @@ export const getAllTXs = async ({
   contractAddress,
 }: GetAllTXsInput): Promise<GasRefundTransaction[]> => {
   // fetch swaps and contract (staking pools, safety module) txs
-  return contractAddress === AUGUSTUS_V5_ADDRESS
-    ? getSwapTXs({
-        epoch,
-        chainId,
-        startTimestamp,
-        endTimestamp,
-        epochEndTimestamp,
-      })
-    : getTransactionForContract({
-        epoch,
-        chainId,
-        startTimestamp,
-        endTimestamp,
-        contractAddress,
-      });
+  if (contractAddress === AUGUSTUS_V5_ADDRESS)
+    return getSwapTXs({
+      epoch,
+      chainId,
+      startTimestamp,
+      endTimestamp,
+      epochEndTimestamp,
+    });
+
+  if (contractAddress === MIGRATION_SEPSP2_100_PERCENT_KEY) {
+    return getMigrationsTxs({
+      epoch,
+      chainId,
+      startTimestamp,
+      endTimestamp,
+    });
+  }
+
+  return getTransactionForContract({
+    epoch,
+    chainId,
+    startTimestamp,
+    endTimestamp,
+    contractAddress,
+  });
 };
 
 /**
@@ -114,7 +155,7 @@ export const getSwapTXs = async ({
       epochEndTimestamp,
     );
     // tx address must be a staker && must not be over their budget in order to be processed
-    return swapperStake.isGreaterThanOrEqualTo(GRP_MIN_STAKE);
+    return swapperStake.isGreaterThanOrEqualTo(getMinStake(epoch));
   });
 
   // augment with gas used and the pertaining contract the tx occured on

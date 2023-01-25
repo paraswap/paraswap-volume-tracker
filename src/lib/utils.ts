@@ -64,3 +64,8 @@ export const sortTokens = (tokenA: string, tokenB: string): [string, string] =>
   [tokenA.toLowerCase(), tokenB.toLowerCase()].sort((a, b) =>
     a > b ? 1 : -1,
   ) as [string, string];
+
+export const imReverse = <T>(arr: T[]): T[] => [...arr].reverse();
+
+export const isTruthy = <T>(x: T | false | undefined | null | '' | 0): x is T =>
+  !!x;
