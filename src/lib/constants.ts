@@ -27,7 +27,7 @@ export const VOLUME_TRACKER_INIT_TIME: { [network: number]: number } = {
 
 export const Web3Provider: { [network: number]: string } = {
   [CHAIN_ID_MAINNET]: process.env.HTTP_PROVIDER || '',
-  [CHAIN_ID_ROPSTEN]: process.env.HTTP_PROVIDER_3 || '',
+  //[CHAIN_ID_ROPSTEN]: process.env.HTTP_PROVIDER_3 || '',
   [CHAIN_ID_GOERLI]:
     process.env.HTTP_PROVIDER_5 || 'https://rpc.ankr.com/eth_goerli',
   [CHAIN_ID_BINANCE]: process.env.HTTP_PROVIDER_56 || '',
