@@ -5,6 +5,7 @@ import {
   GasRefundBudgetLimitEpochBasedStartEpoch,
   GasRefundGenesisEpoch,
   GasRefundPrecisionGlitchRefundedAmountsEpoch,
+  GasRefundDeduplicationStartEpoch,
   GasRefundV2EpochFlip,
   getRefundPercent,
   TOTAL_EPOCHS_IN_YEAR,
@@ -39,6 +40,10 @@ import {
  * - write back status of tx in database if changed
  */
 const logger = global.LOGGER('GRP::validateTransactions');
+
+// computing chainId_txHash so no need to assume anything about tx hashes collision across all chains
+const hashKey = (t: GasRefundTransaction) => `${t.chainId}_${t.hash}`;
+
 export async function validateTransactions() {
   const guardian = GRPBudgetGuardian.getInstance();
 
@@ -60,6 +65,8 @@ export async function validateTransactions() {
 
   let offset = 0;
   const pageSize = 1000;
+
+  const uniqTxHashesForEpoch = new Set<string>();
 
   while (true) {
     // scan transactions in batch sorted by timestamp and hash to guarantee stability
@@ -110,12 +117,25 @@ export async function validateTransactions() {
         pspChainCurrency,
         pspUsd,
       } = tx;
+
+      assert(
+        tx.hash == tx.hash.toLowerCase(),
+        'Logic Error: hashes should always be lowercased',
+      );
+
       let newStatus;
 
       // a migration from staking V1 to V2 should be refunded exactly once
       // as staking txs are subject to refunding, we have to prevent double spending on marginal cases
       const isMigrationToV2Tx =
         tx.contract === MIGRATION_SEPSP2_100_PERCENT_KEY;
+
+      if (isMigrationToV2Tx) {
+        assert(
+          migrationsTxsHashesSet.has(tx.hash),
+          'Logic Error: migration txs set should always be containing all txs before running validation',
+        );
+      }
 
       if (prevEpoch !== tx.epoch) {
         // clean epoch based state on each epoch change
@@ -125,6 +145,8 @@ export async function validateTransactions() {
         if ((tx.epoch - GasRefundGenesisEpoch) % TOTAL_EPOCHS_IN_YEAR === 0) {
           guardian.resetYearlyBudgetState();
         }
+
+        uniqTxHashesForEpoch.clear();
 
         prevEpoch = tx.epoch;
       }
@@ -159,7 +181,9 @@ export async function validateTransactions() {
           guardian.hasSpentYearlyUSDBudget(address) ||
           (tx.epoch >= GasRefundBudgetLimitEpochBasedStartEpoch &&
             guardian.hasSpentUSDBudgetForEpoch(address, tx.epoch)) ||
-          migrationsTxsHashesSet.has(tx.hash.toLowerCase())) // avoid double spending for twin migration txs (with contract set to actual contract address)
+          (tx.epoch >= GasRefundDeduplicationStartEpoch &&
+            uniqTxHashesForEpoch.has(hashKey(tx))) || // prevent double spending overall
+          migrationsTxsHashesSet.has(tx.hash)) // avoid double spending for twin migration txs (with contract set to actual contract address). Order of txs matters
       ) {
         newStatus = TransactionStatus.REJECTED;
       } else {
@@ -171,7 +195,6 @@ export async function validateTransactions() {
             Math.abs(+tx.refundedAmountUSD - +tx.gasUsedUSD) < 10 ** -4, // epsilon value
             'migration tx should always be valid and get fully refunded',
           );
-          migrationsTxsHashesSet.add(tx.hash);
         } else {
           ({ cappedRefundedAmountPSP, cappedRefundedAmountUSD } =
             tx.epoch < GasRefundBudgetLimitEpochBasedStartEpoch
@@ -214,6 +237,8 @@ export async function validateTransactions() {
         xnor(cappedRefundedAmountPSP, cappedRefundedAmountUSD),
         'Either both cappedRefundedAmountPSP and cappedRefundedAmountUSD should be falsy or truthy',
       );
+
+      uniqTxHashesForEpoch.add(hashKey(tx));
 
       if (status !== newStatus || !!cappedRefundedAmountPSP) {
         updatedTransactions.push({
