@@ -41,6 +41,18 @@ const MerkleRedeemAddress: { [chainId: number]: string } = {
   [CHAIN_ID_BINANCE]: '0x8fdcdAc765128F2A5CB2EB7Ed8990B2B24Cb66d7',
 };
 
+const MERKLE_DATA_SQL_QUERY = `
+  SELECT  grp.address, grp.epoch, grp."merkleProofs", refunds."refundedAmountPSP"
+  FROM "GasRefundParticipations" grp
+  JOIN (
+    SELECT grt."address", grt.epoch, SUM(grt."refundedAmountPSP") AS "refundedAmountPSP"
+    FROM "GasRefundTransactions" grt
+    WHERE grt."chainId" = :chainId and status='validated'
+    GROUP BY grt.address, grt.epoch
+  ) AS refunds ON grp.address = refunds.address and grp.epoch = refunds.epoch
+  WHERE grp.address=:address AND grp."chainId"=:chainId
+`;
+
 interface GasRefundClaim
   extends Pick<GasRefundParticipation, 'epoch' | 'address' | 'merkleProofs'> {
   refundedAmountPSP: string;
@@ -120,19 +132,8 @@ export class GasRefundApi {
   }
 
   async _fetchMerkleData(address: string): Promise<GasRefundClaim[]> {
-    const sqlQuery = `
-        SELECT  grp.address, grp.epoch, grp."merkleProofs", refunds."refundedAmountPSP"
-        FROM "GasRefundParticipations" grp
-        JOIN (
-          SELECT grt."address", grt.epoch, SUM(grt."refundedAmountPSP") AS "refundedAmountPSP"
-          FROM "GasRefundTransactions" grt
-          WHERE grt."chainId" = :chainId and status='validated'
-          GROUP BY grt.address, grt.epoch
-        ) AS refunds ON grp.address = refunds.address and grp.epoch = refunds.epoch
-        WHERE grp.address=:address AND grp."chainId"=:chainId
-    `;
     const grpDataResult: GasRefundClaim[] = await Database.sequelize.query(
-      sqlQuery,
+      MERKLE_DATA_SQL_QUERY,
       {
         type: Sequelize.QueryTypes.SELECT,
         replacements: {
