@@ -24,3 +24,5 @@ logs.json
 
 states.json
 
+
+scripts/gas-refund-program/*.csv
