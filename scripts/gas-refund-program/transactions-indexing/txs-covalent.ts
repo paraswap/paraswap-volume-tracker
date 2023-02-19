@@ -87,11 +87,11 @@ export const covalentGetTXsForContract = async ({
     items = [...items, ...receivedItems.map(covalentAddressToTransaction)];
   }
 
-  return (
-    items
-      // ensure we only return those within the specified range and not those included in the safety margin
-      .filter(
-        tx => +tx.timestamp >= startTimestamp && +tx.timestamp <= endTimestamp,
-      )
-  );
+  const filteredItems = items
+    // ensure we only return those within the specified range and not those included in the safety margin
+    .filter(
+      tx => +tx.timestamp >= startTimestamp && +tx.timestamp <= endTimestamp,
+    );
+
+  return filteredItems;
 };
