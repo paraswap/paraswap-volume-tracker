@@ -6,7 +6,6 @@ import * as Sequelize from 'sequelize';
 import Database from '../database';
 import { GasRefundParticipation } from '../models/GasRefundParticipation';
 import { GasRefundDistribution } from '../models/GasRefundDistribution';
-import { GasRefundTransaction } from '../models/GasRefundTransaction';
 import {
   CHAIN_ID_BINANCE,
   CHAIN_ID_FANTOM,
@@ -15,7 +14,7 @@ import {
   CHAIN_ID_POLYGON,
 } from './constants';
 import { EpochInfo } from './epoch-info';
-import { GasRefundGenesisEpoch, TransactionStatus } from './gas-refund';
+import { GasRefundGenesisEpoch, GasRefundV2EpochFlip } from './gas-refund';
 import { Provider } from './provider';
 import * as MerkleRedeemAbi from '../lib/abi/merkle-redeem.abi.json';
 import {
@@ -58,6 +57,21 @@ interface GasRefundClaim
   refundedAmountPSP: string;
 }
 
+const PENDING_DATA_SQL_QUERY = `
+  SELECT epoch as "epoch1", sum("refundedAmountPSP") as "totalPendingForEpoch"
+  FROM public."GasRefundTransactions"
+  WHERE epoch > :latestEpochRefunded AND address = :address AND status='validated' AND "chainId" = :chainId
+  GROUP BY epoch
+  ORDER BY epoch ASC
+`;
+
+type PendingRefundRawData = {
+  epoch1: number;
+  totalPendingForEpoch: string;
+};
+
+type PendingRefundData = PendingRefundRawData & { epoch2: number };
+
 type BaseGasRefundClaimsResponse<T> = {
   totalClaimable: T;
   claims: (Omit<GasRefundClaim, 'refundedAmountPSP'> & { amount: string })[];
@@ -65,6 +79,7 @@ type BaseGasRefundClaimsResponse<T> = {
 type GasRefundClaimsResponseAcc = BaseGasRefundClaimsResponse<bigint>;
 type GasRefundClaimsResponse = BaseGasRefundClaimsResponse<string> & {
   pendingClaimable: string;
+  pendingRefundBreakdownPerEpoch: PendingRefundData[],
   txParams: {
     to: string;
     data: string | null;
@@ -174,9 +189,10 @@ export class GasRefundApi {
     return epochToClaimed;
   }
 
-  async _getCurrentEpochPendingRefundedAmount(
-    address: string,
-  ): Promise<string> {
+  async _getCurrentEpochPendingRefundedAmount(address: string): Promise<{
+    totalPendingRefundAmount: string;
+    pendingRefundBreakdownPerEpoch: PendingRefundData[];
+  }> {
     const latestEpochRefunded = await GasRefundDistribution.max<
       number,
       GasRefundDistribution
@@ -186,22 +202,42 @@ export class GasRefundApi {
       },
     });
 
-    const pendingRefundableAmount = (await GasRefundTransaction.sum<
-      string,
-      GasRefundTransaction
-    >('refundedAmountPSP', {
-      where: {
-        address,
-        epoch: {
-          [Sequelize.Op.gt]: latestEpochRefunded,
+    const rawPendingData: PendingRefundRawData[] =
+      await Database.sequelize.query(PENDING_DATA_SQL_QUERY, {
+        type: Sequelize.QueryTypes.SELECT,
+        replacements: {
+          address,
+          chainId: this.network,
+          latestEpochRefunded,
         },
-        status: TransactionStatus.VALIDATED,
-        chainId: this.network,
-      },
-      dataType: 'string',
-    })) as unknown as string | number; // wrong type
+      });
 
-    return String(pendingRefundableAmount);
+    const { totalPendingRefundAmount, pendingRefundBreakdownPerEpoch } =
+      rawPendingData.reduce<{
+        totalPendingRefundAmount: bigint;
+        pendingRefundBreakdownPerEpoch: PendingRefundData[];
+      }>(
+        (acc, curr) => {
+          const epoch2 = curr.epoch1 - GasRefundV2EpochFlip;
+
+          acc.totalPendingRefundAmount += BigInt(curr.totalPendingForEpoch);
+          acc.pendingRefundBreakdownPerEpoch.push({
+            ...curr,
+            epoch2,
+          });
+
+          return acc;
+        },
+        {
+          totalPendingRefundAmount: BigInt(0),
+          pendingRefundBreakdownPerEpoch: [],
+        },
+      );
+
+    return {
+      totalPendingRefundAmount: totalPendingRefundAmount.toString(),
+      pendingRefundBreakdownPerEpoch,
+    };
   }
 
   // get all ever constructed merkle data for addrress
@@ -213,7 +249,14 @@ export class GasRefundApi {
     const startEpoch = GasRefundGenesisEpoch;
     const endEpoch = Math.max(lastEpoch, GasRefundGenesisEpoch);
 
-    const [merkleData, epochToClaimed, pendingClaimable] = await Promise.all([
+    const [
+      merkleData,
+      epochToClaimed,
+      {
+        totalPendingRefundAmount,
+        pendingRefundBreakdownPerEpoch,
+      },
+    ] = await Promise.all([
       this._fetchMerkleData(address),
       this._getClaimStatus(address, startEpoch, endEpoch),
       this._getCurrentEpochPendingRefundedAmount(address),
@@ -257,7 +300,8 @@ export class GasRefundApi {
     return {
       totalClaimable: totalClaimable.toString(),
       claims,
-      pendingClaimable,
+      pendingClaimable: totalPendingRefundAmount.toString(),
+      pendingRefundBreakdownPerEpoch,
       txParams: {
         to: this.merkleRedem.address,
         data,
