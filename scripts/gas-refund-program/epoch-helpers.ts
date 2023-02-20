@@ -73,7 +73,8 @@ const GRP2EpochResolver: EpochReseolverV2 = {
     console.log('PSP2.0: nothing to do on initialising GRP2EpochResolver !');
   },
   getCurrentEpoch() {
-    return GRP2EpochResolver.resolveEpochNumber(Math.floor(Date.now() / 1000));
+    //return GRP2EpochResolver.resolveEpochNumber(Math.floor(Date.now() / 1000));
+    return 32; // FIXME
   },
   resolveEpochNumber(timestamp: number) {
     return (
