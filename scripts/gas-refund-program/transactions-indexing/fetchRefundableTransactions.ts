@@ -165,6 +165,7 @@ export async function fetchRefundableTransactions({
             refundedAmountUSD: currRefundedAmountUSD.toFixed(), // purposefully not rounded to preserve dollar amount precision [IMPORTANT FOR CALCULCATIONS]
             contract,
             status: TransactionStatus.IDLE,
+            paraBoostFactor: 1,
           };
 
           refundableTransactions.push(refundableTransaction);
