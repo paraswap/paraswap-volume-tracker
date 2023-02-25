@@ -159,7 +159,12 @@ export const updateTransactionsStatusRefundedAmounts = async (
   transactionsWithNewStatus: GasRefundTransactionData[],
 ) => {
   await GasRefundTransaction.bulkCreate(transactionsWithNewStatus, {
-    updateOnDuplicate: ['status', 'refundedAmountUSD', 'refundedAmountPSP'],
+    updateOnDuplicate: [
+      'status',
+      'refundedAmountUSD',
+      'refundedAmountPSP',
+      'paraBoostFactor',
+    ],
   });
 };
 

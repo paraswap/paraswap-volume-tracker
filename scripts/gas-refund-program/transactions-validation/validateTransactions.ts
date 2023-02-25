@@ -10,6 +10,7 @@ import {
   getRefundPercent,
   TOTAL_EPOCHS_IN_YEAR,
   TransactionStatus,
+  GRP_MAX_REFUND_PERCENT,
 } from '../../../src/lib/gas-refund';
 import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
 import {
@@ -26,6 +27,11 @@ import {
   fetchMigrationsTxHashesSet,
   MIGRATION_SEPSP2_100_PERCENT_KEY,
 } from '../staking/2.0/utils';
+import { getCurrentEpoch } from '../epoch-helpers';
+import {
+  constructFetchParaBoostPerAccountMem,
+  ParaBoostPerAccount,
+} from './paraBoost';
 
 /**
  * This function guarantees that the order of transactions refunded will always be stable.
@@ -43,6 +49,10 @@ const logger = global.LOGGER('GRP::validateTransactions');
 
 // computing chainId_txHash so no need to assume anything about tx hashes collision across all chains
 const hashKey = (t: GasRefundTransaction) => `${t.chainId}_${t.hash}`;
+
+const paraBoostFetcher = constructFetchParaBoostPerAccountMem();
+
+let paraBoostByAccount: ParaBoostPerAccount;
 
 export async function validateTransactions() {
   const guardian = GRPBudgetGuardian.getInstance();
@@ -67,6 +77,8 @@ export async function validateTransactions() {
   const pageSize = 1000;
 
   const uniqTxHashesForEpoch = new Set<string>();
+
+  paraBoostByAccount = await paraBoostFetcher(GasRefundV2EpochFlip);
 
   while (true) {
     // scan transactions in batch sorted by timestamp and hash to guarantee stability
@@ -148,16 +160,48 @@ export async function validateTransactions() {
 
         uniqTxHashesForEpoch.clear();
 
+        // refetch paraBoost data on epoch switch
+        if (tx.epoch >= GasRefundV2EpochFlip) {
+          paraBoostByAccount = await paraBoostFetcher(tx.epoch);
+        }
+
         prevEpoch = tx.epoch;
       }
 
-      const refundPercentage = getRefundPercent(tx.epoch, totalStakeAmountPSP);
+      let refundPercentage: number | undefined;
 
-      if (tx.epoch < GasRefundV2EpochFlip) {
-        assert(refundPercentage, 'refundPercentage should be defined and > 0');
+      //  GRP2.0: take into account boost at end of epoch
+      const isGRP2GracePeriod =
+        tx.epoch >= GasRefundV2EpochFlip && getCurrentEpoch() > tx.epoch;
+
+      if (isGRP2GracePeriod) {
+        assert(paraBoostByAccount, 'paraBoostByAccount should be defined');
+        const paraBoostFactor = paraBoostByAccount[tx.address] || 1;
+        const fullParaBoostScore = new BigNumber(totalStakeAmountPSP)
+          .multipliedBy(paraBoostFactor)
+          .decimalPlaces(0, BigNumber.ROUND_DOWN)
+          .toFixed();
+
+        refundPercentage = getRefundPercent(tx.epoch, fullParaBoostScore);
+      } else {
+        // fall here on GRP1 and GRP2 during epoch
+        refundPercentage = getRefundPercent(tx.epoch, totalStakeAmountPSP);
       }
 
-      // recompute refundedAmountPSP/refundedAmountUSD as logic alters those values as we reach limits
+      assert(
+        typeof refundPercentage === 'number',
+        'logic error: refunded percent should be defined',
+      );
+
+      if (tx.epoch < GasRefundV2EpochFlip) {
+        assert(
+          refundPercentage > 0,
+          'logic error: refundPercentage should be > 0 on grp1.0',
+        );
+      }
+
+      // GRP1.0: recompute refunded amounts as logic alters those values as we reach limits
+      // GRP2.0: like GRP1.0 but also recompute refunded amounts after end of epoch to account for boosts
       let _refundedAmountPSP = new BigNumber(gasUsedChainCurrency)
         .dividedBy(pspChainCurrency)
         .multipliedBy(refundPercentage || 0); // keep it decimals to avoid rounding errors
@@ -166,11 +210,11 @@ export async function validateTransactions() {
         _refundedAmountPSP = _refundedAmountPSP.decimalPlaces(0);
       }
 
-      const refundedAmountUSD = _refundedAmountPSP
+      const recomputedRefundedAmountUSD = _refundedAmountPSP
         .multipliedBy(pspUsd)
         .dividedBy(10 ** 18); // psp decimals always encoded in 18decimals
 
-      const refundedAmountPSP = _refundedAmountPSP.decimalPlaces(0); // truncate decimals to align with values in db
+      const recomputedRefundedAmountPSP = _refundedAmountPSP.decimalPlaces(0); // truncate decimals to align with values in db
 
       let cappedRefundedAmountPSP: BigNumber | undefined;
       let cappedRefundedAmountUSD: BigNumber | undefined;
@@ -193,42 +237,42 @@ export async function validateTransactions() {
         if (isMigrationToV2Tx) {
           assert(
             Math.abs(+tx.refundedAmountUSD - +tx.gasUsedUSD) < 10 ** -4, // epsilon value
-            'migration tx should always be valid and get fully refunded',
+            'logic error: migration tx should always be valid and get fully refunded',
           );
         } else {
           ({ cappedRefundedAmountPSP, cappedRefundedAmountUSD } =
             tx.epoch < GasRefundBudgetLimitEpochBasedStartEpoch
               ? capRefundedAmountsBasedOnYearlyDollarBudget(
                   address,
-                  refundedAmountUSD,
+                  recomputedRefundedAmountUSD,
                   pspUsd,
                 )
               : capRefundedAmountsBasedOnEpochDollarBudget(
                   address,
-                  refundedAmountUSD,
+                  recomputedRefundedAmountUSD,
                   pspUsd,
                   tx.epoch,
                 ));
 
           cappedRefundedAmountPSP = capRefundedPSPAmountBasedOnYearlyPSPBudget(
             cappedRefundedAmountPSP,
-            refundedAmountPSP,
+            recomputedRefundedAmountPSP,
           );
 
           if (tx.epoch >= GasRefundBudgetLimitEpochBasedStartEpoch) {
             guardian.increaseRefundedUSDForEpoch(
               address,
-              cappedRefundedAmountUSD || refundedAmountUSD,
+              cappedRefundedAmountUSD || recomputedRefundedAmountUSD,
             );
           }
 
           guardian.increaseYearlyRefundedUSD(
             address,
-            cappedRefundedAmountUSD || refundedAmountUSD,
+            cappedRefundedAmountUSD || recomputedRefundedAmountUSD,
           );
 
           guardian.increaseTotalRefundedPSP(
-            cappedRefundedAmountPSP || refundedAmountPSP,
+            cappedRefundedAmountPSP || recomputedRefundedAmountPSP,
           );
         }
       }
@@ -240,17 +284,107 @@ export async function validateTransactions() {
 
       uniqTxHashesForEpoch.add(hashKey(tx));
 
-      if (status !== newStatus || !!cappedRefundedAmountPSP) {
-        updatedTransactions.push({
+      if (tx.epoch < GasRefundV2EpochFlip) {
+        if (status !== newStatus || !!cappedRefundedAmountPSP) {
+          updatedTransactions.push({
+            ...tx,
+            ...(!!cappedRefundedAmountPSP
+              ? { refundedAmountPSP: cappedRefundedAmountPSP.toFixed(0) }
+              : {}),
+            ...(!!cappedRefundedAmountUSD
+              ? { refundedAmountUSD: cappedRefundedAmountUSD.toFixed() } // purposefully not rounded to preserve dollar amount precision [IMPORTANT FOR CALCULCATIONS]
+              : {}),
+            status: newStatus,
+          });
+        }
+      } else {
+        assert(paraBoostByAccount, 'paraBoostByAccount should be defined'); // important for next invariant check
+        const paraBoostFactor = paraBoostByAccount[tx.address] || 1; // it can happen that user was staked during epoch but unstaked later, in such case boost is lost
+
+        const updatedTx = {
           ...tx,
-          ...(!!cappedRefundedAmountPSP
-            ? { refundedAmountPSP: cappedRefundedAmountPSP.toFixed(0) }
-            : {}),
-          ...(!!cappedRefundedAmountUSD
-            ? { refundedAmountUSD: cappedRefundedAmountUSD.toFixed() } // purposefully not rounded to preserve dollar amount precision [IMPORTANT FOR CALCULCATIONS]
-            : {}),
           status: newStatus,
-        });
+          paraBoostFactor,
+        };
+
+        if (isMigrationToV2Tx) {
+          // not safe to take
+          assert(
+            tx.contract === MIGRATION_SEPSP2_100_PERCENT_KEY,
+            'logic error should have migration txs here',
+          );
+          assert(
+            newStatus == TransactionStatus.VALIDATED,
+            'migration txs can only be valided',
+          );
+          // as logic up doesn't prevent recalculating refunded amount migration txs.
+          // use this as an opportunity to check multiple invariant
+          // - migration tx should alwasys be refunded 100%
+          // - computed refund should never go > 95%
+          assert(
+            BigInt(tx.refundedAmountPSP) >
+              BigInt(recomputedRefundedAmountPSP.toFixed(0)),
+            'refunded amount PSP should always be strictly here thn recomputed amount',
+          );
+          updatedTransactions.push(updatedTx);
+        } else {
+          assert(
+            refundPercentage <= GRP_MAX_REFUND_PERCENT,
+            'refunded percent should be computed and lower than max',
+          );
+          const updatedRefundedAmountPSP = (
+            cappedRefundedAmountPSP || recomputedRefundedAmountPSP
+          ).toFixed(0);
+          const updatedRefundedAmountUSD = (
+            cappedRefundedAmountUSD || recomputedRefundedAmountUSD
+          ).toFixed();
+
+          if (refundPercentage == 0) {
+            assert(
+              updatedRefundedAmountPSP === '0' &&
+                updatedRefundedAmountUSD === '0',
+              'logic error',
+            );
+          } else {
+            assert(
+              updatedRefundedAmountPSP !== '0' &&
+                updatedRefundedAmountUSD !== '0',
+              'logic error',
+            );
+          }
+
+          if (tx.refundedAmountPSP !== updatedRefundedAmountPSP) {
+            assert(
+              tx.refundedAmountUSD !== updatedRefundedAmountUSD,
+              'should always update usd amount along with psp amount',
+            );
+
+            if (paraBoostFactor > 1) {
+              if (refundPercentage < GRP_MAX_REFUND_PERCENT) {
+                assert(
+                  BigInt(tx.refundedAmountPSP) <
+                    BigInt(recomputedRefundedAmountPSP.toFixed(0)),
+                  'logic error: account has boost, recomputed amount should be higher',
+                );
+              } else {
+                assert(
+                  BigInt(tx.refundedAmountPSP) <=
+                    BigInt(recomputedRefundedAmountPSP.toFixed(0)),
+                  'logic error: account has boost, recomputed amount should be at least higher than previous on max',
+                );
+              }
+            }
+
+            updatedTransactions.push({
+              ...updatedTx,
+              refundedAmountPSP: updatedRefundedAmountPSP,
+              refundedAmountUSD: updatedRefundedAmountUSD,
+            });
+          } else {
+            // can land here if account has 0 or recomputed amounts are exactly matching
+            updatedTransactions.push(updatedTx);
+          }
+        }
       }
     }
 
