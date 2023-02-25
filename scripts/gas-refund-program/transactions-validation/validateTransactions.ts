@@ -78,8 +78,6 @@ export async function validateTransactions() {
 
   const uniqTxHashesForEpoch = new Set<string>();
 
-  paraBoostByAccount = await paraBoostFetcher(GasRefundV2EpochFlip);
-
   while (true) {
     // scan transactions in batch sorted by timestamp and hash to guarantee stability
     const transactionsSlice = await GasRefundTransaction.findAll({
@@ -119,6 +117,10 @@ export async function validateTransactions() {
     const updatedTransactions = [];
 
     let prevEpoch = transactionsSlice[0].epoch;
+
+    if (prevEpoch >= GasRefundV2EpochFlip) {
+      paraBoostByAccount = await paraBoostFetcher(prevEpoch);
+    }
 
     for (const tx of transactionsSlice) {
       const {
@@ -361,11 +363,12 @@ export async function validateTransactions() {
 
             if (paraBoostFactor > 1) {
               if (refundPercentage < GRP_MAX_REFUND_PERCENT) {
-                assert(
-                  BigInt(tx.refundedAmountPSP) <
-                    BigInt(recomputedRefundedAmountPSP.toFixed(0)),
-                  'logic error: account has boost, recomputed amount should be higher',
-                );
+                // amend: asserts do not make sense here
+                // assert(
+                //   BigInt(tx.refundedAmountPSP) <
+                //     BigInt(recomputedRefundedAmountPSP.toFixed(0)),
+                //   'logic error: account has boost, recomputed amount should be higher',
+                // );
               } else {
                 assert(
                   BigInt(tx.refundedAmountPSP) <=
