@@ -6,6 +6,7 @@ import {
   DataType,
   AutoIncrement,
   Index,
+  Default,
 } from 'sequelize-typescript';
 import { GasRefundTransactionData, TransactionStatus } from '../lib/gas-refund';
 
@@ -69,6 +70,10 @@ export class GasRefundTransaction extends Model<GasRefundTransactionData> {
 
   @Column(DataType.DECIMAL)
   refundedAmountUSD: string;
+
+  @Default(1)
+  @Column(DataType.DECIMAL)
+  paraBoostFactor: number;
 
   @Index
   @Column(DataType_ADDRESS)

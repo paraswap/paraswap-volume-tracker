@@ -18,7 +18,9 @@ const columns = [
   'hash',
   'status',
   'contract',
+
   'totalStakeAmountPSP',
+  'paraBoostFactor',
 
   'gasUsed',
 

@@ -58,7 +58,9 @@ export const covalentGetTXsForContract = async ({
       throw new Error('only query historic data');
     }
 
-    return `/${chainId}/address/${contract}/transactions_v2/?key=${COVALENT_API_KEY}&no-logs=true&page-number=${page}&page-size=1000&block-signed-at-limit=${startSecondsAgo}&block-signed-at-span=${duration}&match={"to_address": "${contract}"}`;
+    // pagination params (page-size, block-signed-at-limit, block-signed-at-span) don't play nice alltogether
+    // specifically for sePSP2 as the nb of total txs was > page-size=1000 this broke.
+    return `/${chainId}/address/${contract}/transactions_v2/?key=${COVALENT_API_KEY}&no-logs=true&page-number=${page}&page-size=5000&block-signed-at-limit=${startSecondsAgo}&block-signed-at-span=${duration}&match={"to_address": "${contract}"}`;
   };
 
   // todo: better would be to first call the end point with page-size=0 just to get the total number of items, and then construct many request promises and run concurrently - currently this isn't possible (as `total_count` is null) in the covalent api but scheduled
@@ -85,11 +87,11 @@ export const covalentGetTXsForContract = async ({
     items = [...items, ...receivedItems.map(covalentAddressToTransaction)];
   }
 
-  return (
-    items
-      // ensure we only return those within the specified range and not those included in the safety margin
-      .filter(
-        tx => +tx.timestamp >= startTimestamp && +tx.timestamp <= endTimestamp,
-      )
-  );
+  const filteredItems = items
+    // ensure we only return those within the specified range and not those included in the safety margin
+    .filter(
+      tx => +tx.timestamp >= startTimestamp && +tx.timestamp <= endTimestamp,
+    );
+
+  return filteredItems;
 };
