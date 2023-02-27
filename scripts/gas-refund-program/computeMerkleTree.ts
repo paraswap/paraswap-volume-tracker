@@ -88,7 +88,7 @@ async function startComputingMerkleTreesAllChains() {
   await Database.connectAndSync();
   await loadEpochMetaData();
 
-  const latestEpochRefunded = await fetchLastEpochRefunded();
+  const latestEpochRefunded = await fetchLastEpochRefunded(false);
   let startEpoch = latestEpochRefunded
     ? latestEpochRefunded + 1
     : GasRefundGenesisEpoch;
