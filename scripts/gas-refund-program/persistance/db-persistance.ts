@@ -146,7 +146,7 @@ export async function fetchLastEpochRefunded(
     0,
   );
 
-  if (skipValidation) {
+  if (!skipValidation) {
     assert(
       chainToEpoch.every(t => t.lastEpoch === lastEpochRefunded),
       'should compute merkle data of all chains at same time to not skew validation step',
