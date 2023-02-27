@@ -129,7 +129,9 @@ export async function getLatestEpochRefundedAllChains() {
   return latestEpochRefunded;
 }
 
-export async function fetchLastEpochRefunded(): Promise<number | undefined> {
+export async function fetchLastEpochRefunded(
+  skipValidation = true,
+): Promise<number | undefined> {
   const chainToEpoch = (await GasRefundDistribution.findAll({
     attributes: [
       'chainId',
@@ -139,12 +141,17 @@ export async function fetchLastEpochRefunded(): Promise<number | undefined> {
     raw: true,
   })) as unknown as { chainId: number; lastEpoch: number }[];
 
-  const lastEpochRefunded = chainToEpoch?.[0]?.lastEpoch;
-
-  assert(
-    chainToEpoch.every(t => t.lastEpoch === lastEpochRefunded),
-    'should compute merkle data of all chains at same time to not skew validation step',
+  const lastEpochRefunded = chainToEpoch.reduce(
+    (max, curr) => Math.max(max, curr.lastEpoch),
+    0,
   );
+
+  if (skipValidation) {
+    assert(
+      chainToEpoch.every(t => t.lastEpoch === lastEpochRefunded),
+      'should compute merkle data of all chains at same time to not skew validation step',
+    );
+  }
 
   return lastEpochRefunded;
 }
