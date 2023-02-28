@@ -6,7 +6,7 @@ import {
   DataType,
   createIndexDecorator,
 } from 'sequelize-typescript';
-import { GasRefundDistributionData } from '../lib/gas-refund';
+import { GasRefundDistributionData } from '../lib/gas-refund/gas-refund';
 
 import { DataType_KECCAK256_HASHED_VALUE } from '../lib/sql-data-types';
 

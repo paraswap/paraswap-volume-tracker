@@ -9,7 +9,7 @@ import {
   createIndexDecorator,
   Index,
 } from 'sequelize-typescript';
-import { GasRefundParticipantData } from '../lib/gas-refund';
+import { GasRefundParticipantData } from '../lib/gas-refund/gas-refund';
 
 import {
   DataType_ADDRESS,

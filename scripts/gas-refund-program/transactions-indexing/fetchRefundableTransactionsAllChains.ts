@@ -1,13 +1,13 @@
 import { assert } from 'ts-essentials';
-import { forceEthereumMainnet } from '../../../src/lib/config';
+import { forceEthereumMainnet } from '../../../src/lib/gas-refund/config';
 import {
   getCurrentEpoch,
   resolveEpochCalcTimeInterval,
-} from '../../../src/lib/epoch-helpers';
+} from '../../../src/lib/gas-refund/epoch-helpers';
 import {
   GasRefundGenesisEpoch,
   GRP_SUPPORTED_CHAINS,
-} from '../../../src/lib/gas-refund';
+} from '../../../src/lib/gas-refund/gas-refund';
 
 import {
   getLatestEpochRefunded,

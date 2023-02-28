@@ -5,8 +5,8 @@ import {
   CHAIN_ID_GOERLI,
   CHAIN_ID_MAINNET,
   CHAIN_ID_POLYGON,
-} from './constants';
-import { isTruthy } from './utils';
+} from '../constants';
+import { isTruthy } from '../utils';
 
 export const isMainnetStaking = true; // TODO FIXME move to env var
 

@@ -1,5 +1,5 @@
 import { assert } from 'ts-essentials';
-import { GRP_V2_SUPPORTED_CHAINS_STAKING } from '../../../../src/lib/gas-refund';
+import { GRP_V2_SUPPORTED_CHAINS_STAKING } from '../../../../src/lib/gas-refund/gas-refund';
 
 type BlockTimeBoundary = {
   startTimestamp: number;

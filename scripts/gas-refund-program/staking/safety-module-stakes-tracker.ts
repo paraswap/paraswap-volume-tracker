@@ -24,7 +24,7 @@ import {
 } from '../timeseries';
 import { AbstractStakesTracker } from './abstract-stakes-tracker';
 import { SafetyModuleHelper } from '../../../src/lib/staking/safety-module-helper';
-import { VIRTUAL_LOCKUP_PERIOD } from '../../../src/lib/gas-refund';
+import { VIRTUAL_LOCKUP_PERIOD } from '../../../src/lib/gas-refund/gas-refund';
 import { computeMinStakedBalanceDuringVirtualLockup } from './common';
 
 interface MinERC20 extends Contract {

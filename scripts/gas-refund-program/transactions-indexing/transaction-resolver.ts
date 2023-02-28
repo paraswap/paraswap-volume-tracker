@@ -21,7 +21,7 @@ import {
   GasRefundV2EpochFlip,
   getMinStake,
   isMainnetStaking,
-} from '../../../src/lib/gas-refund';
+} from '../../../src/lib/gas-refund/gas-refund';
 import {
   CHAIN_ID_MAINNET,
   CHAIN_ID_GOERLI,
@@ -30,8 +30,7 @@ import {
 } from '../../../src/lib/constants';
 import { getMigrationsTxs } from '../staking/2.0/migrations';
 import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/utils';
-import { grp2ConfigByChain } from '../../../src/lib/config';
-
+import { grp2ConfigByChain } from '../../../src/lib/gas-refund/config';
 
 type GetAllTXsInput = {
   startTimestamp: number;

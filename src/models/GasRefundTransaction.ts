@@ -8,7 +8,10 @@ import {
   Index,
   Default,
 } from 'sequelize-typescript';
-import { GasRefundTransactionData, TransactionStatus } from '../lib/gas-refund';
+import {
+  GasRefundTransactionData,
+  TransactionStatus,
+} from '../lib/gas-refund/gas-refund';
 
 import {
   DataType_ADDRESS,

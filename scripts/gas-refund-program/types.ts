@@ -1,4 +1,4 @@
-import { GasRefundTransactionData } from '../../src/lib/gas-refund';
+import { GasRefundTransactionData } from '../../src/lib/gas-refund/gas-refund';
 
 export type HistoricalPrice = { [timestamp: string]: number };
 
@@ -35,34 +35,34 @@ export type StakedPSPByAddress = {
 
 export namespace CovalentAPI {
   export interface Transaction {
-    from_address: string
-    to_address?: string
-    tx_hash: string
+    from_address: string;
+    to_address?: string;
+    tx_hash: string;
     block_height: number;
     block_signed_at: string;
-    gas_offered: number,
-    gas_spent: number,
-    gas_price: number,
-    fees_paid: number,
-    gas_quote: number,
-    gas_quote_rate: number,
+    gas_offered: number;
+    gas_spent: number;
+    gas_price: number;
+    fees_paid: number;
+    gas_quote: number;
+    gas_quote_rate: number;
     // ... and a lot more
   }
   export interface AddressTransactionsResponse {
     data: {
       data: {
-        address: string
-        chain_id: string
-        quote_currency: string
-        items: Transaction[]
+        address: string;
+        chain_id: string;
+        quote_currency: string;
+        items: Transaction[];
         pagination: {
-          has_more: boolean
-          page_number: number
-          page_size: number
-          total_count: null
-        }
-      }
-    }
+          has_more: boolean;
+          page_number: number;
+          page_size: number;
+          total_count: null;
+        };
+      };
+    };
   }
 }
 
@@ -83,7 +83,8 @@ export interface SubGraphSwap {
   timestamp: string;
 }
 
-export interface GasRefundTransaction extends Omit<CovalentTransaction, 'blockNumber'> {
+export interface GasRefundTransaction
+  extends Omit<CovalentTransaction, 'blockNumber'> {
   blockNumber: string;
   contract: string;
 }

@@ -6,7 +6,7 @@ import { GasRefundTransaction } from '../../src/models/GasRefundTransaction';
 import * as fs from 'fs';
 import * as path from 'path';
 import { assert } from 'ts-essentials';
-import { GasRefundGenesisEpoch } from '../../src/lib/gas-refund';
+import { GasRefundGenesisEpoch } from '../../src/lib/gas-refund/gas-refund';
 
 const epoch = parseInt(process.env.EPOCH || '0', 10);
 const namespace = process.env.NAMESPACE || 'local';

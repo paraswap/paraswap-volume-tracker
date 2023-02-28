@@ -11,7 +11,7 @@ import {
   GasRefundV2EpochFlip,
   getRefundPercent,
   getMinStake,
-} from '../../../src/lib/gas-refund';
+} from '../../../src/lib/gas-refund/gas-refund';
 import * as _ from 'lodash';
 import { ONE_HOUR_SEC } from '../../../src/lib/utils/helpers';
 import { PriceResolverFn } from '../token-pricing/psp-chaincurrency-pricing';

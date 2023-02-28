@@ -9,12 +9,12 @@ import {
   STAKING_CHAIN_IDS_SET,
   CHAIN_ID_MAINNET,
 } from './lib/constants';
-import { GasRefundApi } from './lib/gas-refund-api';
+import { GasRefundApi } from './lib/gas-refund/gas-refund-api';
 import { EpochInfo } from './lib/epoch-info';
 import {
   GRP_SUPPORTED_CHAINS,
   GRP_V2_SUPPORTED_CHAINS_STAKING,
-} from './lib/gas-refund';
+} from './lib/gas-refund/gas-refund';
 import { StakingService } from './lib/staking/staking';
 import { assert } from 'ts-essentials';
 

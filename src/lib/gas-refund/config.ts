@@ -1,5 +1,5 @@
 import { identity } from 'lodash';
-import { CHAIN_ID_GOERLI, CHAIN_ID_MAINNET } from './constants';
+import { CHAIN_ID_GOERLI, CHAIN_ID_MAINNET } from '../constants';
 import { GasRefundV2EpochFlip, isMainnetStaking } from './gas-refund';
 
 type GRPV2GlobalConfig = {

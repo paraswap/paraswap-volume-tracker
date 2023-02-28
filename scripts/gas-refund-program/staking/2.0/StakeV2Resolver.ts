@@ -4,7 +4,7 @@ import { BlockInfo } from '../../../../src/lib/block-info';
 import {
   grp2ConfigByChain,
   grp2GlobalConfig,
-} from '../../../../src/lib/config';
+} from '../../../../src/lib/gas-refund/config';
 import { AbstractStateTracker } from './AbstractStateTracker';
 import BPTStateTracker from './BPTStateTracker';
 import ERC20StateTracker from './ERC20StateTracker';

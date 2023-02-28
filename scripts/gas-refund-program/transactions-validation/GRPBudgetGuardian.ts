@@ -5,7 +5,7 @@ import {
   fetchTotalRefundedPSP,
 } from '../persistance/db-persistance';
 import { ZERO_BN } from '../../../src/lib/utils/helpers';
-import { GasRefundV2EpochFlip } from '../../../src/lib/gas-refund';
+import { GasRefundV2EpochFlip } from '../../../src/lib/gas-refund/gas-refund';
 
 export const MAX_PSP_GLOBAL_BUDGET_YEARLY = new BigNumber(
   30_000_000,

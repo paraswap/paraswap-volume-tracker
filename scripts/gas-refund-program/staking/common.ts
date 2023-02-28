@@ -1,5 +1,5 @@
 import BigNumber from 'bignumber.js';
-import { VIRTUAL_LOCKUP_PERIOD } from '../../../src/lib/gas-refund';
+import { VIRTUAL_LOCKUP_PERIOD } from '../../../src/lib/gas-refund/gas-refund';
 import { TimeSeries, timeseriesComparator } from '../timeseries';
 
 export function computeMinStakedBalanceDuringVirtualLockup(

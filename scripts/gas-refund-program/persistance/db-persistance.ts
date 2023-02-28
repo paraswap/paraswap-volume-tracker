@@ -4,7 +4,7 @@ import {
   GasRefundParticipantData,
   TransactionStatus,
   GasRefundV2EpochFlip,
-} from '../../../src/lib/gas-refund';
+} from '../../../src/lib/gas-refund/gas-refund';
 import { GasRefundParticipation } from '../../../src/models/GasRefundParticipation';
 import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
 import { GasRefundDistribution } from '../../../src/models/GasRefundDistribution';

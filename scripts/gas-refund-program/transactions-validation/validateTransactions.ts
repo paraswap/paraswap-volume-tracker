@@ -11,7 +11,7 @@ import {
   TOTAL_EPOCHS_IN_YEAR,
   TransactionStatus,
   GRP_MAX_REFUND_PERCENT,
-} from '../../../src/lib/gas-refund';
+} from '../../../src/lib/gas-refund/gas-refund';
 import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
 import {
   fetchLastEpochRefunded,
@@ -32,7 +32,7 @@ import {
   constructFetchParaBoostPerAccountMem,
   ParaBoostPerAccount,
 } from './paraBoost';
-import { getCurrentEpoch } from '../../../src/lib/epoch-helpers';
+import { getCurrentEpoch } from '../../../src/lib/gas-refund/epoch-helpers';
 
 /**
  * This function guarantees that the order of transactions refunded will always be stable.

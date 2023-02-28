@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { assert } from 'ts-essentials';
-import { GasRefundV2EpochFlip } from '../../../src/lib/gas-refund';
+import { GasRefundV2EpochFlip } from '../../../src/lib/gas-refund/gas-refund';
 
 export type ParaBoostPerAccount = { [account: string]: number };
 type MinParaBoostData = {

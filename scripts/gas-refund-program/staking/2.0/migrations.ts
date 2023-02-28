@@ -7,13 +7,13 @@ import {
 import { GasRefundTransaction } from '../../types';
 
 import ERC20StateTracker, { Transfer } from './ERC20StateTracker';
-import { GRP_V2_SUPPORTED_CHAINS_STAKING } from '../../../../src/lib/gas-refund';
+import { GRP_V2_SUPPORTED_CHAINS_STAKING } from '../../../../src/lib/gas-refund/gas-refund';
 import { MIGRATION_SEPSP2_100_PERCENT_KEY } from './utils';
 import {
   forceStakingChainId,
   grp2ConfigByChain,
   grp2GlobalConfig,
-} from '../../../../src/lib/config';
+} from '../../../../src/lib/gas-refund/config';
 
 const transform = (
   events: Transfer[],

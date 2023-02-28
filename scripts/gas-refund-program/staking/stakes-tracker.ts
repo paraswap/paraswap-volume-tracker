@@ -2,13 +2,13 @@ import { assert } from 'ts-essentials';
 import {
   OFFSET_CALC_TIME,
   SCRIPT_START_TIME_SEC,
-} from '../../../src/lib/common';
-import { forceStakingChainId } from '../../../src/lib/config';
+} from '../../../src/lib/gas-refund/common';
+import { forceStakingChainId } from '../../../src/lib/gas-refund/config';
 import { CHAIN_ID_MAINNET } from '../../../src/lib/constants';
 import {
   getCurrentEpoch,
   getEpochStartCalcTime,
-} from '../../../src/lib/epoch-helpers';
+} from '../../../src/lib/gas-refund/epoch-helpers';
 import {
   GasRefundGenesisEpoch,
   GasRefundSafetyModuleAllPSPInBptFixStartEpoch,
@@ -16,7 +16,7 @@ import {
   GasRefundSPSPStakesAlgoFlipEpoch,
   GasRefundV2EpochFlip,
   GasRefundVirtualLockupStartEpoch,
-} from '../../../src/lib/gas-refund';
+} from '../../../src/lib/gas-refund/gas-refund';
 import { getLatestEpochRefundedAllChains } from '../persistance/db-persistance';
 import { StakeV2Resolver } from './2.0/StakeV2Resolver';
 import SafetyModuleStakesTracker from './safety-module-stakes-tracker';

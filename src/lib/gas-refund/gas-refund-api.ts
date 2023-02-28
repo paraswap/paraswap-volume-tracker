@@ -3,24 +3,24 @@ import { Contract } from '@ethersproject/contracts';
 import _ from 'lodash';
 import { assert } from 'ts-essentials';
 import * as Sequelize from 'sequelize';
-import Database from '../database';
-import { GasRefundParticipation } from '../models/GasRefundParticipation';
-import { GasRefundDistribution } from '../models/GasRefundDistribution';
+import Database from '../../database';
+import { GasRefundParticipation } from '../../models/GasRefundParticipation';
+import { GasRefundDistribution } from '../../models/GasRefundDistribution';
 import {
   CHAIN_ID_BINANCE,
   CHAIN_ID_FANTOM,
   CHAIN_ID_GOERLI,
   CHAIN_ID_MAINNET,
   CHAIN_ID_POLYGON,
-} from './constants';
-import { EpochInfo } from './epoch-info';
+} from '../constants';
+import { EpochInfo } from '../epoch-info';
 import { GasRefundGenesisEpoch, GasRefundV2EpochFlip } from './gas-refund';
-import { Provider } from './provider';
-import * as MerkleRedeemAbi from '../lib/abi/merkle-redeem.abi.json';
+import { Provider } from '../provider';
+import * as MerkleRedeemAbi from '../abi/merkle-redeem.abi.json';
 import {
   sePSPMigrations,
   SePSPMigrationsData,
-} from '../models/sePSPMigrations';
+} from '../../models/sePSPMigrations';
 import { getCurrentEpoch } from './epoch-helpers';
 
 interface MerkleRedeem extends Contract {

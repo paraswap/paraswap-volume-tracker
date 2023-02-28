@@ -1,5 +1,5 @@
-import { forceEthereumMainnet } from '../../../src/lib/config';
-import { GasRefundPricingAlgoFlipEpoch } from '../../../src/lib/gas-refund';
+import { forceEthereumMainnet } from '../../../src/lib/gas-refund/config';
+import { GasRefundPricingAlgoFlipEpoch } from '../../../src/lib/gas-refund/gas-refund';
 import {
   constructPriceResolver,
   fetchDailyPSPChainCurrencyRate,

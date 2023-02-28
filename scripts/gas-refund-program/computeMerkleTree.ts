@@ -14,7 +14,7 @@ import {
   GasRefundGenesisEpoch,
   GRP_SUPPORTED_CHAINS,
   TransactionStatus,
-} from '../../src/lib/gas-refund';
+} from '../../src/lib/gas-refund/gas-refund';
 import { GasRefundTransaction } from '../../src/models/GasRefundTransaction';
 import { saveMerkleTreeInFile } from './persistance/file-persistance';
 import {

@@ -21,7 +21,7 @@ import {
   SPSPAddresses,
   SPSPHelper,
 } from '../../../src/lib/staking/spsp-helper';
-import { VIRTUAL_LOCKUP_PERIOD } from '../../../src/lib/gas-refund';
+import { VIRTUAL_LOCKUP_PERIOD } from '../../../src/lib/gas-refund/gas-refund';
 import { computeMinStakedBalanceDuringVirtualLockup } from './common';
 
 const logger = global.LOGGER('SPSPStakesTracker');
