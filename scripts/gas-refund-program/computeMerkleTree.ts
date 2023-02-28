@@ -17,12 +17,13 @@ import {
 } from '../../src/lib/gas-refund/gas-refund';
 import { GasRefundTransaction } from '../../src/models/GasRefundTransaction';
 import { saveMerkleTreeInFile } from './persistance/file-persistance';
+
+import Database from '../../src/database';
 import {
   getCurrentEpoch,
   loadEpochMetaData,
   resolveEpochCalcTimeInterval,
-} from './epoch-helpers';
-import Database from '../../src/database';
+} from '../../src/lib/gas-refund/epoch-helpers';
 
 const logger = global.LOGGER('GRP:COMPUTE_MERKLE_TREE');
 
