@@ -21,6 +21,7 @@ import {
   sePSPMigrations,
   SePSPMigrationsData,
 } from '../models/sePSPMigrations';
+import { getCurrentEpoch } from './epoch-helpers';
 
 interface MerkleRedeem extends Contract {
   callStatic: {
@@ -79,7 +80,7 @@ type BaseGasRefundClaimsResponse<T> = {
 type GasRefundClaimsResponseAcc = BaseGasRefundClaimsResponse<bigint>;
 type GasRefundClaimsResponse = BaseGasRefundClaimsResponse<string> & {
   pendingClaimable: string;
-  pendingRefundBreakdownPerEpoch: PendingRefundData[],
+  pendingRefundBreakdownPerEpoch: PendingRefundData[];
   txParams: {
     to: string;
     data: string | null;
@@ -244,7 +245,7 @@ export class GasRefundApi {
   async getAllGasRefundDataForAddress(
     address: string,
   ): Promise<GasRefundClaimsResponse> {
-    const lastEpoch = (await this.epochInfo.getCurrentEpoch()) - 1; // FIXME epochInfo is not safe for v2
+    const lastEpoch = getCurrentEpoch() - 1;
 
     const startEpoch = GasRefundGenesisEpoch;
     const endEpoch = Math.max(lastEpoch, GasRefundGenesisEpoch);
@@ -252,10 +253,7 @@ export class GasRefundApi {
     const [
       merkleData,
       epochToClaimed,
-      {
-        totalPendingRefundAmount,
-        pendingRefundBreakdownPerEpoch,
-      },
+      { totalPendingRefundAmount, pendingRefundBreakdownPerEpoch },
     ] = await Promise.all([
       this._fetchMerkleData(address),
       this._getClaimStatus(address, startEpoch, endEpoch),

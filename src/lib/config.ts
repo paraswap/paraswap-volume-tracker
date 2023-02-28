@@ -1,9 +1,6 @@
 import { identity } from 'lodash';
-import { CHAIN_ID_GOERLI, CHAIN_ID_MAINNET } from '../../src/lib/constants';
-import {
-  GasRefundV2EpochFlip,
-  isMainnetStaking,
-} from '../../src/lib/gas-refund';
+import { CHAIN_ID_GOERLI, CHAIN_ID_MAINNET } from './constants';
+import { GasRefundV2EpochFlip, isMainnetStaking } from './gas-refund';
 
 type GRPV2GlobalConfig = {
   startEpochTimestamp: number;

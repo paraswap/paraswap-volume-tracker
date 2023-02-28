@@ -1,7 +1,7 @@
 import { assert, AsyncOrSync } from 'ts-essentials';
-import { CHAIN_ID_MAINNET } from '../../src/lib/constants';
-import { EpochInfo } from '../../src/lib/epoch-info';
-import { GasRefundV2EpochFlip } from '../../src/lib/gas-refund';
+import { CHAIN_ID_MAINNET } from './constants';
+import { EpochInfo } from './epoch-info';
+import { GasRefundV2EpochFlip } from './gas-refund';
 import { OFFSET_CALC_TIME, SCRIPT_START_TIME_SEC } from './common';
 import { grp2GlobalConfig } from './config';
 

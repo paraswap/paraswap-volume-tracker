@@ -27,11 +27,12 @@ import {
   fetchMigrationsTxHashesSet,
   MIGRATION_SEPSP2_100_PERCENT_KEY,
 } from '../staking/2.0/utils';
-import { getCurrentEpoch } from '../epoch-helpers';
+
 import {
   constructFetchParaBoostPerAccountMem,
   ParaBoostPerAccount,
 } from './paraBoost';
+import { getCurrentEpoch } from '../../../src/lib/epoch-helpers';
 
 /**
  * This function guarantees that the order of transactions refunded will always be stable.

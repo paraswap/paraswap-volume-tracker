@@ -30,7 +30,8 @@ import {
 } from '../../../src/lib/constants';
 import { getMigrationsTxs } from '../staking/2.0/migrations';
 import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/utils';
-import { grp2ConfigByChain } from '../config';
+import { grp2ConfigByChain } from '../../../src/lib/config';
+
 
 type GetAllTXsInput = {
   startTimestamp: number;

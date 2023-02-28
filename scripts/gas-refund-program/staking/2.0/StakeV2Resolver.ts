@@ -1,9 +1,12 @@
 import BigNumber from 'bignumber.js';
 import { assert } from 'ts-essentials';
 import { BlockInfo } from '../../../../src/lib/block-info';
+import {
+  grp2ConfigByChain,
+  grp2GlobalConfig,
+} from '../../../../src/lib/config';
 import { AbstractStateTracker } from './AbstractStateTracker';
 import BPTStateTracker from './BPTStateTracker';
-import { grp2ConfigByChain, grp2GlobalConfig } from '../../config';
 import ERC20StateTracker from './ERC20StateTracker';
 
 export class StakeV2Resolver extends AbstractStateTracker {

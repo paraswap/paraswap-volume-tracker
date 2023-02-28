@@ -7,7 +7,7 @@ import StakesTracker from './staking/stakes-tracker';
 import { validateTransactions } from './transactions-validation/validateTransactions';
 import { fetchRefundableTransactionsAllChains } from './transactions-indexing/fetchRefundableTransactionsAllChains';
 import { GasRefundTransaction } from '../../src/models/GasRefundTransaction';
-import { loadEpochMetaData } from './epoch-helpers';
+import { loadEpochMetaData } from '../../src/lib/epoch-helpers';
 
 const logger = global.LOGGER('GRP');
 
