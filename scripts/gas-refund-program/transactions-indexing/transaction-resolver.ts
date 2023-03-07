@@ -45,14 +45,13 @@ const StakingV1ContractAddressByChain: Record<number, string[]> = {
   [CHAIN_ID_MAINNET]: [...SPSPAddresses, SAFETY_MODULE_ADDRESS],
 };
 
-// FIXME verify with final contract addresses
 const contractAddressesByChain: Record<number, string[]> = {
   [CHAIN_ID_MAINNET]: [
     ...(isMainnetStaking
       ? [
           MIGRATION_SEPSP2_100_PERCENT_KEY,
-          grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP1,
-          grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP2,
+          //grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP1,
+          //grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP2,
         ]
       : []),
     AUGUSTUS_V5_ADDRESS,
