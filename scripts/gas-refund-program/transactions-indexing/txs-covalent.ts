@@ -12,12 +12,14 @@ interface GetContractTXsByNetworkInput {
   endTimestamp: number;
 }
 
+// DEPRECATED does not work anymore, throws error: Time bound query parameters are deprecated. Please refer to https://www.covalenthq.com/docs/api/transactions/get-time-bucket-transactions-for-address-v3/.
 export const covalentGetTXsForContract = async ({
   startTimestamp,
   endTimestamp,
   chainId,
   contract,
 }: GetContractTXsByNetworkInput): Promise<CovalentTransaction[]> => {
+  throw new Error('DEPRECATED')
   const covalentAddressToTransaction = (
     txCov: CovalentAPI.Transaction,
   ): GasRefundTransaction => ({
