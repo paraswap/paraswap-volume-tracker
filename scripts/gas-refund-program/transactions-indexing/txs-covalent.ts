@@ -1,3 +1,8 @@
+import { assert } from 'ts-essentials';
+import {
+  CovalentTransactionV3,
+  getBulkTimeBucketTxsWithinInterval,
+} from '../../../src/lib/utils/covalent';
 import { covalentClient } from '../../../src/lib/utils/data-providers-clients';
 import {
   CovalentAPI,
@@ -19,7 +24,7 @@ export const covalentGetTXsForContract = async ({
   chainId,
   contract,
 }: GetContractTXsByNetworkInput): Promise<CovalentTransaction[]> => {
-  throw new Error('DEPRECATED')
+  throw new Error('DEPRECATED');
   const covalentAddressToTransaction = (
     txCov: CovalentAPI.Transaction,
   ): GasRefundTransaction => ({
@@ -96,4 +101,48 @@ export const covalentGetTXsForContract = async ({
     );
 
   return filteredItems;
+};
+
+export const covalentGetTXsForContractV3 = async ({
+  startTimestamp,
+  endTimestamp,
+  chainId,
+  contract,
+}: GetContractTXsByNetworkInput): Promise<GasRefundTransaction[]> => {
+  assert(
+    contract.toLowerCase() === contract,
+    'contract address should be lower cased',
+  );
+
+  const covalentAddressToTransaction = (
+    txCov: CovalentTransactionV3,
+  ): GasRefundTransaction => ({
+    txHash: txCov.tx_hash,
+    txOrigin: txCov.from_address,
+    txGasPrice: txCov.gas_price.toString(),
+    txGasUsed: txCov.gas_spent.toString(),
+    blockNumber: txCov.block_height.toString(),
+    // convert time to unixtime (seconds)
+    timestamp: (new Date(txCov.block_signed_at).getTime() / 1000).toString(),
+    contract,
+  });
+
+  const allTxs = await getBulkTimeBucketTxsWithinInterval({
+    account: contract,
+    startTimestamp,
+    endTimestamp,
+    chainId,
+  });
+
+  const rawTxs = allTxs.filter(t => t.to_address.toLowerCase() === contract);
+
+  const txs = rawTxs.map(covalentAddressToTransaction);
+
+  const filteredTxs = txs
+    // ensure we only return those within the specified range and not those included in the safety margin
+    .filter(
+      tx => +tx.timestamp >= startTimestamp && +tx.timestamp <= endTimestamp,
+    );
+
+  return filteredTxs;
 };
