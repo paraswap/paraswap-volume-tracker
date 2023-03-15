@@ -11,7 +11,7 @@
  * is resolved, that is the response of the code in this file.
  */
 import { SPSPAddresses } from '../../../src/lib/staking/spsp-helper';
-import { covalentGetTXsForContract } from './txs-covalent';
+import { covalentGetTXsForContractV3 } from './txs-covalent';
 import { getTransactionGasUsed } from '../../../src/lib/utils/covalent';
 import StakesTracker from '../staking/stakes-tracker';
 import { getSuccessfulSwaps } from './swaps-subgraph';
@@ -50,8 +50,8 @@ const contractAddressesByChain: Record<number, string[]> = {
     ...(isMainnetStaking
       ? [
           MIGRATION_SEPSP2_100_PERCENT_KEY,
-          //grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP1,
-          //grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP2,
+          grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP1,
+          grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP2,
         ]
       : []),
     AUGUSTUS_V5_ADDRESS,
@@ -206,7 +206,7 @@ export const getTransactionForContract = async ({
     return [];
   }
 
-  const txsFromAllContracts = (await covalentGetTXsForContract({
+  const txsFromAllContracts = (await covalentGetTXsForContractV3({
     startTimestamp,
     endTimestamp,
     chainId,

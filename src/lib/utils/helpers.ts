@@ -6,7 +6,8 @@ import { SUBGRAPH_URL } from '../block-info';
 import { thegraphClient } from './data-providers-clients';
 import { assert } from 'console';
 
-export const ONE_HOUR_SEC = 60 * 60;
+export const ONE_MINUTE_SEC = 60;
+export const ONE_HOUR_SEC = 60 * ONE_MINUTE_SEC;
 const DAY_SEC_MSEC = 1000 * ONE_HOUR_SEC * 24;
 
 export const ZERO_BN = new BigNumber(0);

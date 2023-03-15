@@ -1,6 +1,10 @@
 import { assert } from 'ts-essentials';
 import { URLSearchParams } from 'url';
-import { queryPaginatedData, QueryPaginatedDataParams } from './helpers';
+import {
+  ONE_MINUTE_SEC,
+  queryPaginatedData,
+  QueryPaginatedDataParams,
+} from './helpers';
 import { covalentClient } from './data-providers-clients';
 
 const COVALENT_API_KEY = process.env.COVALENT_API_KEY || 'ckey_docs'; // public, is rate-limited and unreliable
@@ -131,4 +135,70 @@ function makeQueryStr(mapping: Record<string, string | undefined>): string {
   const url = new URLSearchParams(entries);
 
   return url.toString();
+}
+
+interface GetBulkTimeBucketTxs {
+  account: string;
+  chainId: number;
+  timeBucket: number;
+}
+
+export interface CovalentTransactionV3 {
+  tx_hash: string;
+  from_address: string;
+  to_address: string;
+  gas_price: number;
+  block_height: number;
+  block_signed_at: string;
+  gas_spent: string;
+}
+
+interface MinBulkTimeBucketTxsResponse {
+  data: {
+    items: CovalentTransactionV3[];
+  };
+}
+
+export async function getBulkTimeBucketTxs({
+  account,
+  chainId,
+  timeBucket,
+}: GetBulkTimeBucketTxs): Promise<CovalentTransactionV3[]> {
+  assert(chainId === 1, 'support only ethereum');
+
+  const url = `/eth-mainnet/bulk/transactions/${account}/${timeBucket}/?key=${COVALENT_API_KEY}&no-logs=true`;
+  const { data } = await covalentClient.get<MinBulkTimeBucketTxsResponse>(url);
+
+  return data.data.items;
+}
+
+interface GetBulkTimeBucketTxsWithinInterval {
+  account: string;
+  chainId: number;
+  startTimestamp: number;
+  endTimestamp: number;
+}
+
+const bucketSizeInSec = 15 * ONE_MINUTE_SEC;
+export async function getBulkTimeBucketTxsWithinInterval({
+  account,
+  chainId,
+  startTimestamp,
+  endTimestamp,
+}: GetBulkTimeBucketTxsWithinInterval): Promise<CovalentTransactionV3[]> {
+  const timeBuckets: number[] = Array.from(
+    { length: Math.ceil((endTimestamp - startTimestamp) / bucketSizeInSec) },
+    (_, index) =>
+      Math.floor((startTimestamp + index * bucketSizeInSec) / bucketSizeInSec),
+  );
+
+  const txs = (
+    await Promise.all(
+      timeBuckets.map(timeBucket =>
+        getBulkTimeBucketTxs({ account, chainId, timeBucket }),
+      ),
+    )
+  ).flat();
+
+  return txs;
 }
