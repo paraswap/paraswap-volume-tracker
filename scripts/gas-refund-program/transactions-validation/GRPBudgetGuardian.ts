@@ -5,7 +5,10 @@ import {
   fetchTotalRefundedPSP,
 } from '../persistance/db-persistance';
 import { ZERO_BN } from '../../../src/lib/utils/helpers';
-import { GasRefundV2EpochFlip } from '../../../src/lib/gas-refund/gas-refund';
+import {
+  GasRefundV2EpochFlip,
+  GasRefundV2EpochPSPEP3Flip,
+} from '../../../src/lib/gas-refund/gas-refund';
 
 export const MAX_PSP_GLOBAL_BUDGET_YEARLY = new BigNumber(
   30_000_000,
@@ -13,6 +16,7 @@ export const MAX_PSP_GLOBAL_BUDGET_YEARLY = new BigNumber(
 export const MAX_USD_ADDRESS_BUDGET_YEARLY = new BigNumber(30_000);
 export const MAX_USD_ADDRESS_BUDGET_EPOCH_V1 = new BigNumber(1_250); // should have been MAX_USD_ADDRESS_BUDGET_YEARLY.dividedBy(TOTAL_EPOCHS_IN_YEAR) but voted 1250
 export const MAX_USD_ADDRESS_BUDGET_EPOCH_V2 = new BigNumber(2_500);
+export const MAX_USD_ADDRESS_BUDGET_EPOCH_V2_PSPEP3 = new BigNumber(500);
 
 export type GRPSystemState = {
   totalPSPRefundedForYear: BigNumber;
@@ -54,7 +58,9 @@ export class GRPBudgetGuardian {
   getMaxRefundUSDBudgetForEpoch(epoch: number) {
     return epoch < GasRefundV2EpochFlip
       ? MAX_USD_ADDRESS_BUDGET_EPOCH_V1
-      : MAX_USD_ADDRESS_BUDGET_EPOCH_V2;
+      : epoch < GasRefundV2EpochPSPEP3Flip
+      ? MAX_USD_ADDRESS_BUDGET_EPOCH_V2
+      : MAX_USD_ADDRESS_BUDGET_EPOCH_V2_PSPEP3;
   }
 
   // ---------  PSP Global Yearly Budget Limit ---------
