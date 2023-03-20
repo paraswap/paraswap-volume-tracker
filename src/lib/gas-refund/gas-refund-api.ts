@@ -263,7 +263,7 @@ export class GasRefundApi {
     const { totalClaimable, claims } =
       merkleData.reduce<GasRefundClaimsResponseAcc>(
         (acc, claim) => {
-          if (epochToClaimed[claim.epoch]) return acc;
+          if (epochToClaimed[claim.epoch] || claim.refundedAmountPSP === '0') return acc;
 
           const { refundedAmountPSP, ...rClaim } = claim;
           acc.claims.push({ ...rClaim, amount: refundedAmountPSP });
