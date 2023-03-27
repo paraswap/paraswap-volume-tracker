@@ -1,5 +1,6 @@
 import '../../src/lib/log4js';
 import * as dotenv from 'dotenv';
+import { Op } from 'sequelize';
 dotenv.config();
 import { computeMerkleData } from './refund/merkle-tree';
 import {
@@ -58,6 +59,9 @@ export async function computeAndStoreMerkleTreeForChain({
       epoch,
       chainId,
       status: TransactionStatus.VALIDATED,
+      refundedAmountPSP: {
+        [Op.gt]: 0, // fixme: this was not enforced < 32
+      },
     },
     attributes: [
       'address',
