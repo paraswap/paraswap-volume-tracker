@@ -41,6 +41,10 @@ const MerkleRedeemAddress: { [chainId: number]: string } = {
   [CHAIN_ID_BINANCE]: '0x8fdcdAc765128F2A5CB2EB7Ed8990B2B24Cb66d7',
 };
 
+const MerkleRedeemAddressSePSP1: { [chainId: number]: string } = {
+  [CHAIN_ID_MAINNET]: '0x0ecb7de52096638c01757180c88b74e4474473ab',
+};
+
 const MERKLE_DATA_SQL_QUERY = `
   SELECT  grp.address, grp.epoch, grp."merkleProofs", refunds."refundedAmountPSP"
   FROM "GasRefundParticipations" grp
@@ -99,6 +103,7 @@ type MigrationData =
 export class GasRefundApi {
   epochInfo: EpochInfo;
   merkleRedem: MerkleRedeem;
+  merkleRedemSePSP1?: MerkleRedeem;
 
   static instances: { [network: number]: GasRefundApi } = {};
 
@@ -109,6 +114,13 @@ export class GasRefundApi {
       MerkleRedeemAbi,
       Provider.getJsonRpcProvider(this.network),
     ) as unknown as MerkleRedeem;
+    if (network === CHAIN_ID_MAINNET) {
+      this.merkleRedemSePSP1 = new Contract(
+        MerkleRedeemAddressSePSP1[network],
+        MerkleRedeemAbi,
+        Provider.getJsonRpcProvider(this.network),
+      ) as unknown as MerkleRedeem;
+    }
   }
 
   static getInstance(network: number): GasRefundApi {
@@ -168,19 +180,22 @@ export class GasRefundApi {
     endEpoch: number,
   ): Promise<Record<number, boolean>> {
     if (this.network === CHAIN_ID_GOERLI) return {};
-    const claimStatus = await this.merkleRedem.callStatic.claimStatus(
-      address,
-      startEpoch,
-      endEpoch,
-    );
+    const [claimStatusPSP, claimStatusSePSP1] = await Promise.all([
+      this.merkleRedem.callStatic.claimStatus(address, startEpoch, endEpoch),
+      this.merkleRedemSePSP1?.callStatic.claimStatus(
+        address,
+        startEpoch,
+        endEpoch,
+      ) || [],
+    ]);
 
-    const epochToClaimed = claimStatus.reduce<Record<number, boolean>>(
-      (acc, claimed, index) => {
-        acc[startEpoch + index] = claimed;
-        return acc;
-      },
-      {},
-    );
+    let epochToClaimed: Record<string, boolean> = {};
+
+    for (let i = 0; i < endEpoch - startEpoch + 1; i++) {
+      epochToClaimed[startEpoch + i] = Boolean(
+        claimStatusPSP[i] || claimStatusSePSP1[i],
+      );
+    }
 
     assert(
       Object.keys(epochToClaimed).length == endEpoch - startEpoch + 1,
