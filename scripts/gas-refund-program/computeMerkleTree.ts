@@ -59,9 +59,13 @@ export async function computeAndStoreMerkleTreeForChain({
       epoch,
       chainId,
       status: TransactionStatus.VALIDATED,
-      refundedAmountPSP: {
-        [Op.gt]: 0, // fixme: this was not enforced < 32
-      },
+      ...(epoch >= 32
+        ? {
+            refundedAmountPSP: {
+              [Op.gt]: 0, // on epoch=31 the merkle tree got 0s
+            },
+          }
+        : {}),
     },
     attributes: [
       'address',

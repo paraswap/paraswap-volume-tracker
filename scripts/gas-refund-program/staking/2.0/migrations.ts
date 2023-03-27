@@ -23,10 +23,10 @@ const transform = (
   events.map(event => ({
     account: event.args.to.toLowerCase(),
     chainId,
-    epoch,
+    epoch: +event.blockNumber < 16669614 ? 31 : 32, // simple patch to allow recompute old data safely
     txHash: event.transactionHash,
     blockNumber: event.blockNumber,
-    txTimestamp: event.blockNumber,
+    txTimestamp: event.blockNumber, // bug but not important for logic
   }));
 
 type GetMigrationsTXsInput = {
