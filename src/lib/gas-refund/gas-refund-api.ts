@@ -85,7 +85,7 @@ type GasRefundClaimsResponseAcc = BaseGasRefundClaimsResponse<bigint>;
 type GasRefundClaimsResponse = BaseGasRefundClaimsResponse<string> & {
   pendingClaimable: string;
   pendingRefundBreakdownPerEpoch: PendingRefundData[];
-  txParams: {
+  txParams?: {
     to: string;
     data: string | null;
     chainId: number;
@@ -315,11 +315,11 @@ export class GasRefundApi {
       claims,
       pendingClaimable: totalPendingRefundAmount.toString(),
       pendingRefundBreakdownPerEpoch,
-      txParams: {
-        to: this.merkleRedem.address,
-        data,
-        chainId: this.network,
-      },
+      // txParams: {
+      //   to: this.merkleRedem.address,
+      //   data,
+      //   chainId: this.network,
+      // },
     };
   }
 
