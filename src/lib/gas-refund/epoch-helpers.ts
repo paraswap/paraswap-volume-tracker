@@ -135,3 +135,5 @@ export const resolveEpochCalcTimeInterval = (epoch: number) =>
 export const getCurrentEpoch = () => getEpochResolverForNow().getCurrentEpoch();
 export const getEpochStartCalcTime = (epoch: number) =>
   getEpochResolverForEpoch(epoch).getEpochStartCalcTime(epoch);
+export const resolveV2EpochNumber = (timestamp: number) =>
+    GRP2EpochResolver.resolveEpochNumber(timestamp)
