@@ -41,7 +41,7 @@ const MerkleRedeemAddress: { [chainId: number]: string } = {
   [CHAIN_ID_BINANCE]: '0x8fdcdAc765128F2A5CB2EB7Ed8990B2B24Cb66d7',
 };
 
-const MerkleRedeemAddressSePSP1: { [chainId: number]: string } = {
+export const MerkleRedeemAddressSePSP1: { [chainId: number]: string } = {
   [CHAIN_ID_MAINNET]: '0x0ecb7de52096638c01757180c88b74e4474473ab',
 };
 
