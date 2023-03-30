@@ -13,7 +13,7 @@ import * as MerkleRedeemAbi from '../../../../src/lib/abi/merkle-redeem.abi.json
 import { Provider } from '../../../../src/lib/provider';
 import { fetchBlockTimestampForEvents } from '../../../../src/lib/utils/helpers';
 import { BlockInfo } from '../../../../src/lib/block-info';
-import { MerkleRedeemAddressSePSP1 } from '../../../../src/lib/gas-refund/gas-refund-api';
+import { EPOCH_WHEN_SWITCHED_TO_SE_PSP1, MerkleRedeemAddressSePSP1 } from '../../../../src/lib/gas-refund/gas-refund-api';
 
 const logger = global.LOGGER('ClaimableSePSP1StateTracker');
 
@@ -38,9 +38,6 @@ type InitState = {
 type DiffState = {
   balance: TimeSeriesByAccount
 };
-
-const EPOCH_WHEN_SWITCHED_TO_SE_PSP1 = 32;
-
 
 export class ClaimableSePSP1StateTracker extends AbstractStateTracker {
   initState: InitState = {

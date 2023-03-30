@@ -45,6 +45,8 @@ export const MerkleRedeemAddressSePSP1: { [chainId: number]: string } = {
   [CHAIN_ID_MAINNET]: '0x0ecb7de52096638c01757180c88b74e4474473ab',
 };
 
+export const EPOCH_WHEN_SWITCHED_TO_SE_PSP1 = 32;
+
 const MERKLE_DATA_SQL_QUERY = `
   SELECT  grp.address, grp.epoch, grp."merkleProofs", refunds."refundedAmountPSP"
   FROM "GasRefundParticipations" grp
@@ -79,7 +81,7 @@ type PendingRefundData = PendingRefundRawData & { epoch2: number };
 
 type BaseGasRefundClaimsResponse<T> = {
   totalClaimable: T;
-  claims: (Omit<GasRefundClaim, 'refundedAmountPSP'> & { amount: string })[];
+  claims: (Omit<GasRefundClaim, 'refundedAmountPSP'> & { amount: string, contract: string })[];
 };
 type GasRefundClaimsResponseAcc = BaseGasRefundClaimsResponse<bigint>;
 type GasRefundClaimsResponse = BaseGasRefundClaimsResponse<string> & {
@@ -94,11 +96,11 @@ type GasRefundClaimsResponse = BaseGasRefundClaimsResponse<string> & {
 
 type MigrationData =
   | {
-      hasMigrated: false;
-    }
+    hasMigrated: false;
+  }
   | ({
-      hasMigrated: true;
-    } & SePSPMigrationsData);
+    hasMigrated: true;
+  } & SePSPMigrationsData);
 
 export class GasRefundApi {
   epochInfo: EpochInfo;
@@ -281,7 +283,10 @@ export class GasRefundApi {
           if (epochToClaimed[claim.epoch]) return acc;
 
           const { refundedAmountPSP, ...rClaim } = claim;
-          acc.claims.push({ ...rClaim, amount: refundedAmountPSP });
+
+          const shouldSwitchToSePSP1Contract =  this.network === CHAIN_ID_MAINNET && claim.epoch >= EPOCH_WHEN_SWITCHED_TO_SE_PSP1;
+          const contract = shouldSwitchToSePSP1Contract ? MerkleRedeemAddressSePSP1[this.network] : MerkleRedeemAddress[this.network];
+          acc.claims.push({ ...rClaim, amount: refundedAmountPSP, contract });
           acc.totalClaimable += BigInt(refundedAmountPSP);
 
           return acc;
@@ -295,13 +300,13 @@ export class GasRefundApi {
     const data = !claims.length
       ? null
       : claims.length == 1
-      ? this.merkleRedem.interface.encodeFunctionData('claimWeek', [
+        ? this.merkleRedem.interface.encodeFunctionData('claimWeek', [
           address,
           claims[0].epoch,
           claims[0].amount,
           claims[0].merkleProofs,
         ])
-      : this.merkleRedem.interface.encodeFunctionData('claimWeeks', [
+        : this.merkleRedem.interface.encodeFunctionData('claimWeeks', [
           address,
           claims.map(({ epoch, merkleProofs, amount }) => ({
             week: epoch,
