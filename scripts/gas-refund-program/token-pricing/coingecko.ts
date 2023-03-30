@@ -17,8 +17,8 @@ export const coingeckoClient = constructHttpClient({
   },
   rateLimitOptions: {
     maxRPS: undefined, // to override default maxRPS
-    maxRequests: 1, 
-    perMilliseconds: 10_000,
+    maxRequests: 5, 
+    perMilliseconds: 60_000,
   },
 });
 
