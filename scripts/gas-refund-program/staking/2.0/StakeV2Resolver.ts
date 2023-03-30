@@ -7,7 +7,7 @@ import {
 } from '../../../../src/lib/gas-refund/config';
 import { AbstractStateTracker } from './AbstractStateTracker';
 import BPTStateTracker from './BPTStateTracker';
-import ClaimableSePSP1StateTracker from './ClaimableSePSP1StateTracker';
+import { ClaimableSePSP1StateTracker } from './ClaimableSePSP1StateTracker';
 import ERC20StateTracker from './ERC20StateTracker';
 
 export class StakeV2Resolver extends AbstractStateTracker {

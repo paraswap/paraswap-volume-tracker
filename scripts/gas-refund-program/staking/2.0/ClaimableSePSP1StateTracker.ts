@@ -42,7 +42,7 @@ type DiffState = {
 const EPOCH_WHEN_SWITCHED_TO_SE_PSP1 = 32;
 
 
-export default class ClaimableSePSP1StateTracker extends AbstractStateTracker {
+export class ClaimableSePSP1StateTracker extends AbstractStateTracker {
   initState: InitState = {
     balance: {}
   };
