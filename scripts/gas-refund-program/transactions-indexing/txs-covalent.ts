@@ -134,7 +134,8 @@ export const covalentGetTXsForContractV3 = async ({
     chainId,
   });
 
-  const rawTxs = allTxs.filter(t => t.to_address.toLowerCase() === contract);
+  // to_address can be null for contract creation that emits an event containing contarct address like https://etherscan.io/tx/0x938502217dc02b4bb8cd42a85a1995703c0173a6196e9ecdf8f1310a13842645
+  const rawTxs = allTxs.filter(t => t.to_address?.toLowerCase() === contract);
 
   const txs = rawTxs.map(covalentAddressToTransaction);
 
