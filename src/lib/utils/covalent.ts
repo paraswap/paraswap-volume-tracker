@@ -146,7 +146,7 @@ interface GetBulkTimeBucketTxs {
 export interface CovalentTransactionV3 {
   tx_hash: string;
   from_address: string;
-  to_address: string;
+  to_address: string | null;
   gas_price: number;
   block_height: number;
   block_signed_at: string;
