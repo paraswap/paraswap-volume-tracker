@@ -77,7 +77,7 @@ export const startOfDayMilliSec = (timestamp: number) => {
   return Math.floor(timestamp / DAY_SEC_MSEC) * DAY_SEC_MSEC;
 };
 
-async function fetchBlocksTimestamps({
+export async function fetchBlocksTimestamps({
   chainId,
   blockNumbers: _blockNumbers,
 }: {

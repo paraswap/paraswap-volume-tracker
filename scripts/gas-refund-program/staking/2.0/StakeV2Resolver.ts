@@ -7,12 +7,14 @@ import {
 } from '../../../../src/lib/gas-refund/config';
 import { AbstractStateTracker } from './AbstractStateTracker';
 import BPTStateTracker from './BPTStateTracker';
+import { ClaimableSePSP1StateTracker } from './ClaimableSePSP1StateTracker';
 import ERC20StateTracker from './ERC20StateTracker';
 
 export class StakeV2Resolver extends AbstractStateTracker {
   sePSP1Tracker: ERC20StateTracker;
   sePSP2Tracker: ERC20StateTracker;
   bptTracker: BPTStateTracker;
+  claimableSePSP1Tracker: ClaimableSePSP1StateTracker;
   static instance: { [chainId: string]: StakeV2Resolver } = {};
 
   constructor(protected chainId: number) {
@@ -24,6 +26,7 @@ export class StakeV2Resolver extends AbstractStateTracker {
     this.sePSP1Tracker = ERC20StateTracker.getInstance(chainId, sePSP1);
     this.sePSP2Tracker = ERC20StateTracker.getInstance(chainId, sePSP2);
     this.bptTracker = BPTStateTracker.getInstance(chainId);
+    this.claimableSePSP1Tracker = ClaimableSePSP1StateTracker.getInstance(chainId)
   }
 
   static getInstance(chainId: number) {
@@ -53,8 +56,8 @@ export class StakeV2Resolver extends AbstractStateTracker {
     );
     assert(
       typeof _startBlock === 'number' &&
-        _startBlock > 0 &&
-        _startBlock < _endBlock,
+      _startBlock > 0 &&
+      _startBlock < _endBlock,
       '_startBlock should be a number and 0 < _startBlock < endBlock',
     );
 
@@ -72,26 +75,30 @@ export class StakeV2Resolver extends AbstractStateTracker {
     const boundary = this.getBlockTimeBoundary();
     assert(
       boundary.startTimestamp === startTimestamp &&
-        boundary.endTimestamp == endTimestamp,
+      boundary.endTimestamp == endTimestamp,
       'wrong boundary resolved',
     );
 
     this.sePSP1Tracker.setBlockTimeBoundary(boundary);
     this.sePSP2Tracker.setBlockTimeBoundary(boundary);
     this.bptTracker.setBlockTimeBoundary(boundary);
+    this.claimableSePSP1Tracker.setBlockTimeBoundary(boundary);
 
     await Promise.all([
       this.sePSP1Tracker.loadStates(),
       this.sePSP2Tracker.loadStates(),
       this.bptTracker.loadStates(),
+      this.claimableSePSP1Tracker.loadStates()
     ]);
   }
 
+  // returns stakesScore(t)
   getStakeForRefund(timestamp: number, account: string): BigNumber {
     this.assertTimestampWithinLoadInterval(timestamp);
 
     const sePSP1Balance = this.sePSP1Tracker.getBalance(timestamp, account);
     const sePSP2Balance = this.sePSP2Tracker.getBalance(timestamp, account);
+    const claimableSePSP1 = this.claimableSePSP1Tracker.getBalance(timestamp, account);
     const { pspBalance: bptPSPBalance, totalSupply: bptTotalSupply } =
       this.bptTracker.getBPTState(timestamp);
 
@@ -101,6 +108,7 @@ export class StakeV2Resolver extends AbstractStateTracker {
       .decimalPlaces(0, BigNumber.ROUND_DOWN);
 
     const stake = sePSP1Balance
+      .plus(claimableSePSP1)
       .plus(pspInSePSP2.multipliedBy(grp2GlobalConfig.sePSP2PowerMultiplier))
       .decimalPlaces(0, BigNumber.ROUND_DOWN);
 
