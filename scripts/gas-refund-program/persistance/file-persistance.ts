@@ -14,6 +14,20 @@ const constructFilePath = ({
 
 const logger = global.LOGGER('GRP:MERKLE_TREE:SAVE_FILE');
 
+type FileMerkleTreeData = {
+  root: {
+    merkleRoot: string;
+    totalAmount: string;
+    epoch: number;
+  };
+  merkleProofs: {
+    address: string;
+    amount: string;
+    epoch: number;
+    proof: string[];
+  }[];
+};
+
 export async function saveMerkleTreeInFile({
   chainId,
   epoch,
@@ -31,7 +45,15 @@ export async function saveMerkleTreeInFile({
     });
   } catch {}
 
-  await writeFile(fileLocation, JSON.stringify(merkleTree));
+  const fMerkleTree: FileMerkleTreeData = {
+    root: merkleTree.root,
+    merkleProofs: merkleTree.leaves.map(v => {
+      const { merkleProofs, ...r } = v;
+      return { ...r, proof: merkleProofs };
+    }),
+  };
+
+  await writeFile(fileLocation, JSON.stringify(fMerkleTree));
 
   logger.info(`successfully saved merkle tree at ${fileLocation}`);
 }
