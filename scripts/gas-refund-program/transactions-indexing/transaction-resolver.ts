@@ -52,6 +52,7 @@ const contractAddressesByChain: Record<number, string[]> = {
           MIGRATION_SEPSP2_100_PERCENT_KEY,
           grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP1,
           grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP2,
+          '0xf6ef5292b8157c2e604363f92d0f1d176e0dc1be', // sePSP1 -> sePSP2 migrator, needed otherwise staking txs are not counted.
         ]
       : []),
     AUGUSTUS_V5_ADDRESS,
