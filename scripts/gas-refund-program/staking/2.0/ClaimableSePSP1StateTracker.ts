@@ -120,7 +120,7 @@ export class ClaimableSePSP1StateTracker extends AbstractStateTracker {
   }
 
   async _getDistributionsTimeSeriesByAccount(filterEpoch: (epoch: number) => boolean) {
-    const merkleDataByEpoch = await MerkleRedeemHelperSePSP1.getInstance().getMerkleDataByEpoch();
+    const {merkleDataByEpoch} = await MerkleRedeemHelperSePSP1.getInstance().getMerkleDataByEpochWithCacheKey();
     const epochsDistributedWithinInterval = Object.keys(merkleDataByEpoch).map(Number).filter(filterEpoch);
     if (epochsDistributedWithinInterval.length === 0) return {}
 
@@ -136,7 +136,7 @@ export class ClaimableSePSP1StateTracker extends AbstractStateTracker {
     // we consider sePSP1 belonging to the user right from the beginning of next epoch, right? Rrriight?
     const timeSeriesByAccount = epochsDistributedWithinInterval.reduce((acc, epoch) => {
       const timestamp = accrualTimestampByEpoch[epoch];
-      merkleDataByEpoch[epoch].leaves.forEach(({ address, amount }) => {
+      merkleDataByEpoch[epoch].merkleProofs.forEach(({ address, amount }) => {
         if (!acc[address])
           acc[address] = [];
 
