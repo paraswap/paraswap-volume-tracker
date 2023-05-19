@@ -98,7 +98,7 @@ export const getAllTXs = async ({
   contractAddress,
 }: GetAllTXsInput): Promise<GasRefundTransaction[]> => {
   // fetch swaps and contract (staking pools, safety module) txs
-  if (contractAddress === AUGUSTUS_V5_ADDRESS)
+  if (contractAddress === AUGUSTUS_V5_ADDRESS && chainId !== CHAIN_ID_OPTIMISM)
     return getSwapTXs({
       epoch,
       chainId,
