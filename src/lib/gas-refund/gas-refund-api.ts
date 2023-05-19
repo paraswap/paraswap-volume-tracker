@@ -33,6 +33,7 @@ interface MerkleRedeem extends Contract {
   };
 }
 
+// FIXME merkle redeem address
 const MerkleRedeemAddress: { [chainId: number]: string } = {
   [CHAIN_ID_MAINNET]: '0xFEB7e2D8584BEf7BB21dA0B70C148DABf1388031',
   [CHAIN_ID_GOERLI]: '0xFEB7e2D8584BEf7BB21dA0B70C148DABf1388031', // mainnet addr used as placeholder

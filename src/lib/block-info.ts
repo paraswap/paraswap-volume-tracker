@@ -5,6 +5,7 @@ import {
   CHAIN_ID_POLYGON,
   CHAIN_ID_FANTOM,
   CHAIN_ID_GOERLI,
+  CHAIN_ID_OPTIMISM,
 } from './constants';
 import { Utils } from './utils';
 import { thegraphClient } from './utils/data-providers-clients';
@@ -14,6 +15,8 @@ const logger = global.LOGGER();
 export const SUBGRAPH_URL: { [network: number]: string } = {
   [CHAIN_ID_MAINNET]:
     'https://api.thegraph.com/subgraphs/name/blocklytics/ethereum-blocks',
+  [CHAIN_ID_OPTIMISM]:
+    'https://api.thegraph.com/subgraphs/name/lyra-finance/optimism-mainnet-blocks',
   [CHAIN_ID_ROPSTEN]:
     'https://api.thegraph.com/subgraphs/name/blocklytics/ropsten-blocks',
   [CHAIN_ID_BINANCE]:

@@ -4,6 +4,7 @@ import {
   CHAIN_ID_FANTOM,
   CHAIN_ID_GOERLI,
   CHAIN_ID_MAINNET,
+  CHAIN_ID_OPTIMISM,
   CHAIN_ID_POLYGON,
 } from '../constants';
 import { isTruthy } from '../utils';
@@ -13,6 +14,7 @@ export const isMainnetStaking = true; // TODO FIXME move to env var
 export const GRP_SUPPORTED_CHAINS = [
   isMainnetStaking ? undefined : CHAIN_ID_GOERLI,
   CHAIN_ID_MAINNET,
+  CHAIN_ID_OPTIMISM,
   CHAIN_ID_POLYGON,
   CHAIN_ID_BINANCE,
   CHAIN_ID_FANTOM,
@@ -41,6 +43,7 @@ export const GasRefundVirtualLockupStartEpoch = 17;
 export const GasRefundSafetyModuleAllPSPInBptFixStartEpoch = 20;
 export const GasRefundV2EpochFlip = 31;
 export const GasRefundV2EpochPSPEP3Flip = 32;
+export const GasRefundV2EpochOptimismFlip = 34;
 
 interface BaseGasRefundData {
   epoch: number;

@@ -4,6 +4,7 @@ import {
   CHAIN_ID_BINANCE,
   CHAIN_ID_FANTOM,
   CHAIN_ID_MAINNET,
+  CHAIN_ID_OPTIMISM,
   CHAIN_ID_POLYGON,
 } from '../../../src/lib/constants';
 import {
@@ -82,6 +83,8 @@ query ($number_gte: BigInt, $number_lt: BigInt, $blockHashes: [Bytes!], $first: 
 const SubgraphURLs: { [network: number]: string } = {
   [CHAIN_ID_MAINNET]:
     'https://api.thegraph.com/subgraphs/name/paraswap/paraswap-subgraph',
+  [CHAIN_ID_OPTIMISM]:
+    'https://api.thegraph.com/subgraphs/name/paraswap/paraswap-subgraph-optimism',
   [CHAIN_ID_AVALANCHE]:
     'https://api.thegraph.com/subgraphs/name/paraswap/paraswap-subgraph-avalanche',
   [CHAIN_ID_BINANCE]:

@@ -19,6 +19,7 @@ import { GasRefundTransaction } from '../types';
 import {
   GasRefundConsiderContractTXsStartEpoch,
   GasRefundV2EpochFlip,
+  GasRefundV2EpochOptimismFlip,
   getMinStake,
   isMainnetStaking,
 } from '../../../src/lib/gas-refund/gas-refund';
@@ -27,6 +28,7 @@ import {
   CHAIN_ID_GOERLI,
   SAFETY_MODULE_ADDRESS,
   AUGUSTUS_V5_ADDRESS,
+  CHAIN_ID_OPTIMISM,
 } from '../../../src/lib/constants';
 import { getMigrationsTxs } from '../staking/2.0/migrations';
 import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/utils';
@@ -71,6 +73,10 @@ export const getContractAddresses = ({
   chainId: number;
   epoch: number;
 }) => {
+  if (chainId == CHAIN_ID_OPTIMISM && epoch < GasRefundV2EpochOptimismFlip) {
+    return [];
+  }
+
   if (epoch < GasRefundConsiderContractTXsStartEpoch)
     return [AUGUSTUS_V5_ADDRESS];
 
