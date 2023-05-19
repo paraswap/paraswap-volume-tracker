@@ -1,11 +1,9 @@
 import { assert } from 'ts-essentials';
 import { forceEthereumMainnet } from '../../../src/lib/gas-refund/config';
-import {
-  getCurrentEpoch,
-  resolveEpochCalcTimeInterval,
-} from '../../../src/lib/gas-refund/epoch-helpers';
+import { getCurrentEpoch, resolveEpochCalcTimeInterval } from '../../../src/lib/gas-refund/epoch-helpers';
 import {
   GasRefundGenesisEpoch,
+  GasRefundV2EpochOptimismFlip,
   GRP_SUPPORTED_CHAINS,
 } from '../../../src/lib/gas-refund/gas-refund';
 
@@ -14,15 +12,21 @@ import {
   merkleRootExists,
 } from '../persistance/db-persistance';
 import { fetchPricingAndTransactions } from './fetchPricingAndTransactions';
+import { CHAIN_ID_OPTIMISM } from '../../../src/lib/constants';
 
 const logger = global.LOGGER('GRP::fetchRefundableTransactionsAllChains');
 
 export async function fetchRefundableTransactionsAllChains() {
   return Promise.all(
     GRP_SUPPORTED_CHAINS.map(async chainId => {
-      const lastEpochRefunded = await getLatestEpochRefunded(
+      const _lastEpochRefunded = await getLatestEpochRefunded(
         forceEthereumMainnet(chainId),
       );
+
+      const lastEpochRefunded =
+        chainId !== CHAIN_ID_OPTIMISM
+          ? _lastEpochRefunded
+          : _lastEpochRefunded || GasRefundV2EpochOptimismFlip - 1;
 
       const startEpoch = lastEpochRefunded
         ? lastEpochRefunded + 1

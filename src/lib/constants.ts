@@ -1,4 +1,5 @@
 export const CHAIN_ID_MAINNET = 1;
+export const CHAIN_ID_OPTIMISM = 10;
 export const CHAIN_ID_ROPSTEN = 3;
 export const CHAIN_ID_GOERLI = 5;
 export const CHAIN_ID_BINANCE = 56;
@@ -8,6 +9,7 @@ export const CHAIN_ID_FANTOM = 250;
 
 export const PSP_ADDRESS: { [chainId: number]: string } = {
   [CHAIN_ID_MAINNET]: '0xcafe001067cdef266afb7eb5a286dcfd277f3de5',
+  [CHAIN_ID_OPTIMISM]: '0xd3594e879b358f430e20f82bea61e83562d49d48',
   [CHAIN_ID_GOERLI]: '0xd8744453f3f5f64362FB6C52eadD0250Be4f45b2',
   [CHAIN_ID_BINANCE]: '0xcafe001067cdef266afb7eb5a286dcfd277f3de5',
   [CHAIN_ID_FANTOM]: '0xcafe001067cdef266afb7eb5a286dcfd277f3de5',
@@ -30,6 +32,7 @@ export const Web3Provider: { [network: number]: string } = {
   //[CHAIN_ID_ROPSTEN]: process.env.HTTP_PROVIDER_3 || '',
   [CHAIN_ID_GOERLI]:
     process.env.HTTP_PROVIDER_5 || 'https://rpc.ankr.com/eth_goerli',
+  [CHAIN_ID_OPTIMISM]: process.env.HTTP_PROVIDER_10 || '',
   [CHAIN_ID_BINANCE]: process.env.HTTP_PROVIDER_56 || '',
   [CHAIN_ID_POLYGON]: process.env.HTTP_PROVIDER_137 || '',
   [CHAIN_ID_FANTOM]: process.env.HTTP_PROVIDER_250 || '',
@@ -39,6 +42,7 @@ export const Web3Provider: { [network: number]: string } = {
 // TODO: in future we can fetch it from the api directly
 export const AugustusV5Address: { [network: number]: string } = {
   [CHAIN_ID_MAINNET]: '0xdef171fe48cf0115b1d80b88dc8eab59176fee57',
+  [CHAIN_ID_OPTIMISM]: '0xdef171fe48cf0115b1d80b88dc8eab59176fee57',
   [CHAIN_ID_BINANCE]: '0xdef171fe48cf0115b1d80b88dc8eab59176fee57',
   [CHAIN_ID_POLYGON]: '0xdef171fe48cf0115b1d80b88dc8eab59176fee57',
 };
@@ -68,6 +72,7 @@ export const ParaswapApiURL = 'https://apiv5.paraswap.io';
 
 export const MULTICALL_ADDRESS: any = {
   [CHAIN_ID_MAINNET]: '0xeefba1e63905ef1d7acba5a8513c70307c1ce441',
+  [CHAIN_ID_OPTIMISM]: '0xf9ae5216c5b7096d32bbb114be0c0497ff6fd9cb',
   [CHAIN_ID_GOERLI]: '0xc665bfd44e9382d05c1fa31e426162e5cbe824a2',
   [CHAIN_ID_ROPSTEN]: '0x293405FE3aDefDB94A8A1Ed50873a15C6Cc83BC5',
   [CHAIN_ID_BINANCE]: '0xdc6e2b14260f972ad4e5a31c68294fba7e720701',

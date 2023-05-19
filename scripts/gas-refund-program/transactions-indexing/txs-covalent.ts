@@ -9,6 +9,7 @@ import {
   CovalentTransaction,
   GasRefundTransaction,
 } from '../types';
+import { CHAIN_ID_OPTIMISM } from '../../../src/lib/constants';
 
 interface GetContractTXsByNetworkInput {
   chainId: number;
@@ -116,16 +117,34 @@ export const covalentGetTXsForContractV3 = async ({
 
   const covalentAddressToTransaction = (
     txCov: CovalentTransactionV3,
-  ): GasRefundTransaction => ({
-    txHash: txCov.tx_hash,
-    txOrigin: txCov.from_address,
-    txGasPrice: txCov.gas_price.toString(),
-    txGasUsed: txCov.gas_spent.toString(),
-    blockNumber: txCov.block_height.toString(),
-    // convert time to unixtime (seconds)
-    timestamp: (new Date(txCov.block_signed_at).getTime() / 1000).toString(),
-    contract,
-  });
+  ): GasRefundTransaction => {
+    const {
+      tx_hash: txHash,
+      from_address: txOrigin,
+      gas_price: _txGasPrice,
+      gas_spent: txGasUsed,
+      block_height: blockNumber,
+      block_signed_at: blockTimestamp,
+      fees_paid: feesPaidInChainCurrency,
+    } = txCov;
+
+    const timestamp = (new Date(blockTimestamp).getTime() / 1000).toString(); // convert time to unixtime (seconds)
+
+    const txGasPrice =
+      chainId !== CHAIN_ID_OPTIMISM
+        ? _txGasPrice.toString()
+        : (BigInt(feesPaidInChainCurrency) / BigInt(txGasUsed)).toString(); // virtually scaling gasPrice up for optimism to take into account for L1 tx fees submission (dirty fix, shouldn't cause too much troubles)
+
+    return {
+      txHash,
+      txOrigin,
+      txGasPrice,
+      txGasUsed: txGasUsed.toString(),
+      blockNumber: blockNumber.toString(),
+      timestamp,
+      contract,
+    };
+  };
 
   const allTxs = await getBulkTimeBucketTxsWithinInterval({
     account: contract,
