@@ -1,24 +1,53 @@
+import * as pMemoize from "p-memoize";
 import { constructHttpClient } from "../../../../src/lib/utils/http-client";
-import { MerkleTreeData } from "../../types";
+// this should match to `type FileMerkleTreeData`
+export type MerkleRoot = {
+  merkleRoot: string;
+  totalAmount: string;
+  epoch: number;
+};
+export type MerkleData = {
+  proof: string[];
+  address: string;
+  amount: string;
+  epoch: number;
+};
 
-const merkleTreeDataUrlByEpoch1: Record<number, string> = {
-  // since epoch 32 we started distributing refund in sePSP1 on mainnet
-  32: 'https://gateway.pinata.cloud/ipfs/QmfJzuZp5rU9KedFAJ6zUfst91axqqgCAw28zjmsmk8GFX?_gl=1*118tlu9*_ga*YmFhNzhiNjgtZmFlZS00YzQ2LWIyMGEtODhmM2E2MTU2NDMx*_ga_5RMPXG14TE*MTY4MDAyNzA2Ni4xLjEuMTY4MDAyNzM5NS40Mi4wLjA'
-}
+export type MerkleTreeData = {
+  root: MerkleRoot;
+  merkleProofs: MerkleData[];
+};
 
-const httpClient = constructHttpClient({
-  axiosConfig: {
-    timeout: 5_000,
-  },
-  rateLimitOptions: {
-    maxRPS: undefined, // to override default maxRPS
-  },
-});
+// @TODO: create separate repo just for this config?
+const TREE_DATA_URL_BY_EPOCH_URL = 'https://gist.githubusercontent.com/alexshchur/b310671b65d99088e0d04bdb237f6790/raw/82a905b57813a90630d2a488c394ffab5962e1c4/tmp.json';
+const TREE_DATA_URL_BY_EPOCH_CACHE_MAX_AGE_MS = 60 * 5 * 1000; // 5 minutes
+type UrlByEpoch = Record<number, string>;
+const httpClientWithTempCache = constructHttpClient({
+  cacheOptions: {
+    // debug: console.log, // will refetch on `cache-miss` and `cache-stale`
+    maxAge: TREE_DATA_URL_BY_EPOCH_CACHE_MAX_AGE_MS,
+  }
+})
+const fetchTreeDataUrlByLegacyEpoch = async (): Promise<UrlByEpoch> =>
+  (await httpClientWithTempCache.get<UrlByEpoch>(TREE_DATA_URL_BY_EPOCH_URL)).data
 
 
+const _fetchEpochData = async (url: string): Promise<MerkleTreeData> => (await (httpClientWithTempCache.get<MerkleTreeData>(url))).data
+
+
+// stored on ipfs and is immutable, so can cache forever
+const fetchEpochData = pMemoize(_fetchEpochData, {
+  cacheKey: ([url]) => `epochData_${url}`
+})
+
+export type MerkleTreeDataByEpoch = Record<number, MerkleTreeData>;
 export class MerkleRedeemHelperSePSP1 {
   private static instance: MerkleRedeemHelperSePSP1;
-  private cache: Record<number, MerkleTreeData>
+
+  private cacheData?: {
+    cacheKey: string;
+    merkleDataByEpoch: MerkleTreeDataByEpoch;
+  }
 
   static getInstance() {
     if (!MerkleRedeemHelperSePSP1.instance) {
@@ -27,20 +56,34 @@ export class MerkleRedeemHelperSePSP1 {
     return MerkleRedeemHelperSePSP1.instance;
   }
 
-  async getMerkleDataByEpoch(): Promise<Record<number, MerkleTreeData>> {
-    if (!this.cache) {
-      const promises = Object.keys(merkleTreeDataUrlByEpoch1).map(Number).map(async epoch => ({
-        epoch,
-        data: (await httpClient.get<MerkleTreeData>(merkleTreeDataUrlByEpoch1[epoch])).data
-      }));
+  async getMerkleDataByEpochWithCacheKey(): Promise<{ merkleDataByEpoch: MerkleTreeDataByEpoch, cacheKey: string }> {
+    const merkleTreeDataUrlByLegacyEpoch = await fetchTreeDataUrlByLegacyEpoch();
+    const newCacheKey = JSON.stringify(merkleTreeDataUrlByLegacyEpoch);
+
+    if (!this.cacheData || this.cacheData.cacheKey !== newCacheKey) {
+      const promises = Object.keys(merkleTreeDataUrlByLegacyEpoch)
+        .map(Number)
+        .map(async epoch => ({
+          epoch,
+          data: (
+            await fetchEpochData(
+              merkleTreeDataUrlByLegacyEpoch[epoch],
+            )
+          ),
+        }));
 
       const datas = await Promise.all(promises);
 
-      this.cache = datas.reduce(
-        (acc, { epoch, data }) => ({ ...acc, [epoch]: data }), {} as Record<number, MerkleTreeData>
+      const merkleDataByEpoch = datas.reduce<MerkleTreeDataByEpoch>(
+        (acc, { epoch, data }) => ({ ...acc, [epoch]: data }),
+        {},
       );
-    }
-    return this.cache;
-  }
 
+      this.cacheData = {
+        merkleDataByEpoch,
+        cacheKey: JSON.stringify(merkleTreeDataUrlByLegacyEpoch),
+      }
+    }
+    return this.cacheData;
+  }
 }
