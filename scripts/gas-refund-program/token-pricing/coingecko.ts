@@ -2,13 +2,13 @@ import {
   CHAIN_ID_BINANCE,
   CHAIN_ID_FANTOM,
   CHAIN_ID_MAINNET,
+  CHAIN_ID_OPTIMISM,
   CHAIN_ID_POLYGON,
 } from '../../../src/lib/constants';
 import { HistoricalPrice } from '../types';
 import { constructHttpClient } from '../../../src/lib/utils/http-client';
 import { startOfDayMilliSec } from '../../../src/lib/utils/helpers';
 import { assert } from 'ts-essentials';
-
 
 export const coingeckoClient = constructHttpClient({
   axiosConfig: {
@@ -17,7 +17,7 @@ export const coingeckoClient = constructHttpClient({
   },
   rateLimitOptions: {
     maxRPS: undefined, // to override default maxRPS
-    maxRequests: 5, 
+    maxRequests: 5,
     perMilliseconds: 60_000,
   },
 });
@@ -33,6 +33,7 @@ type ChainToCoin = {
 export const CHAIN_TO_COIN_ID: ChainToCoin = {
   [CHAIN_ID_MAINNET]: 'ethereum',
   [CHAIN_ID_BINANCE]: 'binancecoin',
+  [CHAIN_ID_OPTIMISM]: 'ethereum',
   [CHAIN_ID_POLYGON]: 'matic-network',
   [CHAIN_ID_FANTOM]: 'fantom',
 };

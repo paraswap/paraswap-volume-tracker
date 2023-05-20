@@ -6,6 +6,7 @@ import {
   QueryPaginatedDataParams,
 } from './helpers';
 import { covalentClient } from './data-providers-clients';
+import { CHAIN_ID_MAINNET, CHAIN_ID_OPTIMISM } from '../constants';
 
 const COVALENT_API_KEY = process.env.COVALENT_API_KEY || 'ckey_docs'; // public, is rate-limited and unreliable
 
@@ -151,6 +152,7 @@ export interface CovalentTransactionV3 {
   block_height: number;
   block_signed_at: string;
   gas_spent: string;
+  fees_paid: string;
 }
 
 interface MinBulkTimeBucketTxsResponse {
@@ -159,14 +161,23 @@ interface MinBulkTimeBucketTxsResponse {
   };
 }
 
+const covalentChainName: Record<number, string> = {
+  [CHAIN_ID_MAINNET]: 'eth-mainnet',
+  [CHAIN_ID_OPTIMISM]: 'optimism-mainnet',
+};
 export async function getBulkTimeBucketTxs({
   account,
   chainId,
   timeBucket,
 }: GetBulkTimeBucketTxs): Promise<CovalentTransactionV3[]> {
-  assert(chainId === 1, 'support only ethereum');
+  const chainName = covalentChainName[chainId];
 
-  const url = `/eth-mainnet/bulk/transactions/${account}/${timeBucket}/?key=${COVALENT_API_KEY}&no-logs=true`;
+  assert(
+    chainId in covalentChainName,
+    `querying covalent v3 api for chainId=${chainId} has not been supported, logic error ?`,
+  );
+
+  const url = `/${chainName}/bulk/transactions/${account}/${timeBucket}/?key=${COVALENT_API_KEY}&no-logs=true`;
   const { data } = await covalentClient.get<MinBulkTimeBucketTxsResponse>(url);
 
   return data.data.items;

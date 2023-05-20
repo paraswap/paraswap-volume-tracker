@@ -3,7 +3,7 @@ import {
   GasRefundTransactionData,
   GasRefundParticipantData,
   TransactionStatus,
-  GasRefundV2EpochFlip,
+  GasRefundV2EpochOptimismFlip,
 } from '../../../src/lib/gas-refund/gas-refund';
 import { GasRefundParticipation } from '../../../src/models/GasRefundParticipation';
 import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
@@ -13,6 +13,7 @@ import { Sequelize, Op } from 'sequelize';
 import BigNumber from 'bignumber.js';
 import { assert } from 'ts-essentials';
 import { sliceCalls } from '../../../src/lib/utils/helpers';
+import { CHAIN_ID_OPTIMISM } from '../../../src/lib/constants';
 
 export async function fetchLastTimestampTxByContract({
   chainId,
@@ -117,7 +118,15 @@ export async function getLatestEpochRefundedAllChains() {
     raw: true,
   })) as unknown as { chainId: number; latestEpochRefunded: number }[];
 
-  const latestEpochsRefunded = chainToEpoch.map(t => t.latestEpochRefunded);
+  const _chainToEpoch = chainToEpoch.find(t => t.chainId === CHAIN_ID_OPTIMISM)
+    ? chainToEpoch
+    : chainToEpoch.concat({
+        // ugly fix to prevent having new chains breaking logi
+        chainId: CHAIN_ID_OPTIMISM,
+        latestEpochRefunded: GasRefundV2EpochOptimismFlip - 1,
+      });
+
+  const latestEpochsRefunded = _chainToEpoch.map(t => t.latestEpochRefunded);
 
   // if we didn't get exact same number as supported chains
   // it might be due to data of one chain not being computed yet
