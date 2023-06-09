@@ -31,7 +31,7 @@ export default class Router {
   }
 
   private setRoutes() {
-    this.app.use('/staking', this.setAPIRoutes());
+    this.app.use('/', this.setAPIRoutes());
   }
 
   private setAPIRoutes(): express.Router {
