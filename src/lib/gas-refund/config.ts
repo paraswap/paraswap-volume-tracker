@@ -1,6 +1,6 @@
 import { identity } from 'lodash';
-import { CHAIN_ID_GOERLI, CHAIN_ID_MAINNET } from '../constants';
-import { GasRefundV2EpochFlip, isMainnetStaking } from './gas-refund';
+import {CHAIN_ID_GOERLI, CHAIN_ID_MAINNET, CHAIN_ID_OPTIMISM} from '../constants';
+import { GasRefundV2EpochFlip } from './gas-refund';
 
 type GRPV2GlobalConfig = {
   startEpochTimestamp: number;
@@ -26,6 +26,8 @@ type GRPV2ConfigByChain = {
 
 const l = (s: string) => s.toLowerCase();
 
+export const isMainnetStaking = process.env.MAINNET_STAKING === 'true';
+
 export const grp2ConfigByChain: {
   [chainId: number]: GRPV2ConfigByChain;
 } = {
@@ -45,7 +47,16 @@ export const grp2ConfigByChain: {
     poolId: l(
       '0xdedb0a5abc452164fd241da019741026f6efdc74000200000000000000000223',
     ),
-    migrator: l('0x8580D057198E80ddE65522180fd8edBeA67D61E6'),
+    migrator: l('0x8580D057198E80ddE65522180fd8edBeA67D61E6')
+  },
+  [CHAIN_ID_OPTIMISM]: {
+    sePSP1: l('0x8eEEb2E3E9748adAb1317693C448701A2b783F54'),
+    sePSP2: l('0xF1A5E2dFbC536476c976ab35a2Cbe1a17bada7A1'),
+    bpt: l('0x11f0b5cca01b0f0a9fe6265ad6e8ee3419c68440'),
+    poolId: l(
+      '0x11f0b5cca01b0f0a9fe6265ad6e8ee3419c684400002000000000000000000d4',
+    ),
+    migrator: l('')
   },
 };
 

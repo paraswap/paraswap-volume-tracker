@@ -91,7 +91,7 @@ export async function fetchRefundableTransactions({
           const address = transaction.txOrigin;
 
           const swapperStake =
-            StakesTracker.getInstance().computeStakedPSPBalance(
+            StakesTracker.getInstance(chainId).computeStakedPSPBalance(
               address,
               +transaction.timestamp,
               epoch,

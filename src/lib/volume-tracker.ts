@@ -26,7 +26,7 @@ import { VolumeSyncStatus } from '../models/VolumeSyncStatus';
 
 const logger = global.LOGGER();
 
-const INIT_TIME = parseInt(process.env.INIT_TIME || '0'); //TODO: use the block info to the init time from the init block
+const INIT_TIME = parseInt(process.env.INIT_TIME || '1'); //TODO: use the block info to the init time from the init block
 if (!INIT_TIME) {
   throw new Error('VolumeTracker INIT_TIME env var is missing');
 }

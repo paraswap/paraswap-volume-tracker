@@ -154,7 +154,7 @@ export const getSwapTXs = async ({
 
   // check the swapper is a staker, and likewise hasn't used up their budget, to avoid subsequently wasting resources looking up gas unnecessarily
   const swapsOfQualifyingStakers = swaps.filter(swap => {
-    const swapperStake = StakesTracker.getInstance().computeStakedPSPBalance(
+    const swapperStake = StakesTracker.getInstance(chainId).computeStakedPSPBalance(
       swap.txOrigin,
       +swap.timestamp,
       epoch,

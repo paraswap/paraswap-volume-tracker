@@ -8,8 +8,7 @@ import {
   CHAIN_ID_POLYGON,
 } from '../constants';
 import { isTruthy } from '../utils';
-
-export const isMainnetStaking = true; // TODO FIXME move to env var
+import {isMainnetStaking} from "./config";
 
 export const GRP_SUPPORTED_CHAINS = [
   isMainnetStaking ? undefined : CHAIN_ID_GOERLI,
@@ -21,7 +20,7 @@ export const GRP_SUPPORTED_CHAINS = [
 ].filter(isTruthy);
 
 export const GRP_V2_SUPPORTED_CHAINS_STAKING = new Set(
-  isMainnetStaking ? [CHAIN_ID_MAINNET] : [CHAIN_ID_GOERLI],
+  isMainnetStaking ? [CHAIN_ID_MAINNET, CHAIN_ID_OPTIMISM] : [CHAIN_ID_GOERLI],
 );
 
 const WEEKS_IN_YEAR = 52;

@@ -3,8 +3,6 @@ import {
   OFFSET_CALC_TIME,
   SCRIPT_START_TIME_SEC,
 } from '../../../src/lib/gas-refund/common';
-import { forceStakingChainId } from '../../../src/lib/gas-refund/config';
-import { CHAIN_ID_MAINNET } from '../../../src/lib/constants';
 import {
   getCurrentEpoch,
   getEpochStartCalcTime,
@@ -23,15 +21,19 @@ import SafetyModuleStakesTracker from './safety-module-stakes-tracker';
 import SPSPStakesTracker from './spsp-stakes-tracker';
 
 export default class StakesTracker {
-  stakingChainId = forceStakingChainId(CHAIN_ID_MAINNET);
+  stakingChainId;
 
-  static instance: StakesTracker;
+  static instance: { [chainId: string]: StakesTracker } = {};
 
-  static getInstance() {
-    if (!this.instance) {
-      this.instance = new StakesTracker();
+  protected constructor(chainId: number) {
+    this.stakingChainId = chainId;
+  }
+
+  static getInstance(chainId: number) {
+    if (!this.instance[chainId]) {
+      this.instance[chainId] = new StakesTracker(chainId);
     }
-    return this.instance;
+    return this.instance[chainId];
   }
 
   async loadHistoricalStakes() {

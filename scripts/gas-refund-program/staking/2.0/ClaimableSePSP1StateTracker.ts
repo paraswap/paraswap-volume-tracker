@@ -7,7 +7,7 @@ import BigNumber from 'bignumber.js';
 import { MerkleRedeemHelperSePSP1 } from './MerkleRedeemHelperSePSP1';
 import { getEpochStartCalcTime, resolveV2EpochNumber } from '../../../../src/lib/gas-refund/epoch-helpers';
 import { assert } from 'ts-essentials';
-import { CHAIN_ID_MAINNET } from '../../../../src/lib/constants';
+import {CHAIN_ID_MAINNET, STAKING_CHAIN_IDS} from '../../../../src/lib/constants';
 import { Event, BigNumber as EthersBN, Contract } from 'ethers';
 import * as MerkleRedeemAbi from '../../../../src/lib/abi/merkle-redeem.abi.json';
 import { Provider } from '../../../../src/lib/provider';
@@ -60,7 +60,7 @@ export class ClaimableSePSP1StateTracker extends AbstractStateTracker {
 
   constructor(protected network: number) {
     super(network);
-    assert(network === CHAIN_ID_MAINNET, 'must be mainnet')
+    assert(STAKING_CHAIN_IDS.includes(network), 'network not supported')
 
     this.contract = new Contract(
       MerkleRedeemAddressSePSP1[this.network],

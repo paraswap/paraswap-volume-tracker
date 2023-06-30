@@ -6,7 +6,7 @@ import {
   DEFAULT_CHAIN_ID,
   CHAIN_ID_ROPSTEN,
   CHAIN_ID_MAINNET,
-  STAKING_CHAIN_IDS,
+  STAKING_CHAIN_IDS, CHAIN_ID_OPTIMISM,
 } from './constants';
 import { Provider } from './provider';
 import * as MultiCallerABI from './abi/multicaller.abi.json';
@@ -191,6 +191,7 @@ export const PoolConfigsMap: { [network: number]: PoolConfig[] } = {
       beneficiary: '0xBC33a1F908612640F2849b56b67a4De4d179C151',
     },
   ],
+  [CHAIN_ID_OPTIMISM]: [],
 };
 
 export type StakingPoolInfo = {
