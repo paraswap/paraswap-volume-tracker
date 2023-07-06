@@ -3,7 +3,7 @@ import { CHAIN_ID_MAINNET } from '../constants';
 import { EpochInfo } from '../epoch-info';
 import { GasRefundV2EpochFlip } from './gas-refund';
 import { OFFSET_CALC_TIME, SCRIPT_START_TIME_SEC } from './common';
-import { grp2GlobalConfig } from './config';
+import {grp2CConfigParticularities, grp2GlobalConfig} from './config';
 
 type EpochCalcTime = {
   startCalcTime: number;
@@ -14,8 +14,8 @@ type EpochCalcTime = {
 type BaseEpochResolver = {
   init: () => void;
   getCurrentEpoch: () => number;
-  getEpochStartCalcTime: (epoch: number) => AsyncOrSync<number>;
-  resolveEpochCalcTimeInterval: (epoch: number) => AsyncOrSync<EpochCalcTime>;
+  getEpochStartCalcTime: (epoch: number, chainId?: number) => AsyncOrSync<number>;
+  resolveEpochCalcTimeInterval: (epoch: number, chainId?: number) => AsyncOrSync<EpochCalcTime>;
 };
 
 const GRP1EpochResolver: BaseEpochResolver = {
@@ -96,12 +96,18 @@ const GRP2EpochResolver: EpochReseolverV2 = {
     };
   },
 
-  getEpochStartCalcTime(epoch: number) {
+  getEpochStartCalcTime(epoch: number, chainId?: number) {
     const { startTimestamp } = GRP2EpochResolver.getEpochTimeBoundary(epoch);
+
+    if (chainId && grp2CConfigParticularities[chainId].stakingStartCalcTimestamp) {
+      return startTimestamp < grp2CConfigParticularities[chainId].stakingStartCalcTimestamp!
+        ? grp2CConfigParticularities[chainId].stakingStartCalcTimestamp! : startTimestamp;
+    }
+
     return startTimestamp;
   },
 
-  async resolveEpochCalcTimeInterval(epoch: number): Promise<EpochCalcTime> {
+  async resolveEpochCalcTimeInterval(epoch: number, chainId?: number): Promise<EpochCalcTime> {
     const { startTimestamp, endTimestamp } =
       GRP2EpochResolver.getEpochTimeBoundary(epoch);
     const isEpochEnded =
@@ -110,12 +116,14 @@ const GRP2EpochResolver: EpochReseolverV2 = {
       SCRIPT_START_TIME_SEC - OFFSET_CALC_TIME,
       endTimestamp,
     );
+    let startCalcTime = startTimestamp;
 
-    return {
-      startCalcTime: startTimestamp,
-      endCalcTime: endCalcTime,
-      isEpochEnded,
-    };
+    if (chainId && grp2CConfigParticularities[chainId]?.stakingStartCalcTimestamp) {
+      startCalcTime = startCalcTime < grp2CConfigParticularities[chainId].stakingStartCalcTimestamp!
+        ? grp2CConfigParticularities[chainId].stakingStartCalcTimestamp! : startCalcTime;
+    }
+
+    return { startCalcTime, endCalcTime, isEpochEnded };
   },
 };
 
@@ -130,10 +138,10 @@ const getEpochResolverForNow = (): BaseEpochResolver =>
     : GRP1EpochResolver;
 
 export const loadEpochMetaData = () => getEpochResolverForNow().init();
-export const resolveEpochCalcTimeInterval = (epoch: number) =>
-  getEpochResolverForEpoch(epoch).resolveEpochCalcTimeInterval(epoch);
+export const resolveEpochCalcTimeInterval = (epoch: number, chainId?: number) =>
+  getEpochResolverForEpoch(epoch).resolveEpochCalcTimeInterval(epoch, chainId);
 export const getCurrentEpoch = () => getEpochResolverForNow().getCurrentEpoch();
-export const getEpochStartCalcTime = (epoch: number) =>
-  getEpochResolverForEpoch(epoch).getEpochStartCalcTime(epoch);
+export const getEpochStartCalcTime = (epoch: number, chainId?: number) =>
+  getEpochResolverForEpoch(epoch).getEpochStartCalcTime(epoch, chainId);
 export const resolveV2EpochNumber = (timestamp: number) =>
     GRP2EpochResolver.resolveEpochNumber(timestamp)

@@ -1,18 +1,15 @@
-import { assert } from 'ts-essentials';
-import { forceEthereumMainnet } from '../../../src/lib/gas-refund/config';
-import { getCurrentEpoch, resolveEpochCalcTimeInterval } from '../../../src/lib/gas-refund/epoch-helpers';
+import {assert} from 'ts-essentials';
+import {getCurrentEpoch, resolveEpochCalcTimeInterval} from '../../../src/lib/gas-refund/epoch-helpers';
 import {
   GasRefundGenesisEpoch,
   GasRefundV2EpochOptimismFlip,
   GRP_SUPPORTED_CHAINS,
 } from '../../../src/lib/gas-refund/gas-refund';
 
-import {
-  getLatestEpochRefunded,
-  merkleRootExists,
-} from '../persistance/db-persistance';
-import { fetchPricingAndTransactions } from './fetchPricingAndTransactions';
-import { CHAIN_ID_OPTIMISM } from '../../../src/lib/constants';
+import {getLatestEpochRefunded, merkleRootExists,} from '../persistance/db-persistance';
+import {fetchPricingAndTransactions} from './fetchPricingAndTransactions';
+import {CHAIN_ID_OPTIMISM, ETH_NETWORKS} from '../../../src/lib/constants';
+import {forceEthereumMainnet} from "../../../src/lib/gas-refund/config";
 
 const logger = global.LOGGER('GRP::fetchRefundableTransactionsAllChains');
 
@@ -20,7 +17,8 @@ export async function fetchRefundableTransactionsAllChains() {
   return Promise.all(
     GRP_SUPPORTED_CHAINS.map(async chainId => {
       const _lastEpochRefunded = await getLatestEpochRefunded(
-        forceEthereumMainnet(chainId),
+        ETH_NETWORKS.includes(chainId)
+          ? forceEthereumMainnet(chainId) : chainId,
       );
 
       const lastEpochRefunded =
@@ -39,7 +37,7 @@ export async function fetchRefundableTransactionsAllChains() {
 
       for (let epoch = startEpoch; epoch <= getCurrentEpoch(); epoch++) {
         const { startCalcTime, endCalcTime } =
-          await resolveEpochCalcTimeInterval(epoch);
+          await resolveEpochCalcTimeInterval(epoch, chainId);
 
         assert(startCalcTime, `could not resolve ${epoch}th epoch start time`);
         assert(endCalcTime, `could not resolve ${epoch}th epoch end time`);

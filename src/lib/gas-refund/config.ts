@@ -1,5 +1,5 @@
 import { identity } from 'lodash';
-import { CHAIN_ID_GOERLI, CHAIN_ID_MAINNET } from '../constants';
+import {CHAIN_ID_GOERLI, CHAIN_ID_MAINNET, CHAIN_ID_OPTIMISM} from '../constants';
 import { GasRefundV2EpochFlip, isMainnetStaking } from './gas-refund';
 
 type GRPV2GlobalConfig = {
@@ -15,6 +15,22 @@ export const grp2GlobalConfig: GRPV2GlobalConfig = {
   lastEpochForSePSP2MigrationRefund: GasRefundV2EpochFlip + 1, // first 2 epochs inclusive
   sePSP2PowerMultiplier: 2.5,
 };
+
+type GRP2ConfigByChain = {
+  stakingStartCalcTimestamp?: number; // the timestamp of staking enabling for a particular chain
+  BPTDeploymentBlockNumber?: number; // the deployment of the BPT token for a particular chain, as per how sePSP2 works atm
+  epochStart?: number; // the epoch in which the staking will be starting apply
+}
+
+export const grp2CConfigParticularities: {[network: number]: GRP2ConfigByChain} = {
+  [CHAIN_ID_GOERLI]: {},
+  [CHAIN_ID_MAINNET]: {},
+  [CHAIN_ID_OPTIMISM]: {
+    stakingStartCalcTimestamp: 1686893040,
+    BPTDeploymentBlockNumber: 105652634,
+    epochStart: 36
+  },
+}
 
 type GRPV2ConfigByChain = {
   sePSP1: string;
@@ -47,6 +63,15 @@ export const grp2ConfigByChain: {
     ),
     migrator: l('0x8580D057198E80ddE65522180fd8edBeA67D61E6'),
   },
+  [CHAIN_ID_OPTIMISM]: {
+    sePSP1: l('0x8eEEb2E3E9748adAb1317693C448701A2b783F54'),
+    sePSP2: l('0xF1A5E2dFbC536476c976ab35a2Cbe1a17bada7A1'),
+    bpt: l('0x11f0b5cca01b0f0a9fe6265ad6e8ee3419c68440'),
+    poolId: l(
+      '0x11f0b5cca01b0f0a9fe6265ad6e8ee3419c684400002000000000000000000d4',
+    ),
+    migrator: l(''),
+  }
 };
 
 const twistChains = (chain1: number, chain2: number) => (chainId: number) =>

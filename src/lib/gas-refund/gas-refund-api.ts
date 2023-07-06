@@ -46,6 +46,7 @@ const MerkleRedeemAddress: { [chainId: number]: string } = {
 
 export const MerkleRedeemAddressSePSP1: { [chainId: number]: string } = {
   [CHAIN_ID_MAINNET]: '0x0ecb7de52096638c01757180c88b74e4474473ab',
+  [CHAIN_ID_OPTIMISM]: '0xeA6cC6949c1DF315Af93aB82D567A8FCEe41016d',
 };
 
 export const EPOCH_WHEN_SWITCHED_TO_SE_PSP1 = 32;

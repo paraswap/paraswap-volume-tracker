@@ -30,11 +30,11 @@ export class StakeV2Resolver extends AbstractStateTracker {
   }
 
   static getInstance(chainId: number) {
-    if (!this.instance[chainId]) {
-      this.instance[chainId] = new StakeV2Resolver(chainId);
+    if (!StakeV2Resolver.instance[chainId]) {
+      StakeV2Resolver.instance[chainId] = new StakeV2Resolver(chainId);
     }
 
-    return this.instance[chainId];
+    return StakeV2Resolver.instance[chainId];
   }
 
   async resolveBlockBoundary({

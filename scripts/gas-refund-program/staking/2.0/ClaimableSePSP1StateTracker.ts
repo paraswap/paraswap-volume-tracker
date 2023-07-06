@@ -1,19 +1,16 @@
-import {
-  reduceTimeSeries,
-  TimeSeries,
-} from '../../timeseries';
-import { AbstractStateTracker } from './AbstractStateTracker';
+import {reduceTimeSeries, TimeSeries,} from '../../timeseries';
+import {AbstractStateTracker} from './AbstractStateTracker';
 import BigNumber from 'bignumber.js';
-import { MerkleRedeemHelperSePSP1 } from './MerkleRedeemHelperSePSP1';
-import { getEpochStartCalcTime, resolveV2EpochNumber } from '../../../../src/lib/gas-refund/epoch-helpers';
-import { assert } from 'ts-essentials';
-import { CHAIN_ID_MAINNET } from '../../../../src/lib/constants';
-import { Event, BigNumber as EthersBN, Contract } from 'ethers';
+import {MerkleRedeemHelperSePSP1} from './MerkleRedeemHelperSePSP1';
+import {getEpochStartCalcTime, resolveV2EpochNumber} from '../../../../src/lib/gas-refund/epoch-helpers';
+import {assert} from 'ts-essentials';
+import {ETH_NETWORKS, STAKING_CHAIN_IDS} from '../../../../src/lib/constants';
+import {BigNumber as EthersBN, Contract, Event} from 'ethers';
 import * as MerkleRedeemAbi from '../../../../src/lib/abi/merkle-redeem.abi.json';
-import { Provider } from '../../../../src/lib/provider';
-import { fetchBlockTimestampForEvents } from '../../../../src/lib/utils/helpers';
-import { BlockInfo } from '../../../../src/lib/block-info';
-import { EPOCH_WHEN_SWITCHED_TO_SE_PSP1, MerkleRedeemAddressSePSP1 } from '../../../../src/lib/gas-refund/gas-refund-api';
+import {Provider} from '../../../../src/lib/provider';
+import {fetchBlockTimestampForEvents} from '../../../../src/lib/utils/helpers';
+import {BlockInfo} from '../../../../src/lib/block-info';
+import {EPOCH_WHEN_SWITCHED_TO_SE_PSP1, MerkleRedeemAddressSePSP1} from '../../../../src/lib/gas-refund/gas-refund-api';
 
 const logger = global.LOGGER('ClaimableSePSP1StateTracker');
 
@@ -60,7 +57,7 @@ export class ClaimableSePSP1StateTracker extends AbstractStateTracker {
 
   constructor(protected network: number) {
     super(network);
-    assert(network === CHAIN_ID_MAINNET, 'must be mainnet')
+    assert(STAKING_CHAIN_IDS.includes(network), 'must be a supported staking network')
 
     this.contract = new Contract(
       MerkleRedeemAddressSePSP1[this.network],
@@ -120,13 +117,13 @@ export class ClaimableSePSP1StateTracker extends AbstractStateTracker {
   }
 
   async _getDistributionsTimeSeriesByAccount(filterEpoch: (epoch: number) => boolean) {
-    const {merkleDataByEpoch} = await MerkleRedeemHelperSePSP1.getInstance().getMerkleDataByEpochWithCacheKey();
+    const {merkleDataByEpoch} = await MerkleRedeemHelperSePSP1.getInstance().getMerkleDataByEpochWithCacheKey(); // TODO needs fix will duplicate the values for the chains
     const epochsDistributedWithinInterval = Object.keys(merkleDataByEpoch).map(Number).filter(filterEpoch);
     if (epochsDistributedWithinInterval.length === 0) return {}
 
     const timestampsOfNthPlusOneEpoch = await Promise.all(epochsDistributedWithinInterval
       .map(epoch => epoch + 1) // sePSP1 earned at epoch N is accrued at epoch N+1
-      .map(getEpochStartCalcTime))
+      .map(epoch => getEpochStartCalcTime(epoch, this.network)))
 
     const accrualTimestampByEpoch = epochsDistributedWithinInterval.reduce((acc, epoch, i) => {
       acc[epoch] = timestampsOfNthPlusOneEpoch[i];
@@ -162,6 +159,15 @@ export class ClaimableSePSP1StateTracker extends AbstractStateTracker {
 
   async loadInitialState() {
     // initial state = sumDistributions(from epoch 32 to startEpoch) - sumClaims(from epoch 32 to startEpoch)
+
+    if (!ETH_NETWORKS.includes(this.network)) { // TODO needs to support Optimism as well
+      this.initState = {
+        balance: {}
+      }
+
+      return;
+    }
+
     const [distributionsFromEpoch32ToStartEpoch, claimsFromEpoch32ToStartEpoch] = await Promise.all(
       [this.getDistributionsFromEpoch32ToStartEpoch(), this.getClaimsFromEpoch32ToStartEpoch()]
     )
@@ -176,6 +182,15 @@ export class ClaimableSePSP1StateTracker extends AbstractStateTracker {
   }
 
   async loadStateChanges() {
+
+    if (!ETH_NETWORKS.includes(this.network)) { // TODO needs to support Optimism as well
+      this.differentialStates = {
+        balance: {}
+      }
+
+      return;
+    }
+
     const [epochFrom, epochTo] = await Promise.all([resolveV2EpochNumber(this.startTimestamp), resolveV2EpochNumber(this.endTimestamp)]);
     const distributions = await this._getDistributionsTimeSeriesByAccount(
       epoch => epoch >= epochFrom  // epochFrom not included into initialState, so included here

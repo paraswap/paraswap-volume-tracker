@@ -21,7 +21,7 @@ export const GRP_SUPPORTED_CHAINS = [
 ].filter(isTruthy);
 
 export const GRP_V2_SUPPORTED_CHAINS_STAKING = new Set(
-  isMainnetStaking ? [CHAIN_ID_MAINNET] : [CHAIN_ID_GOERLI],
+  [CHAIN_ID_OPTIMISM, isMainnetStaking ? CHAIN_ID_MAINNET : CHAIN_ID_GOERLI]
 );
 
 const WEEKS_IN_YEAR = 52;

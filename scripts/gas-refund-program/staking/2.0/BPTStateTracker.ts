@@ -20,9 +20,11 @@ import {
   timeseriesComparator,
 } from '../../timeseries';
 import { BPTHelper } from './BPTHelper';
-import { AbstractStateTracker } from './AbstractStateTracker';
+import {AbstractStateTracker, BlockTimeBoundary} from './AbstractStateTracker';
 import BigNumber from 'bignumber.js';
 import { imReverse } from '../../../../src/lib/utils';
+import {queryFilterBatched} from "./utils";
+import {grp2CConfigParticularities} from "../../../../src/lib/gas-refund/config";
 
 interface MinERC20 extends Contract {
   totalSupply(overrides?: CallOverrides): Promise<EthersBN>;
@@ -117,6 +119,27 @@ export default class BPTStateTracker extends AbstractStateTracker {
     ) as MinERC20;
   }
 
+
+  setBlockTimeBoundary({
+    startTimestamp,
+    endTimestamp,
+    startBlock,
+    endBlock}: BlockTimeBoundary) {
+
+    let actualStartBlock = startBlock;
+
+    if (grp2CConfigParticularities[this.chainId].BPTDeploymentBlockNumber) {
+      actualStartBlock = grp2CConfigParticularities[this.chainId].BPTDeploymentBlockNumber! > startBlock
+        ? grp2CConfigParticularities[this.chainId].BPTDeploymentBlockNumber! : startBlock
+    }
+
+    super.setBlockTimeBoundary({
+      startTimestamp,
+      endTimestamp,
+      startBlock: actualStartBlock,
+      endBlock,
+    })
+  }
   static getInstance(chainId: number) {
     if (!this.instance[chainId]) {
       this.instance[chainId] = new BPTStateTracker(chainId);
@@ -149,13 +172,14 @@ export default class BPTStateTracker extends AbstractStateTracker {
 
   // adjust to populate eth balance too
   async resolveBPTPoolPSPBalanceChangesFromLP() {
-    const events = (await this.bVaultContract.queryFilter(
-      this.bVaultContract.filters.PoolBalanceChanged(
-        Balancer_80PSP_20WETH_poolId[this.chainId],
-      ),
-      this.startBlock,
-      this.endBlock,
-    )) as PoolBalanceChanged[];
+    let events = await queryFilterBatched(
+        this.bVaultContract,
+        this.bVaultContract.filters.PoolBalanceChanged(
+          Balancer_80PSP_20WETH_poolId[this.chainId],
+        ),
+        this.startBlock,
+        this.endBlock,
+      ) as PoolBalanceChanged[];
 
     const blockNumToTimestamp = await fetchBlockTimestampForEvents(
       this.chainId,
@@ -200,13 +224,14 @@ export default class BPTStateTracker extends AbstractStateTracker {
   }
 
   async resolveBPTPoolPSPBalanceChangesFromSwaps() {
-    const events = (await this.bVaultContract.queryFilter(
-      this.bVaultContract.filters.Swap(
-        Balancer_80PSP_20WETH_poolId[this.chainId],
-      ),
-      this.startBlock,
-      this.endBlock,
-    )) as Swap[];
+    const events = await queryFilterBatched(
+        this.bVaultContract,
+        this.bVaultContract.filters.Swap(
+          Balancer_80PSP_20WETH_poolId[this.chainId],
+        ),
+        this.startBlock,
+        this.endBlock,
+      ) as Swap[];
 
     const blockNumToTimestamp = await fetchBlockTimestampForEvents(
       this.chainId,
@@ -254,12 +279,14 @@ export default class BPTStateTracker extends AbstractStateTracker {
   async resolveBPTPoolSupplyChanges() {
     const events = (
       await Promise.all([
-        this.bptAsERC20.queryFilter(
+        queryFilterBatched(
+          this.bptAsERC20,
           this.bptAsERC20.filters.Transfer(NULL_ADDRESS),
           this.startBlock,
           this.endBlock,
         ),
-        this.bptAsERC20.queryFilter(
+        queryFilterBatched(
+          this.bptAsERC20,
           this.bptAsERC20.filters.Transfer(null, NULL_ADDRESS),
           this.startBlock,
           this.endBlock,

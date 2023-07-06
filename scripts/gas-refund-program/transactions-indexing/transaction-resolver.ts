@@ -64,6 +64,11 @@ const contractAddressesByChain: Record<number, string[]> = {
     grp2ConfigByChain[CHAIN_ID_GOERLI].sePSP1,
     grp2ConfigByChain[CHAIN_ID_GOERLI].sePSP2,
   ],
+  [CHAIN_ID_OPTIMISM]: [
+    grp2ConfigByChain[CHAIN_ID_OPTIMISM]?.sePSP1,
+    grp2ConfigByChain[CHAIN_ID_OPTIMISM]?.sePSP2,
+    AUGUSTUS_V5_ADDRESS,
+  ]
 };
 
 export const getContractAddresses = ({
