@@ -14,7 +14,6 @@ import {
   CHAIN_ID_OPTIMISM,
   CHAIN_ID_POLYGON,
 } from '../constants';
-import { EpochInfo } from '../epoch-info';
 import { GasRefundGenesisEpoch, GasRefundV2EpochFlip } from './gas-refund';
 import { Provider } from '../provider';
 import * as MerkleRedeemAbi from '../abi/merkle-redeem.abi.json';
@@ -84,7 +83,10 @@ type PendingRefundData = PendingRefundRawData & { epoch2: number };
 
 type BaseGasRefundClaimsResponse<T> = {
   totalClaimable: T;
-  claims: (Omit<GasRefundClaim, 'refundedAmountPSP'> & { amount: string, contract: string })[];
+  claims: (Omit<GasRefundClaim, 'refundedAmountPSP'> & {
+    amount: string;
+    contract: string;
+  })[];
 };
 type GasRefundClaimsResponseAcc = BaseGasRefundClaimsResponse<bigint>;
 type GasRefundClaimsResponse = BaseGasRefundClaimsResponse<string> & {
@@ -99,21 +101,19 @@ type GasRefundClaimsResponse = BaseGasRefundClaimsResponse<string> & {
 
 type MigrationData =
   | {
-    hasMigrated: false;
-  }
+      hasMigrated: false;
+    }
   | ({
-    hasMigrated: true;
-  } & SePSPMigrationsData);
+      hasMigrated: true;
+    } & SePSPMigrationsData);
 
 export class GasRefundApi {
-  epochInfo: EpochInfo;
   merkleRedem: MerkleRedeem;
   merkleRedemSePSP1?: MerkleRedeem;
 
   static instances: { [network: number]: GasRefundApi } = {};
 
   constructor(protected network: number) {
-    this.epochInfo = EpochInfo.getInstance(CHAIN_ID_MAINNET);
     this.merkleRedem = new Contract(
       MerkleRedeemAddress[network],
       MerkleRedeemAbi,
@@ -287,8 +287,12 @@ export class GasRefundApi {
 
           const { refundedAmountPSP, ...rClaim } = claim;
 
-          const shouldSwitchToSePSP1Contract =  this.network === CHAIN_ID_MAINNET && claim.epoch >= EPOCH_WHEN_SWITCHED_TO_SE_PSP1;
-          const contract = shouldSwitchToSePSP1Contract ? MerkleRedeemAddressSePSP1[this.network] : MerkleRedeemAddress[this.network];
+          const shouldSwitchToSePSP1Contract =
+            this.network === CHAIN_ID_MAINNET &&
+            claim.epoch >= EPOCH_WHEN_SWITCHED_TO_SE_PSP1;
+          const contract = shouldSwitchToSePSP1Contract
+            ? MerkleRedeemAddressSePSP1[this.network]
+            : MerkleRedeemAddress[this.network];
           acc.claims.push({ ...rClaim, amount: refundedAmountPSP, contract });
           acc.totalClaimable += BigInt(refundedAmountPSP);
 
@@ -303,13 +307,13 @@ export class GasRefundApi {
     const data = !claims.length
       ? null
       : claims.length == 1
-        ? this.merkleRedem.interface.encodeFunctionData('claimWeek', [
+      ? this.merkleRedem.interface.encodeFunctionData('claimWeek', [
           address,
           claims[0].epoch,
           claims[0].amount,
           claims[0].merkleProofs,
         ])
-        : this.merkleRedem.interface.encodeFunctionData('claimWeeks', [
+      : this.merkleRedem.interface.encodeFunctionData('claimWeeks', [
           address,
           claims.map(({ epoch, merkleProofs, amount }) => ({
             week: epoch,

@@ -379,10 +379,10 @@ export class PoolInfo {
   }
 
   async startListening() {
-    setInterval(
-      this.setLatestBlockNumber.bind(this),
-      BlockUpdateInterval[this.network],
-    );
+    // setInterval(
+    //   this.setLatestBlockNumber.bind(this),
+    //   BlockUpdateInterval[this.network],
+    // );
     await this.setLatestBlockNumber();
   }
 
@@ -592,8 +592,8 @@ export class PoolInfo {
       epochStartCalcTime,
       <undefined | number>epochEndCalcTime,
     );
-    if (!Object.keys(marketMakerVolumeMap).length)
-      throw new Error('Unable to fetch marketMakerVolumes');
+    //if (!Object.keys(marketMakerVolumeMap).length)
+    //  throw new Error('Unable to fetch marketMakerVolumes');
 
     const marketMakerVolumes = poolConfigs.map(
       p => marketMakerVolumeMap[p.marketMakerIdentifier.toLowerCase()] || '0',
@@ -817,8 +817,8 @@ export class PoolInfo {
       epochCalcStartTime,
       calcTimeStamp,
     );
-    if (!Object.keys(marketMakerVolumeMap).length)
-      throw new Error('Unable to fetch marketMakerVolumes');
+    //if (!Object.keys(marketMakerVolumeMap).length)
+    //  throw new Error('Unable to fetch marketMakerVolumes');
 
     const marketMakerVolumes = this.poolConfigs.map(
       p => marketMakerVolumeMap[p.marketMakerIdentifier.toLowerCase()] || '0',
@@ -951,7 +951,7 @@ export class PoolInfo {
       projectedVolumes: ProjectedVolumesStr,
       pools: this.poolConfigs.map(p => {
         const currentPState =
-          currentState.poolStateMap[p.address.toLowerCase()];
+          currentState.poolStateMap[p.address.toLowerCase()] || {};
         // pool might not be released in the previous epoch hence it might be undefined in poolStateMap
         const lastEpochPState =
           lastEpochState.poolStateMap[p.address.toLowerCase()];
