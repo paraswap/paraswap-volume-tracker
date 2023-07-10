@@ -43,6 +43,7 @@ export const AugustusV5Address: { [network: number]: string } = {
   [CHAIN_ID_OPTIMISM]: '0xdef171fe48cf0115b1d80b88dc8eab59176fee57',
   [CHAIN_ID_BINANCE]: '0xdef171fe48cf0115b1d80b88dc8eab59176fee57',
   [CHAIN_ID_POLYGON]: '0xdef171fe48cf0115b1d80b88dc8eab59176fee57',
+  [CHAIN_ID_FANTOM]: '0xdef171fe48cf0115b1d80b88dc8eab59176fee57',
 };
 
 export const AugustusV4Address: { [network: number]: string } = {

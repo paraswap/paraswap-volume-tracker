@@ -8,6 +8,7 @@ import {
 } from './constants';
 import { BlockInfo } from './block-info';
 import { Provider } from './provider';
+import { GasRefundV2EpochFlip } from './gas-refund/gas-refund';
 
 const logger = global.LOGGER();
 
@@ -73,7 +74,7 @@ export class EpochInfo {
       process.exit(1);
     });
 
-    this.startEpochInfoPolling();
+    // this.startEpochInfoPolling();
   }
 
   static instances: { [network: number]: EpochInfo } = {};
@@ -84,7 +85,9 @@ export class EpochInfo {
     return this.instances[network];
   }
 
-  getEpochInfo = () => retry(() => this.getEpochDetails(), { retries: 5, timeout: 120_000 });
+  getEpochInfo = () => {
+    return Promise.resolve();
+  }; //retry(() => this.getEpochDetails(), { retries: 5, timeout: 120_000 });
 
   startEpochInfoPolling = () =>
     setInterval(this.getEpochInfo, EpochPollingTime);
@@ -140,8 +143,9 @@ export class EpochInfo {
   }
 
   getCurrentEpoch(): number {
-    if (!this.currentEpoch) throw new Error('currentEpoch not set');
-    return this.currentEpoch;
+    // if (!this.currentEpoch) throw new Error('currentEpoch not set');
+    // return this.currentEpoch;
+    return 0;
   }
 
   getEpochStartBlock(epoch: number): number {

@@ -29,10 +29,13 @@ import {
   SAFETY_MODULE_ADDRESS,
   AUGUSTUS_V5_ADDRESS,
   CHAIN_ID_OPTIMISM,
+  AugustusV5Address,
+  CHAIN_ID_FANTOM,
 } from '../../../src/lib/constants';
 import { getMigrationsTxs } from '../staking/2.0/migrations';
 import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/utils';
 import { grp2ConfigByChain } from '../../../src/lib/gas-refund/config';
+import { assert } from 'ts-essentials';
 
 type GetAllTXsInput = {
   startTimestamp: number;
@@ -169,11 +172,43 @@ export const getSwapTXs = async ({
     return swapperStake.isGreaterThanOrEqualTo(getMinStake(epoch));
   });
 
+  const allTxsWithGas = await covalentGetTXsForContractV3({
+    startTimestamp,
+    endTimestamp,
+    chainId,
+    contract: AugustusV5Address[chainId],
+  });
+
+  const txHashToGas = allTxsWithGas.reduce<Record<string, string>>(
+    (acc, curr) => {
+      acc[curr.txHash.toLowerCase()] = curr.txGasUsed;
+      return acc;
+    },
+    {},
+  );
+
+  const _getTransactionGasUsedSync = ({
+    chainId,
+    txHash,
+  }: {
+    chainId: number;
+    txHash: string;
+  }) => {
+    const txGasUsed = txHashToGas[txHash.toLowerCase()];
+
+    assert(
+      txGasUsed,
+      `gas used should not be zero for ${txHash} on chainId=${chainId}`,
+    );
+
+    return txGasUsed;
+  };
+
   // augment with gas used and the pertaining contract the tx occured on
-  const swapsWithGasUsedNormalised: GasRefundTransaction[] = await Promise.all(
+  const swapsWithGasUsedNormalised: GasRefundTransaction[] =
     swapsOfQualifyingStakers.map(
-      async ({ txHash, txOrigin, txGasPrice, timestamp, blockNumber }) => {
-        const txGasUsed = await getTransactionGasUsed({
+      ({ txHash, txOrigin, txGasPrice, timestamp, blockNumber }) => {
+        const txGasUsed = _getTransactionGasUsedSync({
           chainId,
           txHash,
         });
@@ -188,9 +223,7 @@ export const getSwapTXs = async ({
           contract: AUGUSTUS_V5_ADDRESS,
         };
       },
-    ),
-  );
-
+    );
   return swapsWithGasUsedNormalised;
 };
 

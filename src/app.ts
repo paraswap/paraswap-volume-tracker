@@ -31,7 +31,7 @@ export async function startApp() {
         return VolumeTracker.createInstance(
           VOLUME_TRACKER_INIT_TIME[network],
           network,
-        ).startIndexing();
+        ); //.startIndexing();
       }),
     );
     await PoolInfo.initStartListening();

@@ -6,7 +6,13 @@ import {
   QueryPaginatedDataParams,
 } from './helpers';
 import { covalentClient } from './data-providers-clients';
-import { CHAIN_ID_MAINNET, CHAIN_ID_OPTIMISM } from '../constants';
+import {
+  CHAIN_ID_BINANCE,
+  CHAIN_ID_FANTOM,
+  CHAIN_ID_MAINNET,
+  CHAIN_ID_OPTIMISM,
+  CHAIN_ID_POLYGON,
+} from '../constants';
 
 const COVALENT_API_KEY = process.env.COVALENT_API_KEY || 'ckey_docs'; // public, is rate-limited and unreliable
 
@@ -164,6 +170,9 @@ interface MinBulkTimeBucketTxsResponse {
 const covalentChainName: Record<number, string> = {
   [CHAIN_ID_MAINNET]: 'eth-mainnet',
   [CHAIN_ID_OPTIMISM]: 'optimism-mainnet',
+  [CHAIN_ID_BINANCE]: 'bsc-mainnet',
+  [CHAIN_ID_POLYGON]: 'matic-mainnet',
+  [CHAIN_ID_FANTOM]: 'fantom-mainnet',
 };
 export async function getBulkTimeBucketTxs({
   account,
