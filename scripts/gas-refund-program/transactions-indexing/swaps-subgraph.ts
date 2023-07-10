@@ -134,7 +134,7 @@ export async function getSuccessfulSwaps({
       variables,
     });
 
-    const swaps = data.data.swaps;
+    const swaps = data.data?.swaps || [];
 
     return swaps;
   };

@@ -91,19 +91,19 @@ export default class StakesTracker {
   ) {
     const account = _account.toLowerCase();
 
+
     // V2
     if (epoch >= GasRefundV2EpochFlip) {
       return this.chainIds.reduce((acc, chainId) => {
         if (
-          grp2CConfigParticularities[chainId]?.epochStart
-          && epoch < grp2CConfigParticularities[chainId]?.epochStart!
+          grp2CConfigParticularities[chainId]?.stakingStartCalcTimestamp
+          && timestamp < grp2CConfigParticularities[chainId]?.stakingStartCalcTimestamp!
         ) {
           return acc;
         }
+        const stakeRufund = StakeV2Resolver.getInstance(chainId).getStakeForRefund(timestamp, account)
 
-        return acc.plus(
-          StakeV2Resolver.getInstance(chainId).getStakeForRefund(timestamp, account)
-        );
+        return acc.plus(stakeRufund);
       }, new BigNumber(0));
     }
 

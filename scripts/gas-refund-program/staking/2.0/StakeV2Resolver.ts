@@ -84,12 +84,10 @@ export class StakeV2Resolver extends AbstractStateTracker {
     this.bptTracker.setBlockTimeBoundary(boundary);
     this.claimableSePSP1Tracker.setBlockTimeBoundary(boundary);
 
-    await Promise.all([
-      this.sePSP1Tracker.loadStates(),
-      this.sePSP2Tracker.loadStates(),
-      this.bptTracker.loadStates(),
-      this.claimableSePSP1Tracker.loadStates()
-    ]);
+    await this.sePSP1Tracker.loadStates(); // Promise all overloads the node. We need to bottleneck requests or make them sequentially
+    await this.sePSP2Tracker.loadStates();
+    await this.bptTracker.loadStates();
+    await this.claimableSePSP1Tracker.loadStates();
   }
 
   // returns stakesScore(t)
@@ -104,7 +102,7 @@ export class StakeV2Resolver extends AbstractStateTracker {
 
     const pspInSePSP2 = sePSP2Balance // 1 BPT = 1 sePSP2
       .multipliedBy(bptPSPBalance)
-      .dividedBy(bptTotalSupply)
+      .dividedBy(bptTotalSupply.isZero() ? new BigNumber(1) : bptTotalSupply)
       .decimalPlaces(0, BigNumber.ROUND_DOWN);
 
     const stake = sePSP1Balance

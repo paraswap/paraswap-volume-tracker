@@ -19,7 +19,6 @@ export const grp2GlobalConfig: GRPV2GlobalConfig = {
 type GRP2ConfigByChain = {
   stakingStartCalcTimestamp?: number; // the timestamp of staking enabling for a particular chain
   BPTDeploymentBlockNumber?: number; // the deployment of the BPT token for a particular chain, as per how sePSP2 works atm
-  epochStart?: number; // the epoch in which the staking will be starting apply
 }
 
 export const grp2CConfigParticularities: {[network: number]: GRP2ConfigByChain} = {
@@ -27,8 +26,7 @@ export const grp2CConfigParticularities: {[network: number]: GRP2ConfigByChain} 
   [CHAIN_ID_MAINNET]: {},
   [CHAIN_ID_OPTIMISM]: {
     stakingStartCalcTimestamp: 1686893040,
-    BPTDeploymentBlockNumber: 105652634,
-    epochStart: 36
+    BPTDeploymentBlockNumber: 105652634
   },
 }
 
