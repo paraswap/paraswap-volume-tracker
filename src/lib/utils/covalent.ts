@@ -207,7 +207,9 @@ export async function getBulkTimeBucketTxsWithinInterval({
   endTimestamp,
 }: GetBulkTimeBucketTxsWithinInterval): Promise<CovalentTransactionV3[]> {
   const timeBuckets: number[] = Array.from(
-    { length: Math.ceil((endTimestamp - startTimestamp) / bucketSizeInSec) },
+    {
+      length: Math.ceil((endTimestamp - startTimestamp) / bucketSizeInSec) + 4, // +1h buffer
+    },
     (_, index) =>
       Math.floor((startTimestamp + index * bucketSizeInSec) / bucketSizeInSec),
   );
