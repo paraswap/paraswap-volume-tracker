@@ -123,7 +123,7 @@ export class ClaimableSePSP1StateTracker extends AbstractStateTracker {
 
     const timestampsOfNthPlusOneEpoch = await Promise.all(epochsDistributedWithinInterval
       .map(epoch => epoch + 1) // sePSP1 earned at epoch N is accrued at epoch N+1
-      .map(epoch => getEpochStartCalcTime(epoch, this.network)))
+      .map(epoch => getEpochStartCalcTime(epoch)))
 
     const accrualTimestampByEpoch = epochsDistributedWithinInterval.reduce((acc, epoch, i) => {
       acc[epoch] = timestampsOfNthPlusOneEpoch[i];

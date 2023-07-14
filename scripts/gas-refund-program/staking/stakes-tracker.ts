@@ -37,15 +37,14 @@ export default class StakesTracker {
     // V2
     const currentEpoch = getCurrentEpoch();
     if (currentEpoch >= GasRefundV2EpochFlip) {
-      await Promise.all(
-        this.chainIds.map(async chainId => {
-          let startTimeStakeV2 = await getEpochStartCalcTime(
-            latestEpochRefunded || GasRefundV2EpochFlip,
-            chainId
-          );
+      let startTimeStakeV2 = await getEpochStartCalcTime(
+        latestEpochRefunded || GasRefundV2EpochFlip,
+      );
 
-          return StakeV2Resolver.getInstance(chainId).loadWithinInterval(startTimeStakeV2, endTime);
-        })
+      await Promise.all(
+        this.chainIds.map(async chainId =>
+          StakeV2Resolver.getInstance(chainId).loadWithinInterval(startTimeStakeV2, endTime)
+        )
       );
     } else {
       // V1
@@ -91,7 +90,6 @@ export default class StakesTracker {
   ) {
     const account = _account.toLowerCase();
 
-
     // V2
     if (epoch >= GasRefundV2EpochFlip) {
       return this.chainIds.reduce((acc, chainId) => {
@@ -101,9 +99,8 @@ export default class StakesTracker {
         ) {
           return acc;
         }
-        const stakeRufund = StakeV2Resolver.getInstance(chainId).getStakeForRefund(timestamp, account)
 
-        return acc.plus(stakeRufund);
+        return acc.plus(StakeV2Resolver.getInstance(chainId).getStakeForRefund(timestamp, account));
       }, new BigNumber(0));
     }
 

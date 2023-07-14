@@ -119,27 +119,6 @@ export default class BPTStateTracker extends AbstractStateTracker {
     ) as MinERC20;
   }
 
-
-  setBlockTimeBoundary({
-    startTimestamp,
-    endTimestamp,
-    startBlock,
-    endBlock}: BlockTimeBoundary) {
-
-    let actualStartBlock = startBlock;
-
-    if (grp2CConfigParticularities[this.chainId].BPTDeploymentBlockNumber) {
-      actualStartBlock = grp2CConfigParticularities[this.chainId].BPTDeploymentBlockNumber! > startBlock
-        ? grp2CConfigParticularities[this.chainId].BPTDeploymentBlockNumber! : startBlock
-    }
-
-    super.setBlockTimeBoundary({
-      startTimestamp,
-      endTimestamp,
-      startBlock: actualStartBlock,
-      endBlock,
-    })
-  }
   static getInstance(chainId: number) {
     if (!this.instance[chainId]) {
       this.instance[chainId] = new BPTStateTracker(chainId);

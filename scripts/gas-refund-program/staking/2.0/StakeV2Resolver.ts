@@ -2,6 +2,7 @@ import BigNumber from 'bignumber.js';
 import { assert } from 'ts-essentials';
 import { BlockInfo } from '../../../../src/lib/block-info';
 import {
+  grp2CConfigParticularities,
   grp2ConfigByChain,
   grp2GlobalConfig,
 } from '../../../../src/lib/gas-refund/config';
@@ -69,7 +70,13 @@ export class StakeV2Resolver extends AbstractStateTracker {
     });
   }
 
-  async loadWithinInterval(startTimestamp: number, endTimestamp: number) {
+  async loadWithinInterval(epochStartTimestamp: number, endTimestamp: number) {
+    const startTimestamp =
+      grp2CConfigParticularities[this.chainId].stakingStartCalcTimestamp // set staking start time higher if staking contracts have been deployed after epoch start
+      && epochStartTimestamp < grp2CConfigParticularities[this.chainId].stakingStartCalcTimestamp!
+        ? grp2CConfigParticularities[this.chainId].stakingStartCalcTimestamp!
+        : epochStartTimestamp;
+
     await this.resolveBlockBoundary({ startTimestamp, endTimestamp });
 
     const boundary = this.getBlockTimeBoundary();
@@ -84,10 +91,12 @@ export class StakeV2Resolver extends AbstractStateTracker {
     this.bptTracker.setBlockTimeBoundary(boundary);
     this.claimableSePSP1Tracker.setBlockTimeBoundary(boundary);
 
-    await this.sePSP1Tracker.loadStates(); // Promise all overloads the node. We need to bottleneck requests or make them sequentially
-    await this.sePSP2Tracker.loadStates();
-    await this.bptTracker.loadStates();
-    await this.claimableSePSP1Tracker.loadStates();
+    await Promise.all([
+      this.sePSP1Tracker.loadStates(),
+      this.sePSP2Tracker.loadStates(),
+      this.bptTracker.loadStates(),
+      this.claimableSePSP1Tracker.loadStates()
+    ])
   }
 
   // returns stakesScore(t)

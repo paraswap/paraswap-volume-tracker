@@ -7,7 +7,7 @@ import { Claim } from './models/Claim';
 import {
   DEFAULT_CHAIN_ID,
   STAKING_CHAIN_IDS_SET,
-  CHAIN_ID_MAINNET,
+  CHAIN_ID_MAINNET, CHAINS_WITHOUT_PARASWAP_POOLS_SUPPORT,
 } from './lib/constants';
 import { GasRefundApi } from './lib/gas-refund/gas-refund-api';
 import { EpochInfo } from './lib/epoch-info';
@@ -89,7 +89,7 @@ export default class Router {
     router.get('/pools/earning/:address/:network?', async (req, res) => {
       try {
         const network = Number(req.params.network || DEFAULT_CHAIN_ID);
-        if (!STAKING_CHAIN_IDS_SET.has(network)) {
+        if (!STAKING_CHAIN_IDS_SET.has(network) || !CHAINS_WITHOUT_PARASWAP_POOLS_SUPPORT.includes(network)) {
           return res
             .status(403)
             .send({ error: `Unsupported network: ${network}` });
@@ -127,7 +127,7 @@ export default class Router {
           return res.status(403).send({ error: 'epochEndTime is required' });
         const epochEndTime = parseInt(<string>req.query.epochEndTime);
         const network = Number(req.params.network || DEFAULT_CHAIN_ID);
-        if (!STAKING_CHAIN_IDS_SET.has(network)) {
+        if (!STAKING_CHAIN_IDS_SET.has(network) || !CHAINS_WITHOUT_PARASWAP_POOLS_SUPPORT.includes(network)) {
           return res
             .status(403)
             .send({ error: `Unsupported network: ${network}` });

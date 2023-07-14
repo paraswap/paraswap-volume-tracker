@@ -37,7 +37,7 @@ export async function fetchRefundableTransactionsAllChains() {
 
       for (let epoch = startEpoch; epoch <= getCurrentEpoch(); epoch++) {
         const { startCalcTime, endCalcTime } =
-          await resolveEpochCalcTimeInterval(epoch, chainId);
+          await resolveEpochCalcTimeInterval(epoch);
 
         assert(startCalcTime, `could not resolve ${epoch}th epoch start time`);
         assert(endCalcTime, `could not resolve ${epoch}th epoch end time`);

@@ -30,14 +30,15 @@ export async function queryFilterBatched(
   const queryRequests = [];
 
   while (iteratorStart < endBlock) {
+    const intervalEnd = (iteratorStart + batchSize) > endBlock ? endBlock : iteratorStart + batchSize
     queryRequests.push(
       contract.queryFilter(
         eventFilter,
         iteratorStart,
-        iteratorStart + batchSize,
+        intervalEnd,
       )
     )
-    iteratorStart = (iteratorStart + batchSize > endBlock ? endBlock : iteratorStart + batchSize);
+    iteratorStart = intervalEnd;
   }
 
   const results = await Promise.all(queryRequests);
