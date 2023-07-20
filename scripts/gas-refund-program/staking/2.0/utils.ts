@@ -38,7 +38,7 @@ export async function queryFilterBatched(
         intervalEnd,
       )
     )
-    iteratorStart = intervalEnd;
+    iteratorStart = intervalEnd + 1;
   }
 
   const results = await Promise.all(queryRequests);
