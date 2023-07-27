@@ -185,7 +185,7 @@ export class GasRefundApi {
     startEpoch: number,
     endEpoch: number,
   ): Promise<Record<number, boolean>> {
-    if (this.network === CHAIN_ID_GOERLI) return {};
+    if (this.network === CHAIN_ID_GOERLI || this.network === CHAIN_ID_OPTIMISM) return {};
     const [claimStatusPSP, claimStatusSePSP1] = await Promise.all([
       this.merkleRedem.callStatic.claimStatus(address, startEpoch, endEpoch),
       this.merkleRedemSePSP1?.callStatic.claimStatus(
