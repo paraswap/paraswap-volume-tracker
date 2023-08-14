@@ -30,7 +30,7 @@ export async function queryFilterBatched(
   const queryRequests = [];
 
   while (iteratorStart < endBlock) {
-    const intervalEnd = (iteratorStart + batchSize) > endBlock ? endBlock : iteratorStart + batchSize
+    const intervalEnd = Math.min(iteratorStart + batchSize, endBlock)
     queryRequests.push(
       contract.queryFilter(
         eventFilter,
