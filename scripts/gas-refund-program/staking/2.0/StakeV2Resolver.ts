@@ -111,7 +111,7 @@ export class StakeV2Resolver extends AbstractStateTracker {
 
     const pspInSePSP2 = sePSP2Balance // 1 BPT = 1 sePSP2
       .multipliedBy(bptPSPBalance)
-      .dividedBy(bptTotalSupply.isZero() ? new BigNumber(1) : bptTotalSupply)
+      .dividedBy(bptTotalSupply)
       .decimalPlaces(0, BigNumber.ROUND_DOWN);
 
     const stake = sePSP1Balance
