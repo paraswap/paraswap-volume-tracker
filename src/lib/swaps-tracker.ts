@@ -17,6 +17,7 @@ import { BlockInfo } from './block-info';
 import * as ZeroXV2Abi from './abi/zerox.v2.abi.json';
 import * as ZeroXV4Abi from './abi/zerox.v4.abi.json';
 import { Utils } from './utils';
+import { Provider } from './provider';
 
 const logger = global.LOGGER();
 
@@ -127,7 +128,7 @@ export class SwapsTracker {
     protected blockDelay = defaultBlockDelay,
     protected indexRefreshDelay = defaultIndexRefreshDelay,
   ) {
-    this.provider = new JsonRpcProvider(Web3Provider[this.network]);
+    this.provider = Provider.getJsonRpcProvider(this.network);
     this.subgraphURL = SubgraphURLs[this.network];
     this.initTime = InitTime[this.network];
     this.priceApi = new PriceApi(this.initTime, this.network);
