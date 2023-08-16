@@ -21,17 +21,16 @@ export type BPTState = {
 };
 
 export class BPTHelper {
-  private static instance: BPTHelper;
+  private static instance: {[chainId: number]: BPTHelper} = {};
 
   static getInstance(chainId: number) {
-    if (!BPTHelper.instance) {
-      BPTHelper.instance = new BPTHelper(chainId);
+    if (!BPTHelper.instance[chainId]) {
+      BPTHelper.instance[chainId] = new BPTHelper(chainId);
     }
-    return BPTHelper.instance;
+    return BPTHelper.instance[chainId];
   }
 
   multicallContract: Contract;
-  safetyModuleAsERC20: Contract;
   bVaultIface: Interface;
   erc20Iface: Interface;
 

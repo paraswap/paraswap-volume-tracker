@@ -29,7 +29,7 @@ export const SUBGRAPH_URL: { [network: number]: string } = {
     'https://api.thegraph.com/subgraphs/name/ducquangkstn/fantom-blocks',
   // 43114: TODO: deploy blocks in avalanche
 };
-const SUBGRAPH_TIMEOUT = 5000;
+const SUBGRAPH_TIMEOUT = 10000;
 
 export class BlockInfo {
   blockInfo: { [block: number]: number } = {};

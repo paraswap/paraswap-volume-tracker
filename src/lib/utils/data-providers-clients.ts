@@ -24,7 +24,7 @@ export const covalentClient = constructHttpClient({
 
 export const thegraphClient = constructHttpClient({
   axiosConfig: {
-    timeout: 5_000,
+    timeout: 30_000,
   },
   rateLimitOptions: {
     maxRPS: 20,

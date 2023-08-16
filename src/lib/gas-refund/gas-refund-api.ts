@@ -45,6 +45,7 @@ const MerkleRedeemAddress: { [chainId: number]: string } = {
 
 export const MerkleRedeemAddressSePSP1: { [chainId: number]: string } = {
   [CHAIN_ID_MAINNET]: '0x0ecb7de52096638c01757180c88b74e4474473ab',
+  [CHAIN_ID_OPTIMISM]: '0xeA6cC6949c1DF315Af93aB82D567A8FCEe41016d',
 };
 
 export const EPOCH_WHEN_SWITCHED_TO_SE_PSP1 = 32;
@@ -119,7 +120,7 @@ export class GasRefundApi {
       MerkleRedeemAbi,
       Provider.getJsonRpcProvider(this.network),
     ) as unknown as MerkleRedeem;
-    if (network === CHAIN_ID_MAINNET) {
+    if (network === CHAIN_ID_MAINNET || network === CHAIN_ID_OPTIMISM) {
       this.merkleRedemSePSP1 = new Contract(
         MerkleRedeemAddressSePSP1[network],
         MerkleRedeemAbi,
@@ -184,7 +185,7 @@ export class GasRefundApi {
     startEpoch: number,
     endEpoch: number,
   ): Promise<Record<number, boolean>> {
-    if (this.network === CHAIN_ID_GOERLI) return {};
+    if (this.network === CHAIN_ID_GOERLI || this.network === CHAIN_ID_OPTIMISM) return {};
     const [claimStatusPSP, claimStatusSePSP1] = await Promise.all([
       this.merkleRedem.callStatic.claimStatus(address, startEpoch, endEpoch),
       this.merkleRedemSePSP1?.callStatic.claimStatus(

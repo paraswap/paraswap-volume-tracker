@@ -57,7 +57,7 @@ const contractAddressesByChain: Record<number, string[]> = {
           MIGRATION_SEPSP2_100_PERCENT_KEY,
           grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP1,
           grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP2,
-          '0xf6ef5292b8157c2e604363f92d0f1d176e0dc1be', // sePSP1 -> sePSP2 migrator, needed otherwise staking txs are not counted.
+          grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP1ToSePSP2Migrator
         ]
       : []),
     AUGUSTUS_V5_ADDRESS,
@@ -66,6 +66,12 @@ const contractAddressesByChain: Record<number, string[]> = {
     MIGRATION_SEPSP2_100_PERCENT_KEY,
     grp2ConfigByChain[CHAIN_ID_GOERLI].sePSP1,
     grp2ConfigByChain[CHAIN_ID_GOERLI].sePSP2,
+  ],
+  [CHAIN_ID_OPTIMISM]: [
+    grp2ConfigByChain[CHAIN_ID_OPTIMISM]?.sePSP1,
+    grp2ConfigByChain[CHAIN_ID_OPTIMISM]?.sePSP2,
+    grp2ConfigByChain[CHAIN_ID_OPTIMISM]?.sePSP1ToSePSP2Migrator,
+    AUGUSTUS_V5_ADDRESS,
   ],
 };
 

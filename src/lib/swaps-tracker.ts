@@ -101,7 +101,7 @@ const SubgraphQuery = `query ($number_gte: BigInt, $number_lt: BigInt) {
   }
 }`;
 
-const SUBGRAPH_TIMEOUT = 5000;
+const SUBGRAPH_TIMEOUT = 10000;
 
 export class SwapsTracker {
   static instances: {
