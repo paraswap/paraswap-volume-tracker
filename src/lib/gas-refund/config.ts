@@ -60,13 +60,13 @@ export const grp2ConfigByChain: {
     migrator: l('0x8580D057198E80ddE65522180fd8edBeA67D61E6'),
   },
   [CHAIN_ID_OPTIMISM]: {
-    sePSP1: l('0x8eEEb2E3E9748adAb1317693C448701A2b783F54'),
-    sePSP2: l('0xF1A5E2dFbC536476c976ab35a2Cbe1a17bada7A1'),
+    sePSP1: l('0x8C934b7dBc782568d14ceaBbEAeDF37cB6348615'),
+    sePSP2: l('0x26Ee65874f5DbEfa629EB103E7BbB2DEAF4fB2c8'),
     bpt: l('0x11f0b5cca01b0f0a9fe6265ad6e8ee3419c68440'),
     poolId: l(
       '0x11f0b5cca01b0f0a9fe6265ad6e8ee3419c684400002000000000000000000d4',
     ),
-    migrator: l(''),
+    migrator: l('0x18e1A8431Ce39cBFe95958207dA2d68A7Ef8C583'),
   }
 };
 
