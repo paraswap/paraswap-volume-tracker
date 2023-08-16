@@ -113,3 +113,6 @@ export const Balancer_80PSP_20WETH_address = Object.fromEntries(
     poolId.substring(0, 42),
   ]),
 );
+
+export const IS_DEV = process.env.NODE_ENV === 'development';
+export const DEBUG_HTTP = process.env.DEBUG_HTTP === 'true';

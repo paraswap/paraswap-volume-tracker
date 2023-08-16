@@ -1,10 +1,9 @@
 import { Client } from 'pg';
 import { Sequelize } from 'sequelize-typescript';
 import * as cls from 'cls-hooked';
+import { IS_DEV } from './lib/constants';
 
 const logger = global.LOGGER();
-
-const IS_DEV = process.env.NODE_ENV === 'development';
 
 const DATABASE_URL =
   process.env.DATABASE_URL ||
@@ -29,6 +28,7 @@ export class Database {
       logger.info(
         'Database name in connection string is different than expected',
       );
+      debugger;
       const client = new Client({ connectionString: DATABASE_URL });
       await client.connect();
       try {
@@ -48,10 +48,17 @@ export class Database {
       );
       logger.info('Updated database name in connection string');
     }
+    // debugger;
 
     const connectionString = connectionStringParts.join('/');
     this.sequelize = new Sequelize(connectionString, {
-      logging: IS_DEV ? msg => logger.debug(msg) : undefined,
+      logging: IS_DEV
+        ? msg =>
+            // avoid huge insert queries stuffing stdout
+            logger.debug(
+              msg.includes('INSERT INTO') ? msg.substring(0, 300) : msg,
+            )
+        : undefined,
       models: [__dirname + '/models'],
       // needed locally to connect to docker db
       ...(IS_DEV && {
