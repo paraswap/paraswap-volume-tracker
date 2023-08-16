@@ -24,7 +24,7 @@ export const grp2CConfigParticularities: {[network: number]: GRP2ConfigByChain} 
   [CHAIN_ID_GOERLI]: {},
   [CHAIN_ID_MAINNET]: {},
   [CHAIN_ID_OPTIMISM]: {
-    stakingStartCalcTimestamp: 1686960000
+    stakingStartCalcTimestamp: 1691402400
   },
 }
 
