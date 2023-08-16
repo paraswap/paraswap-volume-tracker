@@ -6,6 +6,9 @@ import axiosRetry, {
 } from 'axios-retry';
 import * as _rateLimit from 'axios-rate-limit';
 import { IAxiosCacheAdapterOptions, setupCache } from 'axios-cache-adapter';
+import { DEBUG_HTTP, IS_DEV } from '../constants';
+// @ts-ignore
+const axiosCurlirize = require('axios-curlirize');
 
 type rateLimitOptions = {
   maxRequests?: number;
@@ -76,6 +79,8 @@ export const constructHttpClient = (options?: Options) => {
     shouldResetTimeout: true,
     ...(options?.retryOptions || {}),
   });
+
+  if (IS_DEV && DEBUG_HTTP) axiosCurlirize(client);
 
   return client;
 };
