@@ -1,3 +1,4 @@
+import { IS_DEV } from '../constants';
 import { constructHttpClient } from './http-client';
 
 export const coingeckoClient = constructHttpClient({
@@ -18,7 +19,7 @@ export const covalentClient = constructHttpClient({
     timeout: 30_000,
   },
   rateLimitOptions: {
-    maxRPS: 2,
+    maxRPS: IS_DEV ? 45 : 2, // faster testing in dev mode by using premium endpoint, but free key on prod
   },
 });
 
