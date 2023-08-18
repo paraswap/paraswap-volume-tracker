@@ -18,7 +18,7 @@ import StakesTracker from '../staking/stakes-tracker';
 import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/utils';
 
 // empirically set to maximise on processing time without penalising memory and fetching constraigns
-const SLICE_DURATION = 5 * ONE_HOUR_SEC;
+const SLICE_DURATION = 4 * ONE_HOUR_SEC;
 
 export async function fetchRefundableTransactions({
   chainId,
