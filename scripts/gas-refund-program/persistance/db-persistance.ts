@@ -13,7 +13,7 @@ import { Sequelize, Op } from 'sequelize';
 import BigNumber from 'bignumber.js';
 import { assert } from 'ts-essentials';
 import { sliceCalls } from '../../../src/lib/utils/helpers';
-import { CHAIN_ID_OPTIMISM } from '../../../src/lib/constants';
+import { CHAIN_ID_FANTOM, CHAIN_ID_OPTIMISM } from '../../../src/lib/constants';
 
 export async function fetchLastTimestampTxByContract({
   chainId,
@@ -146,6 +146,11 @@ export async function fetchLastEpochRefunded(
       'chainId',
       [Sequelize.fn('max', Sequelize.col('epoch')), 'lastEpoch'],
     ],
+    where: {
+      chainId: {
+        [Op.not]: CHAIN_ID_FANTOM,
+      },
+    },
     group: 'chainId',
     raw: true,
   })) as unknown as { chainId: number; lastEpoch: number }[];
@@ -154,6 +159,8 @@ export async function fetchLastEpochRefunded(
     (max, curr) => Math.max(max, curr.lastEpoch),
     0,
   );
+
+  // debugger;
 
   if (!skipValidation) {
     assert(
