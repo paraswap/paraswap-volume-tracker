@@ -14,17 +14,22 @@ export async function computeMerkleData({
   userRewards,
 }: {
   epoch: number;
-  userRewards: {account: string, amount: BigNumber, chainId: number}[];
+  userRewards: {
+    account: string,
+    amount: BigNumber,
+    chainId: number
+  }[];
 }): Promise<{merkleTree: MerkleTreeData, chainId: string}[]> {
 
   const userRefundsByChain = userRewards
-      .reduce<{[chainId: number]: {account: string, amount: BigNumber, chainId: number}[]}>(
+      .reduce<{[chainId: number]: {
+          account: string,
+          amount: BigNumber,
+          chainId: number
+      }[]}>(
           (acc, curr) => {
             if (!acc[curr.chainId]) acc[curr.chainId] = [];
-            acc[curr.chainId].push({
-              ...curr,
-              amount: curr.amount
-            })
+            acc[curr.chainId].push(curr)
 
             return acc;
       }, {});
@@ -46,7 +51,11 @@ function computeMerkleDataForChain({
 }: {
   epoch: number;
   chainId: string;
-  rewards: {account: string, amount: BigNumber, chainId: number}[];
+  rewards: {
+    account: string,
+    amount: BigNumber,
+    chainId: number
+  }[];
 }) {
   const totalAmount = rewards
     .reduce((acc, curr) => acc.plus(curr.amount), new BigNumber(0))

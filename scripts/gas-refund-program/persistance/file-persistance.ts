@@ -1,4 +1,4 @@
-import { MerkleTreeData } from '../types';
+import {AddressRewardsMapping, MerkleTreeData} from '../types';
 import { writeFile, mkdir } from 'fs/promises';
 import * as path from 'path';
 
@@ -32,10 +32,12 @@ export async function saveMerkleTreeInFile({
   chainId,
   epoch,
   merkleTree,
+ userGRPChainsBreakDowns
 }: {
   chainId: number;
   epoch: number;
   merkleTree: MerkleTreeData;
+  userGRPChainsBreakDowns: AddressRewardsMapping;
 }): Promise<void> {
   const fileLocation = constructFilePath({ chainId, epoch });
 
@@ -49,7 +51,7 @@ export async function saveMerkleTreeInFile({
     root: merkleTree.root,
     merkleProofs: merkleTree.leaves.map(v => {
       const { merkleProofs, ...r } = v;
-      return { ...r, proof: merkleProofs };
+      return { ...r, proof: merkleProofs, GRPChainBreakDown: userGRPChainsBreakDowns[r.address] };
     }),
   };
 

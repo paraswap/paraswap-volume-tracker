@@ -19,6 +19,7 @@ import {STAKING_CHAIN_IDS} from "../../src/lib/constants";
 import {StakeV2Resolver} from "./staking/2.0/StakeV2Resolver";
 import BigNumber from "bignumber.js";
 import {isTruthy} from "../../src/lib/utils";
+import {AddressChainRewardsMapping, AddressRewards, AddressRewardsMapping, ChainRewardsMapping} from "./types";
 
 dotenv.config();
 
@@ -30,6 +31,7 @@ const saveFile = process.env.SAVE_FILE === 'true';
 type RefundableTransaction = {
     address: string;
     timestamp: number;
+    chainId: number;
     refundedAmountPSP: string;
 }
 export async function getRefundableTransactionData(epoch: number): Promise<RefundableTransaction[]> {
@@ -54,6 +56,7 @@ export async function getRefundableTransactionData(epoch: number): Promise<Refun
             'address',
             'timestamp',
             'refundedAmountPSP',
+            'chainId'
         ],
         raw: true,
     });
@@ -62,26 +65,35 @@ export async function getRefundableTransactionData(epoch: number): Promise<Refun
 export async function computeAndStoreMerkleTree(epoch: number) {
     const userRewardsOnStakingChains = await computeStakingChainsRefundedAmounts(epoch);
 
-    const userRewards: {account: string, amount: BigNumber, chainId: number}[] = Object.keys(userRewardsOnStakingChains)
+    const userRewards: AddressRewards[] = Object.keys(userRewardsOnStakingChains)
         .map(account =>
             Object.entries(userRewardsOnStakingChains[account])
-              .map(([chainId, amount]) => ({
+              .map(([chainId, {amount, breakDownGRP}]) => ({
                   chainId: +chainId,
                   amount,
+                  breakDownGRP,
                   account,
               }))
         ).flat()
         .filter(entry => !entry.amount.eq(0))
+
+    const userGRPChainsBreakDowns = userRewards.reduce<AddressRewardsMapping>((acc, curr) => {
+      acc[curr.account] = curr.breakDownGRP;
+
+      return acc;
+    }, {})
+
+
 
       const merkleTreeData = await computeMerkleData({userRewards, epoch});
 
     return Promise.all(merkleTreeData.map(async ({chainId, merkleTree}) => {
         if (saveFile) {
             logger.info('saving merkle tree in file');
-            await saveMerkleTreeInFile({ chainId: +chainId, epoch, merkleTree });
+            await saveMerkleTreeInFile({ chainId: +chainId, epoch, merkleTree, userGRPChainsBreakDowns });
         } else {
             logger.info('saving merkle tree in db');
-            await saveMerkleTreeInDB({ chainId: +chainId, epoch, merkleTree });
+            await saveMerkleTreeInDB({ chainId: +chainId, epoch, merkleTree, userGRPChainsBreakDowns });
         }
     }))
 
@@ -110,12 +122,12 @@ async function computeStakingChainsRefundedAmounts(epoch: number) {
       await stakeResolvers[chainId].loadWithinInterval(startCalcTime, endCalcTime)
     }
 
-    const userRewardsOnStakingChains: {[account: string]: {[chainId: number]: BigNumber}} = {};
+    const userRewardsOnStakingChains: AddressChainRewardsMapping = {};
 
     Object.entries(refundableTransactionsByAccount)
         .forEach(([account, refundTransactions]) => {
             userRewardsOnStakingChains[account] = refundTransactions
-                .reduce<{[chainId: number]: BigNumber}>((acc, curr) => {
+                .reduce<ChainRewardsMapping>((acc, curr) => {
 
                     let refundTransactionRemainingRefundableAmount = new BigNumber(curr.refundedAmountPSP);
                   const stakesForTimestamp = STAKING_CHAIN_IDS.map(chainId => {
@@ -139,20 +151,36 @@ async function computeStakingChainsRefundedAmounts(epoch: number) {
 
 
                     stakesForTimestamp.forEach((entry) => {
-                        if(!acc[entry.chainId]) acc[entry.chainId] = new BigNumber(0);
+                        if(!acc[entry.chainId]) acc[entry.chainId] = {
+                          amount: new BigNumber(0),
+                          breakDownGRP: {}
+                        };
                         const refundAmountForChain = entry.stake.multipliedBy(curr.refundedAmountPSP).dividedBy(totalStakesAtTimestamp);
                         refundTransactionRemainingRefundableAmount = refundTransactionRemainingRefundableAmount.minus(refundAmountForChain);
 
-                        acc[entry.chainId] = acc[entry.chainId].plus(refundAmountForChain)
+                        acc[entry.chainId].amount = acc[entry.chainId].amount.plus(refundAmountForChain)
+                        if (!acc[entry.chainId].breakDownGRP[curr.chainId]) {
+                          acc[entry.chainId].breakDownGRP[curr.chainId] = new BigNumber(refundAmountForChain);
+                        } else {
+                          acc[entry.chainId].breakDownGRP[curr.chainId] = acc[entry.chainId].breakDownGRP[curr.chainId].plus(refundAmountForChain)
+                        }
                     });
 
                     if (!refundTransactionRemainingRefundableAmount.eq(0)) {
                         for (const entry of stakesForTimestamp) {
                             if (!entry.stake.eq(0)) {
-                                acc[entry.chainId] = acc[entry.chainId].eq(0)
-                                    ? new BigNumber(refundTransactionRemainingRefundableAmount)
-                                    : acc[entry.chainId].plus(refundTransactionRemainingRefundableAmount);
-                                break;
+                              if (acc[entry.chainId].amount.eq(0)) {
+                                acc[entry.chainId].amount = new BigNumber(refundTransactionRemainingRefundableAmount);
+                              } else {
+                                acc[entry.chainId].amount = acc[entry.chainId].amount.plus(refundTransactionRemainingRefundableAmount);
+                              }
+
+                              if (!acc[entry.chainId].breakDownGRP[curr.chainId]) {
+                                acc[entry.chainId].breakDownGRP[curr.chainId] = new BigNumber(refundTransactionRemainingRefundableAmount);
+                              } else {
+                                acc[entry.chainId].breakDownGRP[curr.chainId] = acc[entry.chainId].breakDownGRP[curr.chainId].plus(refundTransactionRemainingRefundableAmount)
+                              }
+                              break;
                             }
                         }
                     }

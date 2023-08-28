@@ -8,7 +8,7 @@ import {
 import { GasRefundParticipation } from '../../../src/models/GasRefundParticipation';
 import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
 import { GasRefundDistribution } from '../../../src/models/GasRefundDistribution';
-import { MerkleData, MerkleTreeData } from '../types';
+import {AddressRewardsMapping, MerkleData, MerkleTreeData} from '../types';
 import { Sequelize, Op } from 'sequelize';
 import BigNumber from 'bignumber.js';
 import { assert } from 'ts-essentials';
@@ -203,10 +203,12 @@ export const saveMerkleTreeInDB = async ({
   chainId,
   epoch,
   merkleTree,
+  userGRPChainsBreakDowns
 }: {
   epoch: number;
   chainId: number;
   merkleTree: MerkleTreeData;
+  userGRPChainsBreakDowns: AddressRewardsMapping;
 }): Promise<void> => {
   const {
     root: { totalAmount, merkleRoot },
@@ -218,9 +220,9 @@ export const saveMerkleTreeInDB = async ({
       epoch,
       address: leaf.address,
       chainId: chainId,
-
       merkleProofs: leaf.merkleProofs,
       isCompleted: true,
+      GRPChainBreakDown: userGRPChainsBreakDowns[leaf.address]
     }),
   );
 
