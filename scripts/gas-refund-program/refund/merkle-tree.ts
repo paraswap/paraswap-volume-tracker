@@ -2,6 +2,7 @@ import { Claimable, MerkleTreeData } from '../types';
 import { utils, logger } from 'ethers';
 import { MerkleTree } from 'merkletreejs';
 import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
+import BigNumber from "bignumber.js";
 
 export type MinGasRefundTransaction = Pick<
   GasRefundTransaction,
@@ -9,26 +10,65 @@ export type MinGasRefundTransaction = Pick<
 >;
 
 export async function computeMerkleData({
-  chainId,
   epoch,
-  refundableTransactions,
+  userRewards,
 }: {
-  chainId: number;
   epoch: number;
-  refundableTransactions: MinGasRefundTransaction[];
-}): Promise<MerkleTreeData> {
-  const totalAmount = refundableTransactions
-    .reduce((acc, curr) => (acc += BigInt(curr.refundedAmountPSP)), BigInt(0))
-    .toString();
+  userRewards: {
+    account: string,
+    amount: BigNumber,
+    chainId: number
+  }[];
+}): Promise<{merkleTree: MerkleTreeData, chainId: string}[]> {
 
-  const hashedClaimabled = refundableTransactions.reduce<
-    Record<string, Claimable>
+  const userRefundsByChain = userRewards
+      .reduce<{[chainId: number]: {
+          account: string,
+          amount: BigNumber,
+          chainId: number
+      }[]}>(
+          (acc, curr) => {
+            if (!acc[curr.chainId]) acc[curr.chainId] = [];
+            acc[curr.chainId].push(curr)
+
+            return acc;
+      }, {});
+
+  return Object.entries(userRefundsByChain)
+      .map(([chainId, rewards]) =>
+          computeMerkleDataForChain({
+            epoch,
+            chainId,
+            rewards
+          }))
+      .filter(chainDistribution => chainDistribution.merkleTree.leaves.length > 0);
+}
+
+function computeMerkleDataForChain({
+  epoch,
+  chainId,
+  rewards,
+}: {
+  epoch: number;
+  chainId: string;
+  rewards: {
+    account: string,
+    amount: BigNumber,
+    chainId: number
+  }[];
+}) {
+  const totalAmount = rewards
+    .reduce((acc, curr) => acc.plus(curr.amount), new BigNumber(0))
+    .toFixed();
+
+  const hashedClaimabled = rewards.reduce<
+      Record<string, Claimable>
   >((acc, curr) => {
-    const { address, refundedAmountPSP } = curr;
+    const { account, amount } = curr;
     const hash = utils.keccak256(
-      utils.solidityPack(['address', 'uint256'], [address, refundedAmountPSP]),
+        utils.solidityPack(['address', 'uint256'], [account, amount.toFixed()]),
     );
-    acc[hash] = { address, amount: refundedAmountPSP };
+    acc[hash] = { address: account, amount: amount.toFixed()};
     return acc;
   }, {});
 
@@ -50,14 +90,18 @@ export async function computeMerkleData({
       totalAmount,
       epoch,
     },
+    chainId,
     leaves: merkleLeaves,
   };
 
   logger.info(
-    `chainId=${chainId}, epoch=${epoch} merkleTree for: ${JSON.stringify(
-      merkleTreeData.root,
-    )}`,
+      `chainId=${chainId}, epoch=${epoch} merkleTree for: ${JSON.stringify(
+          merkleTreeData.root,
+      )}`,
   );
 
-  return merkleTreeData;
+  return {
+    merkleTree: merkleTreeData,
+    chainId
+  }
 }

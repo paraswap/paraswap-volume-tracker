@@ -7,7 +7,6 @@ import {
   DataType,
   AutoIncrement,
   createIndexDecorator,
-  Index,
 } from 'sequelize-typescript';
 import { GasRefundParticipantData } from '../lib/gas-refund/gas-refund';
 
@@ -15,6 +14,7 @@ import {
   DataType_ADDRESS,
   DataType_KECCAK256_HASHED_VALUE,
 } from '../lib/sql-data-types';
+import {ChainBalanceMapping} from "../types";
 
 const compositeIndex = createIndexDecorator({
   name: 'epochgasrefund_epoch_address_chain',
@@ -46,4 +46,12 @@ export class GasRefundParticipation extends Model<GasRefundParticipantData> {
     type: DataType.ARRAY(DataType_KECCAK256_HASHED_VALUE),
   })
   merkleProofs: string[];
+
+  @AllowNull(true)
+  @Column({type: DataType.JSONB})
+  GRPChainBreakDown: ChainBalanceMapping;
+
+  @AllowNull(true)
+  @Column(DataType.DECIMAL)
+  amount: string;
 }

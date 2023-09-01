@@ -232,11 +232,11 @@ export default class Router {
         const network = Number(req.params.network);
         if (!GRP_SUPPORTED_CHAINS.includes(network))
           return res
-            .status(403)
+            .status(400)
             .send({ error: `Unsupported network: ${network}` });
         const gasRefundApi = GasRefundApi.getInstance(network);
         const gasRefundDataAddress =
-          await gasRefundApi.getAllGasRefundDataForAddress(address);
+          await gasRefundApi.getAllGasRefundDataForAddress(address, network);
 
         return res.json(gasRefundDataAddress);
       } catch (e) {
