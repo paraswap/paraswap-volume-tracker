@@ -3,7 +3,7 @@ import { CHAIN_ID_MAINNET } from '../constants';
 import { EpochInfo } from '../epoch-info';
 import { GasRefundV2EpochFlip } from './gas-refund';
 import { OFFSET_CALC_TIME, SCRIPT_START_TIME_SEC } from './common';
-import {grp2CConfigParticularities, grp2GlobalConfig} from './config';
+import { grp2CConfigParticularities, grp2GlobalConfig } from './config';
 
 type EpochCalcTime = {
   startCalcTime: number;
@@ -14,8 +14,14 @@ type EpochCalcTime = {
 type BaseEpochResolver = {
   init: () => void;
   getCurrentEpoch: () => number;
-  getEpochStartCalcTime: (epoch: number, chainId?: number) => AsyncOrSync<number>;
-  resolveEpochCalcTimeInterval: (epoch: number, chainId?: number) => AsyncOrSync<EpochCalcTime>;
+  getEpochStartCalcTime: (
+    epoch: number,
+    chainId?: number,
+  ) => AsyncOrSync<number>;
+  resolveEpochCalcTimeInterval: (
+    epoch: number,
+    chainId?: number,
+  ) => AsyncOrSync<EpochCalcTime>;
 };
 
 const GRP1EpochResolver: BaseEpochResolver = {
@@ -133,4 +139,4 @@ export const getCurrentEpoch = () => getEpochResolverForNow().getCurrentEpoch();
 export const getEpochStartCalcTime = (epoch: number) =>
   getEpochResolverForEpoch(epoch).getEpochStartCalcTime(epoch);
 export const resolveV2EpochNumber = (timestamp: number) =>
-    GRP2EpochResolver.resolveEpochNumber(timestamp)
+  GRP2EpochResolver.resolveEpochNumber(timestamp);

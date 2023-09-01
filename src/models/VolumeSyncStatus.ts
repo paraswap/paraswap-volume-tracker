@@ -7,10 +7,17 @@ export interface VolumeSyncStatusAttributes {
   toBlockNumber: number;
 }
 
-export interface VolumeSyncStatusCreationAttributes extends Optional<VolumeSyncStatusAttributes, 'fromBlockNumber' | 'toBlockNumber'> {}
+export interface VolumeSyncStatusCreationAttributes
+  extends Optional<
+    VolumeSyncStatusAttributes,
+    'fromBlockNumber' | 'toBlockNumber'
+  > {}
 
 @Table
-export class VolumeSyncStatus extends Model<VolumeSyncStatusAttributes, VolumeSyncStatusCreationAttributes> {
+export class VolumeSyncStatus extends Model<
+  VolumeSyncStatusAttributes,
+  VolumeSyncStatusCreationAttributes
+> {
   @PrimaryKey
   @Column
   network: number;

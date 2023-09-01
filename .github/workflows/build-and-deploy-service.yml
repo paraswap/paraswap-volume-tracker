@@ -12,9 +12,9 @@ on:
         default: staging
         required: false
         options:
-        - staging
-        - referrals
-        - orders
+          - staging
+          - referrals
+          - orders
 
 concurrency:
   group: ${{ github.event_name }}-${{ github.event.inputs.target_env }}-service

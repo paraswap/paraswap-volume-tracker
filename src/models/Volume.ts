@@ -1,4 +1,14 @@
-import { Table, Model, Column, Index, AllowNull, PrimaryKey, Default, DataType, Scopes } from 'sequelize-typescript'
+import {
+  Table,
+  Model,
+  Column,
+  Index,
+  AllowNull,
+  PrimaryKey,
+  Default,
+  DataType,
+  Scopes,
+} from 'sequelize-typescript';
 import {
   DataType_ADDRESS,
   DataType_UINT256,
@@ -25,8 +35,8 @@ export interface VolumeAttributes {
 @Scopes(() => ({
   whitelisted: {
     where: {
-      isWhitelisted: true
-    }
+      isWhitelisted: true,
+    },
   },
 }))
 @Table
@@ -53,11 +63,11 @@ export class Volume extends Model<VolumeAttributes> {
 
   @AllowNull(false)
   @Column(DataType_ADDRESS)
-  makerAddress: string
+  makerAddress: string;
 
   @AllowNull(false)
   @Column(DataType_ADDRESS)
-  takerAddress: string
+  takerAddress: string;
 
   @AllowNull(false)
   @Column(DataType_ADDRESS)

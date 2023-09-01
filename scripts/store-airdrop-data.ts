@@ -10,10 +10,9 @@ const logger = global.LOGGER();
 
 async function main() {
   logger.info('Loading airdrop JSON file...');
-  const data = JSON.parse(fs.readFileSync(
-    'scripts/airdrop.json',
-    { encoding: 'utf8' },
-  ));
+  const data = JSON.parse(
+    fs.readFileSync('scripts/airdrop.json', { encoding: 'utf8' }),
+  );
 
   logger.info('Connecting to DB...');
   await Database.connectAndSync();
@@ -22,7 +21,7 @@ async function main() {
   await Claim.destroy({ truncate: true });
 
   const claims = Object.entries(data.claims).map(
-    ([userAddress, claim]: [string, object]) => ({ userAddress, claim })
+    ([userAddress, claim]: [string, object]) => ({ userAddress, claim }),
   );
   logger.info(`Storing ${claims.length} records...`);
   await Claim.bulkCreate(claims, { returning: false, logging: false });

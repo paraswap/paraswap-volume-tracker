@@ -21,7 +21,7 @@ export type BPTState = {
 };
 
 export class BPTHelper {
-  private static instance: {[chainId: number]: BPTHelper} = {};
+  private static instance: { [chainId: number]: BPTHelper } = {};
 
   static getInstance(chainId: number) {
     if (!BPTHelper.instance[chainId]) {
