@@ -1,15 +1,21 @@
-import {assert} from 'ts-essentials';
-import {getCurrentEpoch, resolveEpochCalcTimeInterval} from '../../../src/lib/gas-refund/epoch-helpers';
+import { assert } from 'ts-essentials';
+import {
+  getCurrentEpoch,
+  resolveEpochCalcTimeInterval,
+} from '../../../src/lib/gas-refund/epoch-helpers';
 import {
   GasRefundGenesisEpoch,
   GasRefundV2EpochOptimismFlip,
   GRP_SUPPORTED_CHAINS,
 } from '../../../src/lib/gas-refund/gas-refund';
 
-import {getLatestEpochRefunded, merkleRootExists,} from '../persistance/db-persistance';
-import {fetchPricingAndTransactions} from './fetchPricingAndTransactions';
-import {CHAIN_ID_OPTIMISM, ETH_NETWORKS} from '../../../src/lib/constants';
-import {forceEthereumMainnet} from "../../../src/lib/gas-refund/config";
+import {
+  getLatestEpochRefunded,
+  merkleRootExists,
+} from '../persistance/db-persistance';
+import { fetchPricingAndTransactions } from './fetchPricingAndTransactions';
+import { CHAIN_ID_OPTIMISM, ETH_NETWORKS } from '../../../src/lib/constants';
+import { forceEthereumMainnet } from '../../../src/lib/gas-refund/config';
 
 const logger = global.LOGGER('GRP::fetchRefundableTransactionsAllChains');
 
@@ -18,7 +24,8 @@ export async function fetchRefundableTransactionsAllChains() {
     GRP_SUPPORTED_CHAINS.map(async chainId => {
       const _lastEpochRefunded = await getLatestEpochRefunded(
         ETH_NETWORKS.includes(chainId)
-          ? forceEthereumMainnet(chainId) : chainId,
+          ? forceEthereumMainnet(chainId)
+          : chainId,
       );
 
       const lastEpochRefunded =

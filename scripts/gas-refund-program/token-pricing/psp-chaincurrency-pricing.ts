@@ -91,7 +91,7 @@ const constructSameDayPriceResolver = (
   };
 };
 
-// computes moving average prices for last 24h 
+// computes moving average prices for last 24h
 const constructLast24hAvgPriceResolver = (
   prices: HistoricalTokenUsdPrices,
 ): PriceResolverFn => {

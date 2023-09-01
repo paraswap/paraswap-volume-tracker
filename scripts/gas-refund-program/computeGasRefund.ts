@@ -4,12 +4,11 @@ dotenv.config();
 import '../../src/lib/log4js';
 import Database from '../../src/database';
 import StakesTracker from './staking/stakes-tracker';
-import {validateTransactions} from './transactions-validation/validateTransactions';
-import {fetchRefundableTransactionsAllChains} from './transactions-indexing/fetchRefundableTransactionsAllChains';
-import {loadEpochMetaData} from '../../src/lib/gas-refund/epoch-helpers';
+import { validateTransactions } from './transactions-validation/validateTransactions';
+import { fetchRefundableTransactionsAllChains } from './transactions-indexing/fetchRefundableTransactionsAllChains';
+import { loadEpochMetaData } from '../../src/lib/gas-refund/epoch-helpers';
 
 const logger = global.LOGGER('GRP');
-
 
 /**
  * @description This function is meant to calculate the gas refund amount for all the users that are eligible for the

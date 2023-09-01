@@ -20,11 +20,14 @@ import {
   timeseriesComparator,
 } from '../../timeseries';
 import { BPTHelper } from './BPTHelper';
-import {AbstractStateTracker, BlockTimeBoundary} from './AbstractStateTracker';
+import {
+  AbstractStateTracker,
+  BlockTimeBoundary,
+} from './AbstractStateTracker';
 import BigNumber from 'bignumber.js';
 import { imReverse } from '../../../../src/lib/utils';
-import {queryFilterBatched} from "./utils";
-import {grp2CConfigParticularities} from "../../../../src/lib/gas-refund/config";
+import { queryFilterBatched } from './utils';
+import { grp2CConfigParticularities } from '../../../../src/lib/gas-refund/config';
 
 interface MinERC20 extends Contract {
   totalSupply(overrides?: CallOverrides): Promise<EthersBN>;
@@ -151,14 +154,14 @@ export default class BPTStateTracker extends AbstractStateTracker {
 
   // adjust to populate eth balance too
   async resolveBPTPoolPSPBalanceChangesFromLP() {
-    let events = await queryFilterBatched(
-        this.bVaultContract,
-        this.bVaultContract.filters.PoolBalanceChanged(
-          Balancer_80PSP_20WETH_poolId[this.chainId],
-        ),
-        this.startBlock,
-        this.endBlock,
-      ) as PoolBalanceChanged[];
+    let events = (await queryFilterBatched(
+      this.bVaultContract,
+      this.bVaultContract.filters.PoolBalanceChanged(
+        Balancer_80PSP_20WETH_poolId[this.chainId],
+      ),
+      this.startBlock,
+      this.endBlock,
+    )) as PoolBalanceChanged[];
 
     const blockNumToTimestamp = await fetchBlockTimestampForEvents(
       this.chainId,
@@ -203,14 +206,14 @@ export default class BPTStateTracker extends AbstractStateTracker {
   }
 
   async resolveBPTPoolPSPBalanceChangesFromSwaps() {
-    const events = await queryFilterBatched(
-        this.bVaultContract,
-        this.bVaultContract.filters.Swap(
-          Balancer_80PSP_20WETH_poolId[this.chainId],
-        ),
-        this.startBlock,
-        this.endBlock,
-      ) as Swap[];
+    const events = (await queryFilterBatched(
+      this.bVaultContract,
+      this.bVaultContract.filters.Swap(
+        Balancer_80PSP_20WETH_poolId[this.chainId],
+      ),
+      this.startBlock,
+      this.endBlock,
+    )) as Swap[];
 
     const blockNumToTimestamp = await fetchBlockTimestampForEvents(
       this.chainId,

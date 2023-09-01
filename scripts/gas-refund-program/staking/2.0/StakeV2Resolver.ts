@@ -27,7 +27,8 @@ export class StakeV2Resolver extends AbstractStateTracker {
     this.sePSP1Tracker = ERC20StateTracker.getInstance(chainId, sePSP1);
     this.sePSP2Tracker = ERC20StateTracker.getInstance(chainId, sePSP2);
     this.bptTracker = BPTStateTracker.getInstance(chainId);
-    this.claimableSePSP1Tracker = ClaimableSePSP1StateTracker.getInstance(chainId)
+    this.claimableSePSP1Tracker =
+      ClaimableSePSP1StateTracker.getInstance(chainId);
   }
 
   static getInstance(chainId: number) {
@@ -57,8 +58,8 @@ export class StakeV2Resolver extends AbstractStateTracker {
     );
     assert(
       typeof _startBlock === 'number' &&
-      _startBlock > 0 &&
-      _startBlock < _endBlock,
+        _startBlock > 0 &&
+        _startBlock < _endBlock,
       '_startBlock should be a number and 0 < _startBlock < endBlock',
     );
 
@@ -72,8 +73,9 @@ export class StakeV2Resolver extends AbstractStateTracker {
 
   async loadWithinInterval(epochStartTimestamp: number, endTimestamp: number) {
     const startTimestamp =
-      grp2CConfigParticularities[this.chainId].stakingStartCalcTimestamp // set staking start time higher if staking contracts have been deployed after epoch start
-      && epochStartTimestamp < grp2CConfigParticularities[this.chainId].stakingStartCalcTimestamp!
+      grp2CConfigParticularities[this.chainId].stakingStartCalcTimestamp && // set staking start time higher if staking contracts have been deployed after epoch start
+      epochStartTimestamp <
+        grp2CConfigParticularities[this.chainId].stakingStartCalcTimestamp!
         ? grp2CConfigParticularities[this.chainId].stakingStartCalcTimestamp!
         : epochStartTimestamp;
 
@@ -82,7 +84,7 @@ export class StakeV2Resolver extends AbstractStateTracker {
     const boundary = this.getBlockTimeBoundary();
     assert(
       boundary.startTimestamp === startTimestamp &&
-      boundary.endTimestamp == endTimestamp,
+        boundary.endTimestamp == endTimestamp,
       'wrong boundary resolved',
     );
 
@@ -95,8 +97,8 @@ export class StakeV2Resolver extends AbstractStateTracker {
       this.sePSP1Tracker.loadStates(),
       this.sePSP2Tracker.loadStates(),
       this.bptTracker.loadStates(),
-      this.claimableSePSP1Tracker.loadStates()
-    ])
+      this.claimableSePSP1Tracker.loadStates(),
+    ]);
   }
 
   // returns stakesScore(t)
@@ -105,7 +107,10 @@ export class StakeV2Resolver extends AbstractStateTracker {
 
     const sePSP1Balance = this.sePSP1Tracker.getBalance(timestamp, account);
     const sePSP2Balance = this.sePSP2Tracker.getBalance(timestamp, account);
-    const claimableSePSP1 = this.claimableSePSP1Tracker.getBalance(timestamp, account);
+    const claimableSePSP1 = this.claimableSePSP1Tracker.getBalance(
+      timestamp,
+      account,
+    );
     const { pspBalance: bptPSPBalance, totalSupply: bptTotalSupply } =
       this.bptTracker.getBPTState(timestamp);
 
