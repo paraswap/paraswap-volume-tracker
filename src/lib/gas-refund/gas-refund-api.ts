@@ -131,7 +131,7 @@ export class GasRefundApi {
       MerkleRedeemAbi,
       Provider.getJsonRpcProvider(this.network),
     ) as unknown as MerkleRedeem;
-    if (network === CHAIN_ID_MAINNET) {
+    if (network === CHAIN_ID_MAINNET || network === CHAIN_ID_OPTIMISM) {
       this.merkleRedemSePSP1 = new Contract(
         MerkleRedeemAddressSePSP1[network],
         MerkleRedeemAbi,

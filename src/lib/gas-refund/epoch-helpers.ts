@@ -3,7 +3,7 @@ import { CHAIN_ID_MAINNET } from '../constants';
 import { EpochInfo } from '../epoch-info';
 import { GasRefundV2EpochFlip } from './gas-refund';
 import { OFFSET_CALC_TIME, SCRIPT_START_TIME_SEC } from './common';
-import { grp2GlobalConfig } from './config';
+import {grp2CConfigParticularities, grp2GlobalConfig} from './config';
 
 type EpochCalcTime = {
   startCalcTime: number;
@@ -14,8 +14,8 @@ type EpochCalcTime = {
 type BaseEpochResolver = {
   init: () => void;
   getCurrentEpoch: () => number;
-  getEpochStartCalcTime: (epoch: number) => AsyncOrSync<number>;
-  resolveEpochCalcTimeInterval: (epoch: number) => AsyncOrSync<EpochCalcTime>;
+  getEpochStartCalcTime: (epoch: number, chainId?: number) => AsyncOrSync<number>;
+  resolveEpochCalcTimeInterval: (epoch: number, chainId?: number) => AsyncOrSync<EpochCalcTime>;
 };
 
 const GRP1EpochResolver: BaseEpochResolver = {
@@ -98,6 +98,7 @@ const GRP2EpochResolver: EpochReseolverV2 = {
 
   getEpochStartCalcTime(epoch: number) {
     const { startTimestamp } = GRP2EpochResolver.getEpochTimeBoundary(epoch);
+
     return startTimestamp;
   },
 
@@ -111,11 +112,7 @@ const GRP2EpochResolver: EpochReseolverV2 = {
       endTimestamp,
     );
 
-    return {
-      startCalcTime: startTimestamp,
-      endCalcTime: endCalcTime,
-      isEpochEnded,
-    };
+    return { startCalcTime: startTimestamp, endCalcTime, isEpochEnded };
   },
 };
 

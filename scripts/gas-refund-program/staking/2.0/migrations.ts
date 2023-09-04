@@ -14,6 +14,7 @@ import {
   grp2ConfigByChain,
   grp2GlobalConfig,
 } from '../../../../src/lib/gas-refund/config';
+import { CHAIN_ID_MAINNET } from '../../../../src/lib/constants';
 
 const transform = (
   events: Transfer[],
@@ -47,14 +48,19 @@ export async function getMigrationsTxs({
 
   const chainId = forceStakingChainId(_chaindId);
 
-  const { sePSP2, migrator } = grp2ConfigByChain[chainId];
+  const { sePSP2, psp1ToPsp2Migrator } = grp2ConfigByChain[chainId];
+
+  if (chainId !== CHAIN_ID_MAINNET && !psp1ToPsp2Migrator) {
+    return [];
+  }
+
   assert(sePSP2, 'sePSP2 should be defined');
-  assert(migrator, 'migrator should be defined');
+  assert(psp1ToPsp2Migrator, 'migrator should be defined');
 
   const sePSP2Tracker = ERC20StateTracker.getInstance(chainId, sePSP2); // TODO: add check to verify that singleton got loaded
   const { transferEvents } = sePSP2Tracker;
   const migrationsEvents = transferEvents.filter(
-    e => e.args.from.toLowerCase() === migrator.toLowerCase(),
+    e => e.args.from.toLowerCase() === psp1ToPsp2Migrator.toLowerCase(),
   );
   const migrations = transform(migrationsEvents, chainId, epoch);
 

@@ -120,7 +120,7 @@ export async function getSuccessfulSwaps({
         number_gte: startTimestamp,
         number_lt: endTimestamp,
         skip,
-        pageSize,
+        first: pageSize,
       },
       regorgBlockHashes
         ? {

@@ -7,6 +7,7 @@ import {
   CHAIN_ID_ROPSTEN,
   CHAIN_ID_MAINNET,
   STAKING_CHAIN_IDS,
+  CHAINS_WITHOUT_PARASWAP_POOLS_SUPPORT,
 } from './constants';
 import { Provider } from './provider';
 import * as MultiCallerABI from './abi/multicaller.abi.json';
@@ -18,6 +19,7 @@ import VolumeTracker from './volume-tracker';
 import { BlockInfo } from './block-info';
 import { EpochInfo } from './epoch-info';
 import { ZERO_BN } from './utils/helpers';
+import { assert } from 'ts-essentials';
 
 export enum PoolType {
   AMMPool = 'AMMPool',
@@ -357,6 +359,10 @@ export class PoolInfo {
   }
 
   static getInstance(network: number = DEFAULT_CHAIN_ID) {
+    assert(
+      !CHAINS_WITHOUT_PARASWAP_POOLS_SUPPORT.includes(network),
+      'Network does not support paraswap pools',
+    );
     if (!(network in this.instances))
       this.instances[network] = new PoolInfo(
         network,
@@ -372,9 +378,9 @@ export class PoolInfo {
 
   static initStartListening() {
     return Promise.all(
-      STAKING_CHAIN_IDS.map(network =>
-        PoolInfo.getInstance(network).startListening(),
-      ),
+      STAKING_CHAIN_IDS.filter(
+        chainId => !CHAINS_WITHOUT_PARASWAP_POOLS_SUPPORT.includes(chainId),
+      ).map(network => PoolInfo.getInstance(network).startListening()),
     );
   }
 

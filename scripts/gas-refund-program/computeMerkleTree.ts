@@ -1,5 +1,7 @@
 import '../../src/lib/log4js';
 import * as dotenv from 'dotenv';
+dotenv.config();
+
 import {Op} from 'sequelize';
 import {computeMerkleData} from './refund/merkle-tree';
 import {fetchLastEpochRefunded, saveMerkleTreeInDB,} from './persistance/db-persistance';
@@ -21,7 +23,6 @@ import BigNumber from "bignumber.js";
 import {isTruthy} from "../../src/lib/utils";
 import {AddressChainRewardsMapping, AddressRewards, AddressRewardsMapping, ChainRewardsMapping} from "./types";
 
-dotenv.config();
 
 const logger = global.LOGGER('GRP:COMPUTE_MERKLE_TREE');
 

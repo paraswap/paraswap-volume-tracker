@@ -16,11 +16,11 @@ export const PSP_ADDRESS: { [chainId: number]: string } = {
   [CHAIN_ID_POLYGON]: '0x42d61d766b85431666b39b89c43011f24451bff6',
 };
 
-export const STAKING_CHAIN_IDS = [CHAIN_ID_MAINNET, CHAIN_ID_ROPSTEN];
-export const STAKING_CHAIN_IDS_SET = new Set([
-  CHAIN_ID_MAINNET,
-  CHAIN_ID_ROPSTEN,
-]);
+export const STAKING_CHAIN_IDS = [CHAIN_ID_MAINNET, CHAIN_ID_OPTIMISM];
+export const ETH_NETWORKS = [CHAIN_ID_MAINNET, CHAIN_ID_GOERLI];
+export const STAKING_CHAIN_IDS_SET = new Set(STAKING_CHAIN_IDS);
+
+export const CHAINS_WITHOUT_PARASWAP_POOLS_SUPPORT = [CHAIN_ID_OPTIMISM];
 
 export const VOLUME_TRACKER_SUPPORTED_NETWORKS = [CHAIN_ID_MAINNET];
 export const VOLUME_TRACKER_INIT_TIME: { [network: number]: number } = {
@@ -103,6 +103,8 @@ export const Balancer_80PSP_20WETH_poolId: { [chainId: string]: string } = {
     '0xcb0e14e96f2cefa8550ad8e4aea344f211e5061d00020000000000000000011a',
   [CHAIN_ID_GOERLI]:
     '0xdedb0a5abc452164fd241da019741026f6efdc74000200000000000000000223',
+  [CHAIN_ID_OPTIMISM]:
+    '0x11f0b5cca01b0f0a9fe6265ad6e8ee3419c684400002000000000000000000d4',
 };
 
 export const Balancer_80PSP_20WETH_address = Object.fromEntries(
