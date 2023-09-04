@@ -6,7 +6,7 @@ import { reduceTimeSeries, TimeSeries } from '../../timeseries';
 import BigNumber from 'bignumber.js';
 import { AbstractStateTracker } from './AbstractStateTracker';
 import { getTokenHolders } from '../../../../src/lib/utils/covalent';
-import {queryFilterBatched} from "./utils";
+import { queryFilterBatched } from './utils';
 
 const logger = global.LOGGER('ERC20StateTracker');
 
@@ -102,12 +102,12 @@ export default class ERC20StateTracker extends AbstractStateTracker {
       `loadStateChanges: loading psp balance related events for all pools`,
     );
 
-    this.transferEvents = await queryFilterBatched(
+    this.transferEvents = (await queryFilterBatched(
       this.contract,
       this.contract.filters.Transfer(),
       this.startBlock,
       this.endBlock,
-    ) as Transfer[];
+    )) as Transfer[];
 
     logger.info(
       `loadStateChanges: completed loading ${this.transferEvents.length} psp balance related events for all pools`,

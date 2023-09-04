@@ -57,7 +57,7 @@ const contractAddressesByChain: Record<number, string[]> = {
           MIGRATION_SEPSP2_100_PERCENT_KEY,
           grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP1,
           grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP2,
-          grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP1ToSePSP2Migrator
+          grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP1ToSePSP2Migrator,
         ]
       : []),
     AUGUSTUS_V5_ADDRESS,
