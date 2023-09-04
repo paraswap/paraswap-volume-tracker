@@ -122,8 +122,8 @@ export class PriceApi {
     try {
       const fromTime =
         _tokenAddress in this.tokenPrice
-        // && this.tokenPrice[_tokenAddress]!.length !== 0 // Always the case
-          ? _.last(this.tokenPrice[_tokenAddress])![0] + 1
+          ? // && this.tokenPrice[_tokenAddress]!.length !== 0 // Always the case
+            _.last(this.tokenPrice[_tokenAddress])![0] + 1
           : this.initTime;
       const currentTime = Math.floor(Date.now() / 1000);
       const tokeInfo = this.tokenList[_tokenAddress];
@@ -141,9 +141,8 @@ export class PriceApi {
 
       // The timestamp from coingeko are in ms
       const _prices = prices.map((t: [number, number]) => [t[0] / 1000, t[1]]);
-      this.tokenPrice[_tokenAddress] = this.tokenPrice[_tokenAddress]!.concat(
-        _prices,
-      );
+      this.tokenPrice[_tokenAddress] =
+        this.tokenPrice[_tokenAddress]!.concat(_prices);
     } catch (e) {
       logger.error('_updateTokenPrice', e);
     }
@@ -185,12 +184,16 @@ export class PriceApi {
 
     // if the token is not listed by Paraswap or Coingeko take 0 prices
     if (!(_tokenAddress in this.tokenList)) {
-      logger.warn(`_getPriceUSD: Unknown token ${_tokenAddress}, returning 0 price`);
+      logger.warn(
+        `_getPriceUSD: Unknown token ${_tokenAddress}, returning 0 price`,
+      );
       return BN_0;
     }
 
     if (time < this.initTime) {
-      logger.warn(`_getPriceUSD: time should not be less than initTime (${this.initTime} > ${time}), returning 0 price`);
+      logger.warn(
+        `_getPriceUSD: time should not be less than initTime (${this.initTime} > ${time}), returning 0 price`,
+      );
       return BN_0;
     }
 
@@ -204,18 +207,25 @@ export class PriceApi {
 
     // if the historical prices were fetched but wasn't successful take 0 price
     if (!this.tokenPrice[_tokenAddress]) {
-      logger.warn(`_getPriceUSD: Unable to find price for ${_tokenAddress}, returning 0 price`);
+      logger.warn(
+        `_getPriceUSD: Unable to find price for ${_tokenAddress}, returning 0 price`,
+      );
       return BN_0;
     }
 
     // find the timestamp after the given price
     let i = this.tokenPrice[_tokenAddress]!.findIndex(p => p[0] >= time);
     if (i === -1) {
-      if (_.last(this.tokenPrice[_tokenAddress]!)![0] + 24 * 60 * 60 /* 1 day */ > time) {
+      if (
+        _.last(this.tokenPrice[_tokenAddress]!)![0] + 24 * 60 * 60 /* 1 day */ >
+        time
+      ) {
         /* Just use the most recent price if it's less than 1 day old */
         i = this.tokenPrice[_tokenAddress]!.length - 1;
       } else {
-        logger.warn(`_getPriceUSD: Invalid Time(${time}) for ${_tokenAddress}, returning 0 price`);
+        logger.warn(
+          `_getPriceUSD: Invalid Time(${time}) for ${_tokenAddress}, returning 0 price`,
+        );
         return BN_0;
       }
     }

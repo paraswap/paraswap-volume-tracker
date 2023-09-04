@@ -1,4 +1,11 @@
-import { Table, Model, Column, DataType, AllowNull, PrimaryKey } from 'sequelize-typescript';
+import {
+  Table,
+  Model,
+  Column,
+  DataType,
+  AllowNull,
+  PrimaryKey,
+} from 'sequelize-typescript';
 import { DataType_ADDRESS } from '../lib/sql-data-types';
 
 export interface ClaimAttributes {

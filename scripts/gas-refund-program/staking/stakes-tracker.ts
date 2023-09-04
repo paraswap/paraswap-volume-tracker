@@ -1,8 +1,20 @@
-import {assert} from 'ts-essentials';
-import {OFFSET_CALC_TIME, SCRIPT_START_TIME_SEC,} from '../../../src/lib/gas-refund/common';
-import {forceStakingChainId, grp2CConfigParticularities} from '../../../src/lib/gas-refund/config';
-import {CHAIN_ID_MAINNET, CHAIN_ID_OPTIMISM} from '../../../src/lib/constants';
-import {getCurrentEpoch, getEpochStartCalcTime,} from '../../../src/lib/gas-refund/epoch-helpers';
+import { assert } from 'ts-essentials';
+import {
+  OFFSET_CALC_TIME,
+  SCRIPT_START_TIME_SEC,
+} from '../../../src/lib/gas-refund/common';
+import {
+  forceStakingChainId,
+  grp2CConfigParticularities,
+} from '../../../src/lib/gas-refund/config';
+import {
+  CHAIN_ID_MAINNET,
+  CHAIN_ID_OPTIMISM,
+} from '../../../src/lib/constants';
+import {
+  getCurrentEpoch,
+  getEpochStartCalcTime,
+} from '../../../src/lib/gas-refund/epoch-helpers';
 import {
   GasRefundGenesisEpoch,
   GasRefundSafetyModuleAllPSPInBptFixStartEpoch,
@@ -11,11 +23,11 @@ import {
   GasRefundV2EpochFlip,
   GasRefundVirtualLockupStartEpoch,
 } from '../../../src/lib/gas-refund/gas-refund';
-import {getLatestEpochRefundedAllChains} from '../persistance/db-persistance';
-import {StakeV2Resolver} from './2.0/StakeV2Resolver';
+import { getLatestEpochRefundedAllChains } from '../persistance/db-persistance';
+import { StakeV2Resolver } from './2.0/StakeV2Resolver';
 import SafetyModuleStakesTracker from './safety-module-stakes-tracker';
 import SPSPStakesTracker from './spsp-stakes-tracker';
-import BigNumber from "bignumber.js";
+import BigNumber from 'bignumber.js';
 
 export default class StakesTracker {
   chainIds = [forceStakingChainId(CHAIN_ID_MAINNET), CHAIN_ID_OPTIMISM];
@@ -43,8 +55,11 @@ export default class StakesTracker {
 
       await Promise.all(
         this.chainIds.map(async chainId =>
-          StakeV2Resolver.getInstance(chainId).loadWithinInterval(startTimeStakeV2, endTime)
-        )
+          StakeV2Resolver.getInstance(chainId).loadWithinInterval(
+            startTimeStakeV2,
+            endTime,
+          ),
+        ),
       );
     } else {
       // V1
@@ -94,13 +109,19 @@ export default class StakesTracker {
     if (epoch >= GasRefundV2EpochFlip) {
       return this.chainIds.reduce((acc, chainId) => {
         if (
-          grp2CConfigParticularities[chainId]?.stakingStartCalcTimestamp
-          && timestamp < grp2CConfigParticularities[chainId]?.stakingStartCalcTimestamp!
+          grp2CConfigParticularities[chainId]?.stakingStartCalcTimestamp &&
+          timestamp <
+            grp2CConfigParticularities[chainId]?.stakingStartCalcTimestamp!
         ) {
           return acc;
         }
 
-        return acc.plus(StakeV2Resolver.getInstance(chainId).getStakeForRefund(timestamp, account));
+        return acc.plus(
+          StakeV2Resolver.getInstance(chainId).getStakeForRefund(
+            timestamp,
+            account,
+          ),
+        );
       }, new BigNumber(0));
     }
 
