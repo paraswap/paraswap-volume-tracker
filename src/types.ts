@@ -1,3 +1,3 @@
 export interface ChainBalanceMapping {
-  [chainId: number]: string
+  [chainId: number]: string;
 }

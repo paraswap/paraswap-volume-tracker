@@ -12,7 +12,8 @@ import {
   CHAIN_ID_GOERLI,
   CHAIN_ID_MAINNET,
   CHAIN_ID_OPTIMISM,
-  CHAIN_ID_POLYGON, STAKING_CHAIN_IDS,
+  CHAIN_ID_POLYGON,
+  STAKING_CHAIN_IDS,
 } from '../constants';
 import { GasRefundGenesisEpoch, GasRefundV2EpochFlip } from './gas-refund';
 import { Provider } from '../provider';
@@ -22,8 +23,8 @@ import {
   SePSPMigrationsData,
 } from '../../models/sePSPMigrations';
 import { getCurrentEpoch } from './epoch-helpers';
-import {Op} from "sequelize";
-import {ChainBalanceMapping} from "../../types";
+import { Op } from 'sequelize';
+import { ChainBalanceMapping } from '../../types';
 
 interface MerkleRedeem extends Contract {
   callStatic: {
@@ -68,13 +69,16 @@ const MERKLE_DATA_SQL_QUERY = `
 `;
 
 interface GasRefundClaim
-  extends Pick<GasRefundParticipation, 'epoch' | 'address' | 'merkleProofs' | 'GRPChainBreakDown'> {
+  extends Pick<
+    GasRefundParticipation,
+    'epoch' | 'address' | 'merkleProofs' | 'GRPChainBreakDown'
+  > {
   refundedAmountPSP: string;
 }
 
 interface AddressMerkleData {
-  beforeMCSAggregation: GasRefundClaim[],
-  afterMCSAggregation: GasRefundParticipation[]
+  beforeMCSAggregation: GasRefundClaim[];
+  afterMCSAggregation: GasRefundParticipation[];
 }
 
 const PENDING_DATA_SQL_QUERY = `
@@ -176,32 +180,31 @@ export class GasRefundApi {
     };
   }
 
-  async _fetchMerkleData(address: string, network: number): Promise<AddressMerkleData> {
-
-    const gasRefundParticipationsOptions: {where: any} = {
+  async _fetchMerkleData(
+    address: string,
+    network: number,
+  ): Promise<AddressMerkleData> {
+    const gasRefundParticipationsOptions: { where: any } = {
       where: {
         address,
         epoch: {
-          [Op.gte]: EPOCH_WHEN_MCS_ENABLED
+          [Op.gte]: EPOCH_WHEN_MCS_ENABLED,
         },
-      }
+      },
     };
     if (STAKING_CHAIN_IDS.includes(network)) {
       gasRefundParticipationsOptions.where.chainId = network;
     }
 
-    const [ beforeMCSAggregation, afterMCSAggregation ] = await Promise.all([
-      Database.sequelize.query<GasRefundClaim>(
-        MERKLE_DATA_SQL_QUERY,
-        {
-          type: Sequelize.QueryTypes.SELECT,
-          replacements: {
-            address,
-            chainId: this.network,
-            epoch: EPOCH_WHEN_MCS_ENABLED
-          },
+    const [beforeMCSAggregation, afterMCSAggregation] = await Promise.all([
+      Database.sequelize.query<GasRefundClaim>(MERKLE_DATA_SQL_QUERY, {
+        type: Sequelize.QueryTypes.SELECT,
+        replacements: {
+          address,
+          chainId: this.network,
+          epoch: EPOCH_WHEN_MCS_ENABLED,
         },
-      ),
+      }),
       GasRefundParticipation.findAll(gasRefundParticipationsOptions),
     ]);
 
@@ -334,7 +337,7 @@ export class GasRefundApi {
         },
       );
 
-    addressMerkleData.afterMCSAggregation.forEach((entry) => {
+    addressMerkleData.afterMCSAggregation.forEach(entry => {
       claims.push({
         ...entry,
         contract: MerkleRedeemAddressSePSP1[entry.chainId],

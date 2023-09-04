@@ -2,14 +2,20 @@ import '../../src/lib/log4js';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
-import {Op} from 'sequelize';
-import {computeMerkleData} from './refund/merkle-tree';
-import {fetchLastEpochRefunded, saveMerkleTreeInDB,} from './persistance/db-persistance';
+import { Op } from 'sequelize';
+import { computeMerkleData } from './refund/merkle-tree';
+import {
+  fetchLastEpochRefunded,
+  saveMerkleTreeInDB,
+} from './persistance/db-persistance';
 
-import {assert} from 'ts-essentials';
-import {GasRefundGenesisEpoch, TransactionStatus,} from '../../src/lib/gas-refund/gas-refund';
-import {GasRefundTransaction} from '../../src/models/GasRefundTransaction';
-import {saveMerkleTreeInFile} from './persistance/file-persistance';
+import { assert } from 'ts-essentials';
+import {
+  GasRefundGenesisEpoch,
+  TransactionStatus,
+} from '../../src/lib/gas-refund/gas-refund';
+import { GasRefundTransaction } from '../../src/models/GasRefundTransaction';
+import { saveMerkleTreeInFile } from './persistance/file-persistance';
 
 import Database from '../../src/database';
 import {
@@ -17,12 +23,16 @@ import {
   loadEpochMetaData,
   resolveEpochCalcTimeInterval,
 } from '../../src/lib/gas-refund/epoch-helpers';
-import {STAKING_CHAIN_IDS} from "../../src/lib/constants";
-import {StakeV2Resolver} from "./staking/2.0/StakeV2Resolver";
-import BigNumber from "bignumber.js";
-import {isTruthy} from "../../src/lib/utils";
-import {AddressChainRewardsMapping, AddressRewards, AddressRewardsMapping, ChainRewardsMapping} from "./types";
-
+import { STAKING_CHAIN_IDS } from '../../src/lib/constants';
+import { StakeV2Resolver } from './staking/2.0/StakeV2Resolver';
+import BigNumber from 'bignumber.js';
+import { isTruthy } from '../../src/lib/utils';
+import {
+  AddressChainRewardsMapping,
+  AddressRewards,
+  AddressRewardsMapping,
+  ChainRewardsMapping,
+} from './types';
 
 const logger = global.LOGGER('GRP:COMPUTE_MERKLE_TREE');
 
@@ -30,167 +40,214 @@ const skipCheck = process.env.SKIP_CHECKS === 'true';
 const saveFile = process.env.SAVE_FILE === 'true';
 
 type RefundableTransaction = {
-    address: string;
-    timestamp: number;
-    chainId: number;
-    refundedAmountPSP: string;
-}
-export async function getRefundableTransactionData(epoch: number): Promise<RefundableTransaction[]> {
-    const numOfIdleTxs = await GasRefundTransaction.count({
-        where: { epoch, status: TransactionStatus.IDLE },
-    });
-    assert(numOfIdleTxs === 0, `there should be 0 idle transactions for epoch=${epoch}`);
+  address: string;
+  timestamp: number;
+  chainId: number;
+  refundedAmountPSP: string;
+};
+export async function getRefundableTransactionData(
+  epoch: number,
+): Promise<RefundableTransaction[]> {
+  const numOfIdleTxs = await GasRefundTransaction.count({
+    where: { epoch, status: TransactionStatus.IDLE },
+  });
+  assert(
+    numOfIdleTxs === 0,
+    `there should be 0 idle transactions for epoch=${epoch}`,
+  );
 
-    return GasRefundTransaction.findAll({
-        where: {
-            epoch,
-            status: TransactionStatus.VALIDATED,
-            ...(epoch >= 32
-                ? {
-                    refundedAmountPSP: {
-                        [Op.gt]: 0, // on epoch=31 the merkle tree got 0s
-                    },
-                }
-                : {}),
-        },
-        attributes: [
-            'address',
-            'timestamp',
-            'refundedAmountPSP',
-            'chainId'
-        ],
-        raw: true,
-    });
+  return GasRefundTransaction.findAll({
+    where: {
+      epoch,
+      status: TransactionStatus.VALIDATED,
+      ...(epoch >= 32
+        ? {
+            refundedAmountPSP: {
+              [Op.gt]: 0, // on epoch=31 the merkle tree got 0s
+            },
+          }
+        : {}),
+    },
+    attributes: ['address', 'timestamp', 'refundedAmountPSP', 'chainId'],
+    raw: true,
+  });
 }
 
 export async function computeAndStoreMerkleTree(epoch: number) {
-    const userRewardsOnStakingChains = await computeStakingChainsRefundedAmounts(epoch);
+  const userRewardsOnStakingChains = await computeStakingChainsRefundedAmounts(
+    epoch,
+  );
 
-    const userRewards: AddressRewards[] = Object.keys(userRewardsOnStakingChains)
-        .map(account =>
-            Object.entries(userRewardsOnStakingChains[account])
-              .map(([chainId, {amount, breakDownGRP}]) => ({
-                  chainId: +chainId,
-                  amount,
-                  breakDownGRP,
-                  account,
-              }))
-        ).flat()
-        .filter(entry => !entry.amount.eq(0))
+  const userRewards: AddressRewards[] = Object.keys(userRewardsOnStakingChains)
+    .map(account =>
+      Object.entries(userRewardsOnStakingChains[account]).map(
+        ([chainId, { amount, breakDownGRP }]) => ({
+          chainId: +chainId,
+          amount,
+          breakDownGRP,
+          account,
+        }),
+      ),
+    )
+    .flat()
+    .filter(entry => !entry.amount.eq(0));
 
-    const userGRPChainsBreakDowns = userRewards.reduce<AddressRewardsMapping>((acc, curr) => {
+  const userGRPChainsBreakDowns = userRewards.reduce<AddressRewardsMapping>(
+    (acc, curr) => {
       acc[curr.account] = curr.breakDownGRP;
 
       return acc;
-    }, {})
+    },
+    {},
+  );
 
+  const merkleTreeData = await computeMerkleData({ userRewards, epoch });
 
-
-      const merkleTreeData = await computeMerkleData({userRewards, epoch});
-
-    return Promise.all(merkleTreeData.map(async ({chainId, merkleTree}) => {
-        if (saveFile) {
-            logger.info('saving merkle tree in file');
-            await saveMerkleTreeInFile({ chainId: +chainId, epoch, merkleTree, userGRPChainsBreakDowns });
-        } else {
-            logger.info('saving merkle tree in db');
-            await saveMerkleTreeInDB({ chainId: +chainId, epoch, merkleTree, userGRPChainsBreakDowns });
-        }
-    }))
-
+  return Promise.all(
+    merkleTreeData.map(async ({ chainId, merkleTree }) => {
+      if (saveFile) {
+        logger.info('saving merkle tree in file');
+        await saveMerkleTreeInFile({
+          chainId: +chainId,
+          epoch,
+          merkleTree,
+          userGRPChainsBreakDowns,
+        });
+      } else {
+        logger.info('saving merkle tree in db');
+        await saveMerkleTreeInDB({
+          chainId: +chainId,
+          epoch,
+          merkleTree,
+          userGRPChainsBreakDowns,
+        });
+      }
+    }),
+  );
 }
 
 async function computeStakingChainsRefundedAmounts(epoch: number) {
-    const refundableTransactions = (await getRefundableTransactionData(epoch)).flat();
+  const refundableTransactions = (
+    await getRefundableTransactionData(epoch)
+  ).flat();
 
-    const refundableTransactionsByAccount = refundableTransactions
-        .reduce<{[account: string]: RefundableTransaction[]}>(
-            (acc, curr) => {
-                if (!acc[curr.address]) acc[curr.address] = [];
+  const refundableTransactionsByAccount = refundableTransactions.reduce<{
+    [account: string]: RefundableTransaction[];
+  }>((acc, curr) => {
+    if (!acc[curr.address]) acc[curr.address] = [];
 
-                acc[curr.address].push(curr);
+    acc[curr.address].push(curr);
 
-                return acc;
-            }, {}
-        );
+    return acc;
+  }, {});
 
-    const stakeResolvers: { [chainId: number]: StakeV2Resolver } = {};
+  const stakeResolvers: { [chainId: number]: StakeV2Resolver } = {};
 
-    const {startCalcTime, endCalcTime} = await resolveEpochCalcTimeInterval(epoch);
-    for (const chainId of STAKING_CHAIN_IDS) {
-      stakeResolvers[chainId] = StakeV2Resolver.getInstance(chainId);
+  const { startCalcTime, endCalcTime } = await resolveEpochCalcTimeInterval(
+    epoch,
+  );
+  for (const chainId of STAKING_CHAIN_IDS) {
+    stakeResolvers[chainId] = StakeV2Resolver.getInstance(chainId);
 
-      await stakeResolvers[chainId].loadWithinInterval(startCalcTime, endCalcTime)
-    }
+    await stakeResolvers[chainId].loadWithinInterval(
+      startCalcTime,
+      endCalcTime,
+    );
+  }
 
-    const userRewardsOnStakingChains: AddressChainRewardsMapping = {};
+  const userRewardsOnStakingChains: AddressChainRewardsMapping = {};
 
-    Object.entries(refundableTransactionsByAccount)
-        .forEach(([account, refundTransactions]) => {
-            userRewardsOnStakingChains[account] = refundTransactions
-                .reduce<ChainRewardsMapping>((acc, curr) => {
+  Object.entries(refundableTransactionsByAccount).forEach(
+    ([account, refundTransactions]) => {
+      userRewardsOnStakingChains[account] =
+        refundTransactions.reduce<ChainRewardsMapping>((acc, curr) => {
+          let refundTransactionRemainingRefundableAmount = new BigNumber(
+            curr.refundedAmountPSP,
+          );
+          const stakesForTimestamp = STAKING_CHAIN_IDS.map(chainId => {
+            if (
+              stakeResolvers[chainId].startTimestamp <= curr.timestamp &&
+              stakeResolvers[chainId].endTimestamp >= curr.timestamp
+            ) {
+              return {
+                chainId,
+                stake: stakeResolvers[chainId].getStakeForRefund(
+                  curr.timestamp,
+                  account,
+                ),
+              };
+            }
 
-                    let refundTransactionRemainingRefundableAmount = new BigNumber(curr.refundedAmountPSP);
-                  const stakesForTimestamp = STAKING_CHAIN_IDS.map(chainId => {
+            return null;
+          }).filter(isTruthy);
 
-                      if (
-                        stakeResolvers[chainId].startTimestamp <= curr.timestamp
-                        && stakeResolvers[chainId].endTimestamp >= curr.timestamp
-                      ) {
-                        return {
-                          chainId,
-                          stake: stakeResolvers[chainId].getStakeForRefund(curr.timestamp, account)
-                        };
-                      }
+          const totalStakesAtTimestamp = Object.values(
+            stakesForTimestamp,
+          ).reduce((sum, e) => sum.plus(e.stake), new BigNumber(0));
 
-                      return null;
-                    }
-                  ).filter(isTruthy);
+          stakesForTimestamp.forEach(entry => {
+            if (!acc[entry.chainId])
+              acc[entry.chainId] = {
+                amount: new BigNumber(0),
+                breakDownGRP: {},
+              };
+            const refundAmountForChain = entry.stake
+              .multipliedBy(curr.refundedAmountPSP)
+              .dividedBy(totalStakesAtTimestamp);
+            refundTransactionRemainingRefundableAmount =
+              refundTransactionRemainingRefundableAmount.minus(
+                refundAmountForChain,
+              );
 
-                    const totalStakesAtTimestamp = Object.values(stakesForTimestamp)
-                        .reduce((sum, e) => sum.plus(e.stake), new BigNumber(0));
+            acc[entry.chainId].amount =
+              acc[entry.chainId].amount.plus(refundAmountForChain);
+            if (!acc[entry.chainId].breakDownGRP[curr.chainId]) {
+              acc[entry.chainId].breakDownGRP[curr.chainId] = new BigNumber(
+                refundAmountForChain,
+              );
+            } else {
+              acc[entry.chainId].breakDownGRP[curr.chainId] =
+                acc[entry.chainId].breakDownGRP[curr.chainId].plus(
+                  refundAmountForChain,
+                );
+            }
+          });
 
+          if (!refundTransactionRemainingRefundableAmount.eq(0)) {
+            for (const entry of stakesForTimestamp) {
+              if (!entry.stake.eq(0)) {
+                if (acc[entry.chainId].amount.eq(0)) {
+                  acc[entry.chainId].amount = new BigNumber(
+                    refundTransactionRemainingRefundableAmount,
+                  );
+                } else {
+                  acc[entry.chainId].amount = acc[entry.chainId].amount.plus(
+                    refundTransactionRemainingRefundableAmount,
+                  );
+                }
 
-                    stakesForTimestamp.forEach((entry) => {
-                        if(!acc[entry.chainId]) acc[entry.chainId] = {
-                          amount: new BigNumber(0),
-                          breakDownGRP: {}
-                        };
-                        const refundAmountForChain = entry.stake.multipliedBy(curr.refundedAmountPSP).dividedBy(totalStakesAtTimestamp);
-                        refundTransactionRemainingRefundableAmount = refundTransactionRemainingRefundableAmount.minus(refundAmountForChain);
+                if (!acc[entry.chainId].breakDownGRP[curr.chainId]) {
+                  acc[entry.chainId].breakDownGRP[curr.chainId] = new BigNumber(
+                    refundTransactionRemainingRefundableAmount,
+                  );
+                } else {
+                  acc[entry.chainId].breakDownGRP[curr.chainId] = acc[
+                    entry.chainId
+                  ].breakDownGRP[curr.chainId].plus(
+                    refundTransactionRemainingRefundableAmount,
+                  );
+                }
+                break;
+              }
+            }
+          }
 
-                        acc[entry.chainId].amount = acc[entry.chainId].amount.plus(refundAmountForChain)
-                        if (!acc[entry.chainId].breakDownGRP[curr.chainId]) {
-                          acc[entry.chainId].breakDownGRP[curr.chainId] = new BigNumber(refundAmountForChain);
-                        } else {
-                          acc[entry.chainId].breakDownGRP[curr.chainId] = acc[entry.chainId].breakDownGRP[curr.chainId].plus(refundAmountForChain)
-                        }
-                    });
+          return acc;
+        }, {});
+    },
+  );
 
-                    if (!refundTransactionRemainingRefundableAmount.eq(0)) {
-                        for (const entry of stakesForTimestamp) {
-                            if (!entry.stake.eq(0)) {
-                              if (acc[entry.chainId].amount.eq(0)) {
-                                acc[entry.chainId].amount = new BigNumber(refundTransactionRemainingRefundableAmount);
-                              } else {
-                                acc[entry.chainId].amount = acc[entry.chainId].amount.plus(refundTransactionRemainingRefundableAmount);
-                              }
-
-                              if (!acc[entry.chainId].breakDownGRP[curr.chainId]) {
-                                acc[entry.chainId].breakDownGRP[curr.chainId] = new BigNumber(refundTransactionRemainingRefundableAmount);
-                              } else {
-                                acc[entry.chainId].breakDownGRP[curr.chainId] = acc[entry.chainId].breakDownGRP[curr.chainId].plus(refundTransactionRemainingRefundableAmount)
-                              }
-                              break;
-                            }
-                        }
-                    }
-
-                    return acc;
-                }, {});
-        });
-
-    return userRewardsOnStakingChains;
+  return userRewardsOnStakingChains;
 }
 
 async function startComputingMerkleTreesAllChains() {

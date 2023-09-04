@@ -1,5 +1,5 @@
 import { GasRefundTransactionData } from '../../src/lib/gas-refund/gas-refund';
-import BigNumber from "bignumber.js";
+import BigNumber from 'bignumber.js';
 
 export type HistoricalPrice = { [timestamp: string]: number };
 
@@ -91,26 +91,25 @@ export interface GasRefundTransaction
 }
 
 export type AddressChainRewardsMapping = {
-  [account: string]: ChainRewardsMapping
-}
+  [account: string]: ChainRewardsMapping;
+};
 
 export type ChainRewardsMapping = {
   [chainId: number]: {
-    amount: BigNumber,
-    breakDownGRP: {[GRPChainId:number]: BigNumber}
-  }
-}
+    amount: BigNumber;
+    breakDownGRP: { [GRPChainId: number]: BigNumber };
+  };
+};
 
 export type AddressRewards = {
-  account: string,
-  amount: BigNumber,
-  chainId: number
-  breakDownGRP: {[GRPChainId: number]: BigNumber}
-}
-
+  account: string;
+  amount: BigNumber;
+  chainId: number;
+  breakDownGRP: { [GRPChainId: number]: BigNumber };
+};
 
 export type AddressRewardsMapping = {
   [account: string]: {
-    [grpChainId: number]: BigNumber
-  }
-}
+    [grpChainId: number]: BigNumber;
+  };
+};
