@@ -29,6 +29,34 @@ import SafetyModuleStakesTracker from './safety-module-stakes-tracker';
 import SPSPStakesTracker from './spsp-stakes-tracker';
 import BigNumber from 'bignumber.js';
 
+import { GasRefundTransactionStakeSnapshotData } from '../../../src/models/GasRefundTransactionStakeSnapshot';
+
+export type StakedScoreV2 = {
+  combined: BigNumber;
+  byNetwork: Record<
+    number,
+    | Pick<
+        GasRefundTransactionStakeSnapshotData,
+        | 'bptPSPBalance'
+        | 'bptTotalSupply'
+        | 'sePSP1Balance'
+        | 'sePSP2Balance'
+        | 'stakeScore'
+        | 'claimableSePSP1Balance'
+      >
+    | undefined
+  >;
+};
+
+export type StakedScoreV1 = {
+  combined: BigNumber;
+};
+
+export function isStakeScoreV2(
+  stakeScore: StakedScoreV1 | StakedScoreV2,
+): stakeScore is StakedScoreV2 {
+  return 'byNetwork' in stakeScore;
+}
 export default class StakesTracker {
   chainIds = [forceStakingChainId(CHAIN_ID_MAINNET), CHAIN_ID_OPTIMISM];
 
@@ -52,6 +80,7 @@ export default class StakesTracker {
       let startTimeStakeV2 = await getEpochStartCalcTime(
         latestEpochRefunded || GasRefundV2EpochFlip,
       );
+      // debugger;
 
       await Promise.all(
         this.chainIds.map(async chainId =>
@@ -97,32 +126,44 @@ export default class StakesTracker {
     }
   }
 
-  computeStakedPSPBalance(
+  computeStakeScore(
     _account: string,
     timestamp: number,
     epoch: number,
     eofEpochTimestampForBackwardCompat: number,
-  ) {
+  ): StakedScoreV2 | StakedScoreV1 {
     const account = _account.toLowerCase();
 
     // V2
     if (epoch >= GasRefundV2EpochFlip) {
-      return this.chainIds.reduce((acc, chainId) => {
-        if (
-          grp2CConfigParticularities[chainId]?.stakingStartCalcTimestamp &&
-          timestamp <
-            grp2CConfigParticularities[chainId]?.stakingStartCalcTimestamp!
-        ) {
-          return acc;
-        }
+      const byNetwork: StakedScoreV2['byNetwork'] = this.chainIds.reduce(
+        (acc, chainId) => {
+          if (
+            grp2CConfigParticularities[chainId]?.stakingStartCalcTimestamp &&
+            timestamp <
+              grp2CConfigParticularities[chainId]?.stakingStartCalcTimestamp!
+          ) {
+            return acc;
+          }
 
-        return acc.plus(
-          StakeV2Resolver.getInstance(chainId).getStakeForRefund(
-            timestamp,
-            account,
-          ),
-        );
-      }, new BigNumber(0));
+          return {
+            ...acc,
+            [chainId]: StakeV2Resolver.getInstance(chainId).getStakeForRefund(
+              timestamp,
+              account,
+            ),
+          };
+        },
+        {},
+      );
+
+      return {
+        combined: Object.values(byNetwork).reduce<BigNumber>(
+          (acc, val) => acc.plus(val?.stakeScore || 0),
+          new BigNumber(0),
+        ),
+        byNetwork,
+      };
     }
 
     // V1
@@ -144,7 +185,9 @@ export default class StakesTracker {
           );
 
     if (epoch < GasRefundSafetyModuleStartEpoch) {
-      return pspStakedInSPSP;
+      return {
+        combined: pspStakedInSPSP,
+      };
     }
 
     const pspStakedInSM =
@@ -160,6 +203,6 @@ export default class StakesTracker {
             timestamp,
           );
 
-    return pspStakedInSPSP.plus(pspStakedInSM);
+    return { combined: pspStakedInSPSP.plus(pspStakedInSM) };
   }
 }

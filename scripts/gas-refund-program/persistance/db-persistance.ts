@@ -14,6 +14,15 @@ import BigNumber from 'bignumber.js';
 import { assert } from 'ts-essentials';
 import { sliceCalls } from '../../../src/lib/utils/helpers';
 import { CHAIN_ID_OPTIMISM } from '../../../src/lib/constants';
+import {
+  StakedScoreV1,
+  StakedScoreV2,
+  isStakeScoreV2,
+} from '../staking/stakes-tracker';
+import {
+  GasRefundTransactionStakeSnapshot,
+  GasRefundTransactionStakeSnapshotData,
+} from '../../../src/models/GasRefundTransactionStakeSnapshot';
 
 export async function fetchLastTimestampTxByContract({
   chainId,
@@ -183,6 +192,34 @@ export const updateTransactionsStatusRefundedAmounts = async (
     ],
   });
 };
+
+export function composeGasRefundTransactionStakeSnapshots(
+  transaction: GasRefundTransactionData,
+  stakeScore: StakedScoreV1 | StakedScoreV2,
+): GasRefundTransactionStakeSnapshotData[] {
+  if (isStakeScoreV2(stakeScore)) {
+    return Object.entries(stakeScore.byNetwork).map(([chainId, score]) => ({
+      transactionChainId: transaction.chainId,
+      transactionHash: transaction.hash,
+      stakeChainId: Number(chainId),
+      stakeScore: score?.stakeScore || '0',
+      sePSP1Balance: score?.sePSP1Balance || '0',
+      sePSP2Balance: score?.sePSP2Balance || '0',
+      bptTotalSupply: score?.bptTotalSupply || '0',
+      bptPSPBalance: score?.bptPSPBalance || '0',
+      claimableSePSP1Balance: score?.claimableSePSP1Balance || '0',
+    }));
+  }
+  return [];
+}
+
+export async function writeStakeScoreSnapshots(
+  items: GasRefundTransactionStakeSnapshotData[],
+) {
+  return GasRefundTransactionStakeSnapshot.bulkCreate(items, {
+    updateOnDuplicate: ['stakeScore'],
+  });
+}
 
 export const merkleRootExists = async ({
   chainId,

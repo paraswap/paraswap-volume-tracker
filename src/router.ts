@@ -18,6 +18,10 @@ import {
 } from './lib/gas-refund/gas-refund';
 import { StakingService } from './lib/staking/staking';
 import { assert } from 'ts-essentials';
+import {
+  computeAggregatedStakeChainDetails,
+  loadTransactionWithByStakeChainData,
+} from './lib/gas-refund/multi-staking-utils';
 
 const logger = global.LOGGER();
 
@@ -228,6 +232,61 @@ export default class Router {
           res.status(403).send({
             error: `GasRefundError: could not retrieve merkle root for last epoch`,
           });
+        }
+      },
+    );
+
+    router.get(
+      '/gas-refund/by-network/:address/:epochFrom/:epochTo',
+      async (req, res) => {
+        const address = req.params.address.toLowerCase();
+        const epochFrom = req.params.epochFrom
+          ? parseInt(req.params.epochFrom)
+          : undefined;
+        const epochTo = req.params.epochTo
+          ? parseInt(req.params.epochTo)
+          : undefined;
+
+        const showTransactions = req.query.showTransactions === 'true';
+
+        if (!address)
+          return res
+            .status(400)
+            .send({ error: `address param is required: ${address}` });
+
+        if (!epochFrom || !epochTo)
+          return res
+            .status(400)
+            .send({ error: `epochFrom and epochTo params are required` });
+
+        try {
+          const transactions = await loadTransactionWithByStakeChainData({
+            address,
+            epochFrom,
+            epochTo,
+          });
+
+          const {
+            claimableByChain,
+            transactionsWithClaimableByChain,
+            refundedByChain,
+          } = computeAggregatedStakeChainDetails(transactions);
+
+          return res.json(
+            showTransactions
+              ? {
+                  transactionsWithClaimableByChain,
+                  claimableByChain,
+                  refundedByChain,
+                }
+              : {
+                  claimableByChain,
+                  refundedByChain,
+                },
+          );
+        } catch (e) {
+          logger.error('something went wrong', e);
+          return res.status(400).send({ error: `something went wrong` });
         }
       },
     );
