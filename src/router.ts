@@ -236,6 +236,7 @@ export default class Router {
       },
     );
 
+    // NB: this endpoint will return approximate amounts. They will differ from the ones in merkle tree
     router.get(
       '/gas-refund/by-network/:address/:epochFrom/:epochTo',
       async (req, res) => {
