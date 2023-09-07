@@ -98,26 +98,27 @@ export async function computeAndStoreMerkleTree(epoch: number) {
     .flat()
     .filter(entry => !entry.amount.eq(0));
 
-  const userGRPChainsBreakDowns = userRewards.reduce<AddressRewardsMapping>(
-    (acc, curr) => {
-      acc[curr.account] = curr.breakDownGRP;
+  const userGRPChainsBreakDowns = userRewards.reduce<{
+    [stakeChainId: number]: AddressRewardsMapping;
+  }>((acc, curr) => {
+    if (!acc[curr.chainId]) acc[curr.chainId] = {};
+    acc[curr.chainId][curr.account] = curr.breakDownGRP;
 
-      return acc;
-    },
-    {},
-  );
+    return acc;
+  }, {});
 
   const merkleTreeData = await computeMerkleData({ userRewards, epoch });
 
   return Promise.all(
     merkleTreeData.map(async ({ chainId, merkleTree }) => {
+      const chainBreakdowns = userGRPChainsBreakDowns[Number(chainId)];
       if (saveFile) {
         logger.info('saving merkle tree in file');
         await saveMerkleTreeInFile({
           chainId: +chainId,
           epoch,
           merkleTree,
-          userGRPChainsBreakDowns,
+          userGRPChainsBreakDowns: chainBreakdowns,
         });
       } else {
         logger.info('saving merkle tree in db');
@@ -125,7 +126,7 @@ export async function computeAndStoreMerkleTree(epoch: number) {
           chainId: +chainId,
           epoch,
           merkleTree,
-          userGRPChainsBreakDowns,
+          userGRPChainsBreakDowns: chainBreakdowns,
         });
       }
     }),
@@ -228,7 +229,7 @@ async function computeStakingChainsRefundedAmounts(epoch: number) {
 
           if (!refundTransactionRemainingRefundableAmount.eq(0)) {
             for (const entry of stakesForTimestamp) {
-              if (entry.stake?.stakeScore !== '0') {
+              if (asserted(entry.stake?.stakeScore) !== '0') {
                 if (acc[entry.chainId].amount.eq(0)) {
                   acc[entry.chainId].amount = new BigNumber(
                     refundTransactionRemainingRefundableAmount,
