@@ -260,6 +260,7 @@ export const saveMerkleTreeInDB = async ({
       chainId: chainId,
       merkleProofs: leaf.merkleProofs,
       isCompleted: true,
+      amount: leaf.amount,
       GRPChainBreakDown: stringifyGRPChainBreakDown(
         userGRPChainsBreakDowns[leaf.address],
       ),
