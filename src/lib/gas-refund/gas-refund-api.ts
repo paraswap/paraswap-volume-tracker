@@ -21,7 +21,8 @@ import {
   sePSPMigrations,
   SePSPMigrationsData,
 } from '../../models/sePSPMigrations';
-import { getCurrentEpoch } from './epoch-helpers';
+import { getCurrentEpoch, resolveV2EpochNumber } from './epoch-helpers';
+import { grp2CConfigParticularities } from './config';
 
 interface MerkleRedeem extends Contract {
   callStatic: {
@@ -50,13 +51,29 @@ export const MerkleRedeemAddressSePSP1: { [chainId: number]: string } = {
 
 export const EPOCH_WHEN_SWITCHED_TO_SE_PSP1 = 32;
 
+const OPTIMISM_STAKING_START_TIMESTAMP =
+  grp2CConfigParticularities[CHAIN_ID_OPTIMISM].stakingStartCalcTimestamp;
+assert(
+  OPTIMISM_STAKING_START_TIMESTAMP,
+  'OPTIMISM_STAKING_START_TIMESTAMP should be defined',
+);
+const EPOCH_WHEN_OPTIMISM_STAKING_ENABLED = resolveV2EpochNumber(
+  OPTIMISM_STAKING_START_TIMESTAMP + 1,
+);
+
+// debugger;
+
 const MERKLE_DATA_SQL_QUERY = `
   SELECT  grp.address, grp.epoch, grp."merkleProofs", refunds."refundedAmountPSP"
   FROM "GasRefundParticipations" grp
   JOIN (
     SELECT grt."address", grt.epoch, SUM(grt."refundedAmountPSP") AS "refundedAmountPSP"
     FROM "GasRefundTransactions" grt
-    WHERE grt."chainId" = :chainId and status='validated'
+    WHERE 
+      grt."chainId" = :chainId and status='validated'
+      AND grt.address=:address
+      AND grt.epoch < ${EPOCH_WHEN_OPTIMISM_STAKING_ENABLED}
+
     GROUP BY grt.address, grt.epoch
   ) AS refunds ON grp.address = refunds.address and grp.epoch = refunds.epoch
   WHERE grp.address=:address AND grp."chainId"=:chainId
@@ -166,16 +183,34 @@ export class GasRefundApi {
   }
 
   async _fetchMerkleData(address: string): Promise<GasRefundClaim[]> {
-    const grpDataResult: GasRefundClaim[] = await Database.sequelize.query(
-      MERKLE_DATA_SQL_QUERY,
-      {
-        type: Sequelize.QueryTypes.SELECT,
-        replacements: {
-          address,
-          chainId: this.network,
-        },
-      },
-    );
+    const grpDataResult: GasRefundClaim[] = (
+      await Promise.all([
+        Database.sequelize.query<GasRefundClaim>(MERKLE_DATA_SQL_QUERY, {
+          type: Sequelize.QueryTypes.SELECT,
+          replacements: {
+            address,
+            chainId: this.network,
+          },
+        }),
+        (
+          await GasRefundParticipation.findAll({
+            raw: true,
+            where: {
+              address,
+              chainId: this.network,
+              epoch: {
+                [Sequelize.Op.gte]: EPOCH_WHEN_OPTIMISM_STAKING_ENABLED,
+              },
+            },
+          })
+        ).map(m => ({
+          refundedAmountPSP: m.amount,
+          epoch: m.epoch,
+          address: m.address,
+          merkleProofs: m.merkleProofs,
+        })),
+      ])
+    ).flat();
 
     return grpDataResult;
   }
