@@ -96,13 +96,27 @@ type GasRefundLevelsDef = {
   refundPercent: number;
 };
 
+export function stringifyGRPChainBreakDown(
+  input: GRPChainBreakDown<BigNumber>,
+): GRPChainBreakDown<string> {
+  return Object.entries(input).reduce<GRPChainBreakDown<string>>(
+    (acc, [chainId, amount]) => {
+      acc[Number(chainId)] = amount.toFixed();
+      return acc;
+    },
+    {},
+  );
+}
+type GRPChainBreakDown<T extends BigNumber | string> = {
+  [grpChainId: number]: T;
+};
 export interface GasRefundParticipantData {
   epoch: number;
   address: string;
   chainId: number;
   merkleProofs: string[];
   isCompleted: boolean;
-  GRPChainBreakDown: { [grpChainId: number]: BigNumber };
+  GRPChainBreakDown: GRPChainBreakDown<string>;
 }
 
 export enum TransactionStatus {

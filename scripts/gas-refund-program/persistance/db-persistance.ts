@@ -4,6 +4,7 @@ import {
   GasRefundParticipantData,
   TransactionStatus,
   GasRefundV2EpochOptimismFlip,
+  stringifyGRPChainBreakDown,
 } from '../../../src/lib/gas-refund/gas-refund';
 import { GasRefundParticipation } from '../../../src/models/GasRefundParticipation';
 import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
@@ -259,7 +260,9 @@ export const saveMerkleTreeInDB = async ({
       chainId: chainId,
       merkleProofs: leaf.merkleProofs,
       isCompleted: true,
-      GRPChainBreakDown: userGRPChainsBreakDowns[leaf.address],
+      GRPChainBreakDown: stringifyGRPChainBreakDown(
+        userGRPChainsBreakDowns[leaf.address],
+      ),
     }),
   );
 
