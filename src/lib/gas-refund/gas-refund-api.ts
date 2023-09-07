@@ -324,8 +324,15 @@ export class GasRefundApi {
         ]);
 
     return {
-      totalClaimable: totalClaimable.toString(),
       claims,
+      // starting from distribution 38 (in the new style it's 07) the pending and totalClimable numbers below don't any more indicate the amounts to be claimed on this network.
+      // instead they indicate just aggregated amounts of refund for transactions made on this chain (same as earlier).
+      // the amounts to be claimed on this network are the ones in the claims array:
+      //  -- for non-staking network the array will only include legacy proofs (for old epochs)
+      //  -- for staking networks the array will include both legacy proofs (for old epochs) and the new ones.
+      // The new participations on staking networks inlcude refunds for transactions made on all GRP-supported the chains, proportionaly to the stakeScore on this paritcular network compared to total combined stakeScore on all staking chains
+      // refer to the related PIP fo more details: https://snapshot.org/#/paraswap-dao.eth/proposal/0x7605b06b97c9412a22c506d828f8d1bb3b60971c8b907c3ba962eab995bcaa53
+      totalClaimable: totalClaimable.toString(),
       pendingClaimable: totalPendingRefundAmount.toString(),
       pendingRefundBreakdownPerEpoch,
       // txParams: {
