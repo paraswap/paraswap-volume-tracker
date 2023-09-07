@@ -303,7 +303,7 @@ export default class Router {
             .send({ error: `Unsupported network: ${network}` });
         const gasRefundApi = GasRefundApi.getInstance(network);
         const gasRefundDataAddress =
-          await gasRefundApi.getAllGasRefundDataForAddress(address, network);
+          await gasRefundApi.getAllGasRefundDataForAddress(address);
 
         return res.json(gasRefundDataAddress);
       } catch (e) {
