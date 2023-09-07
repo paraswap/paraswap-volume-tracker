@@ -39,6 +39,12 @@ const logger = global.LOGGER('GRP:COMPUTE_MERKLE_TREE');
 const skipCheck = process.env.SKIP_CHECKS === 'true';
 const saveFile = process.env.SAVE_FILE === 'true';
 
+function asserted<T>(val: T) {
+  assert(val !== null && val !== undefined, 'val should not be null or undef');
+
+  return val;
+}
+
 type RefundableTransaction = {
   address: string;
   timestamp: number;
@@ -183,7 +189,10 @@ async function computeStakingChainsRefundedAmounts(epoch: number) {
 
           const totalStakesAtTimestamp = Object.values(
             stakesForTimestamp,
-          ).reduce((sum, e) => sum.plus(e.stake), new BigNumber(0));
+          ).reduce(
+            (sum, e) => sum.plus(asserted(e.stake?.stakeScore) || 0),
+            new BigNumber(0),
+          );
 
           stakesForTimestamp.forEach(entry => {
             if (!acc[entry.chainId])
@@ -191,9 +200,13 @@ async function computeStakingChainsRefundedAmounts(epoch: number) {
                 amount: new BigNumber(0),
                 breakDownGRP: {},
               };
-            const refundAmountForChain = entry.stake
+            const refundAmountForChain = new BigNumber(
+              asserted(entry.stake?.stakeScore) || 0,
+            )
               .multipliedBy(curr.refundedAmountPSP)
-              .dividedBy(totalStakesAtTimestamp);
+              .dividedBy(totalStakesAtTimestamp)
+              .decimalPlaces(0, BigNumber.ROUND_DOWN);
+
             refundTransactionRemainingRefundableAmount =
               refundTransactionRemainingRefundableAmount.minus(
                 refundAmountForChain,
@@ -215,7 +228,7 @@ async function computeStakingChainsRefundedAmounts(epoch: number) {
 
           if (!refundTransactionRemainingRefundableAmount.eq(0)) {
             for (const entry of stakesForTimestamp) {
-              if (!entry.stake.eq(0)) {
+              if (entry.stake?.stakeScore !== '0') {
                 if (acc[entry.chainId].amount.eq(0)) {
                   acc[entry.chainId].amount = new BigNumber(
                     refundTransactionRemainingRefundableAmount,
