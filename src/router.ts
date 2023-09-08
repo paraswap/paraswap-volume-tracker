@@ -271,28 +271,25 @@ export default class Router {
             epochTo,
           });
 
-          const {
-            claimableByEpochByChain,
-            transactionsWithClaimableByEpoch,
-            refundedByEpochByChain,
-          } = computeAggregatedStakeChainDetails(transactions);
+          const _data = computeAggregatedStakeChainDetails(transactions);
+          const data = showTransactions
+            ? _data
+            : Object.fromEntries(
+                Object.entries(_data).map(([key, value]) => {
+                  const withoutTransactions: any = {
+                    ...value,
+                  };
+                  delete withoutTransactions.transactionsWithClaimable;
+                  return [key, withoutTransactions];
+                }),
+              );
 
           const latestDistributedEpoch = await loadLatestDistributedEpoch();
 
-          return res.json(
-            showTransactions
-              ? {
-                  latestDistributedEpoch,
-                  transactionsWithClaimableByEpoch,
-                  claimableByEpochByChain,
-                  refundedByEpochByChain,
-                }
-              : {
-                  latestDistributedEpoch,
-                  claimableByEpochByChain,
-                  refundedByEpochByChain,
-                },
-          );
+          return res.json({
+            latestDistributedEpoch,
+            byEpoch: data,
+          });
         } catch (e) {
           logger.error('something went wrong', e);
           return res.status(400).send({ error: `something went wrong` });

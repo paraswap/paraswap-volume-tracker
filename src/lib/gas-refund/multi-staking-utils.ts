@@ -106,12 +106,15 @@ type TransactionWithCaimableByStakeChain =
 type BigNumberByEpochByChain = {
   [epoch: number]: { [chainId: number]: BigNumber };
 };
+
+type ComputedAggregatedEpochData = {
+  transactionsWithClaimable: TransactionWithCaimableByStakeChain[];
+
+  refundedByChain: { [chainId: number]: BigNumber };
+  claimableByChain: { [chainId: number]: BigNumber };
+};
 type ComputeAggregatedStakeChainDetailsResult = {
-  transactionsWithClaimableByEpoch: {
-    [epoch: number]: TransactionWithCaimableByStakeChain[];
-  };
-  refundedByEpochByChain: BigNumberByEpochByChain;
-  claimableByEpochByChain: BigNumberByEpochByChain;
+  [epoch: number]: ComputedAggregatedEpochData;
 };
 
 type ComputationOptions = { roundBignumber: (v: BigNumber) => BigNumber };
@@ -183,17 +186,29 @@ export function computeAggregatedStakeChainDetails(
   }, {});
 
   const transactionsWithClaimableByEpoch =
-    transactionsWithClaimableByChain.reduce<
-      ComputeAggregatedStakeChainDetailsResult['transactionsWithClaimableByEpoch']
-    >((acc, curr) => {
+    transactionsWithClaimableByChain.reduce<{
+      [epoch: number]: TransactionWithCaimableByStakeChain[];
+    }>((acc, curr) => {
       if (!acc[curr.epoch]) acc[curr.epoch] = [];
       acc[curr.epoch].push(curr);
       return acc;
     }, {});
 
-  return {
+  const entries: [number, ComputedAggregatedEpochData][] = Object.keys(
     transactionsWithClaimableByEpoch,
-    refundedByEpochByChain,
-    claimableByEpochByChain,
-  };
+  ).map(_epoch => {
+    const epoch = Number(_epoch);
+    return [
+      epoch,
+      {
+        transactionsWithClaimable: transactionsWithClaimableByEpoch[epoch],
+
+        refundedByChain: refundedByEpochByChain[epoch],
+        claimableByChain: claimableByEpochByChain[epoch],
+      },
+    ];
+  });
+  const byEpoch = Object.fromEntries(entries);
+
+  return byEpoch;
 }
