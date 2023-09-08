@@ -100,13 +100,18 @@ export async function loadTransactionWithByStakeChainData({
 
 type TransactionWithCaimableByStakeChain =
   TransactionWithStakeChainScoreByStakeChain & {
-    claimableByStakeChain: Record<number, BigNumber>;
+    claimableByStakeChain: { [chainId: number]: BigNumber };
   };
 
+type BigNumberByEpochByChain = {
+  [epoch: number]: { [chainId: number]: BigNumber };
+};
 type ComputeAggregatedStakeChainDetailsResult = {
-  transactionsWithClaimableByChain: TransactionWithCaimableByStakeChain[];
-  refundedByChain: Record<number, BigNumber>;
-  claimableByChain: Record<number, BigNumber>;
+  transactionsWithClaimableByEpoch: {
+    [epoch: number]: TransactionWithCaimableByStakeChain[];
+  };
+  refundedByEpochByChain: BigNumberByEpochByChain;
+  claimableByEpochByChain: BigNumberByEpochByChain;
 };
 
 type ComputationOptions = { roundBignumber: (v: BigNumber) => BigNumber };
@@ -120,10 +125,14 @@ export function computeAggregatedStakeChainDetails(
 ): ComputeAggregatedStakeChainDetailsResult {
   const roundBignumber = options?.roundBignumber ?? defaultRounder;
 
-  const refundedByChain = transactions.reduce<Record<number, BigNumber>>(
+  const refundedByEpochByChain = transactions.reduce<BigNumberByEpochByChain>(
     (acc, tx) => {
-      if (!acc[tx.chainId]) acc[tx.chainId] = new BigNumber(0);
-      acc[tx.chainId] = acc[tx.chainId].plus(tx.refundedAmountPSP);
+      if (!acc[tx.epoch]) acc[tx.epoch] = {};
+      if (!acc[tx.epoch][tx.chainId])
+        acc[tx.epoch][tx.chainId] = new BigNumber(0);
+      acc[tx.epoch][tx.chainId] = acc[tx.epoch][tx.chainId].plus(
+        tx.refundedAmountPSP,
+      );
       return acc;
     },
     {},
@@ -155,22 +164,36 @@ export function computeAggregatedStakeChainDetails(
       };
     });
 
-  const claimableByChain = transactionsWithClaimableByChain.reduce<
-    Record<number, BigNumber>
-  >((acc, tx) => {
+  const claimableByEpochByChain = transactionsWithClaimableByChain.reduce<{
+    [epoch: number]: { [chainId: number]: BigNumber };
+  }>((acc, tx) => {
     Object.entries(tx.claimableByStakeChain).forEach(
       ([stakeChainId, claimable]) => {
         const chainId = Number(stakeChainId);
-        if (!acc[chainId]) acc[chainId] = claimable;
-        else acc[chainId] = acc[chainId].plus(claimable);
+        if (!acc[tx.epoch]) acc[tx.epoch] = {};
+
+        if (!acc[tx.epoch][chainId]) {
+          acc[tx.epoch][chainId] = claimable;
+        } else {
+          acc[tx.epoch][chainId] = acc[tx.epoch][chainId].plus(claimable);
+        }
       },
     );
     return acc;
   }, {});
 
+  const transactionsWithClaimableByEpoch =
+    transactionsWithClaimableByChain.reduce<
+      ComputeAggregatedStakeChainDetailsResult['transactionsWithClaimableByEpoch']
+    >((acc, curr) => {
+      if (!acc[curr.epoch]) acc[curr.epoch] = [];
+      acc[curr.epoch].push(curr);
+      return acc;
+    }, {});
+
   return {
-    transactionsWithClaimableByChain,
-    refundedByChain,
-    claimableByChain,
+    transactionsWithClaimableByEpoch,
+    refundedByEpochByChain,
+    claimableByEpochByChain,
   };
 }

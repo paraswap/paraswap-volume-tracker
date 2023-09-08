@@ -272,9 +272,9 @@ export default class Router {
           });
 
           const {
-            claimableByChain,
-            transactionsWithClaimableByChain,
-            refundedByChain,
+            claimableByEpochByChain,
+            transactionsWithClaimableByEpoch,
+            refundedByEpochByChain,
           } = computeAggregatedStakeChainDetails(transactions);
 
           const latestDistributedEpoch = await loadLatestDistributedEpoch();
@@ -283,11 +283,15 @@ export default class Router {
             showTransactions
               ? {
                   latestDistributedEpoch,
-                  transactionsWithClaimableByChain,
-                  claimableByChain,
-                  refundedByChain,
+                  transactionsWithClaimableByEpoch,
+                  claimableByEpochByChain,
+                  refundedByEpochByChain,
                 }
-              : { latestDistributedEpoch, claimableByChain, refundedByChain },
+              : {
+                  latestDistributedEpoch,
+                  claimableByEpochByChain,
+                  refundedByEpochByChain,
+                },
           );
         } catch (e) {
           logger.error('something went wrong', e);
