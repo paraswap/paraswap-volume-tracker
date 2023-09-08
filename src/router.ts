@@ -292,6 +292,34 @@ export default class Router {
       },
     );
 
+    router.get(
+      '/gas-refund/user-data/consolidated/:address',
+      async (req, res) => {
+        const address = req.params.address.toLowerCase();
+
+        try {
+          const byNetworkId = Object.fromEntries(
+            await Promise.all(
+              GRP_SUPPORTED_CHAINS.map(async network => {
+                const gasRefundApi = GasRefundApi.getInstance(network);
+                return [
+                  network,
+                  await gasRefundApi.getAllGasRefundDataForAddress(address),
+                ];
+              }),
+            ),
+          );
+
+          return res.json(byNetworkId);
+        } catch (e) {
+          logger.error(req.path, e);
+          res.status(403).send({
+            error: `GasRefundError: could not retrieve merkle datas for ${address}`,
+          });
+        }
+      },
+    );
+
     router.get('/gas-refund/user-data/:network/:address', async (req, res) => {
       const address = req.params.address.toLowerCase();
 
