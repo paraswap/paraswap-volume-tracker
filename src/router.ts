@@ -10,7 +10,10 @@ import {
   CHAIN_ID_MAINNET,
   CHAINS_WITHOUT_PARASWAP_POOLS_SUPPORT,
 } from './lib/constants';
-import { GasRefundApi } from './lib/gas-refund/gas-refund-api';
+import {
+  GasRefundApi,
+  loadLatestDistributedEpoch,
+} from './lib/gas-refund/gas-refund-api';
 import { EpochInfo } from './lib/epoch-info';
 import {
   GRP_SUPPORTED_CHAINS,
@@ -22,6 +25,7 @@ import {
   computeAggregatedStakeChainDetails,
   loadTransactionWithByStakeChainData,
 } from './lib/gas-refund/multi-staking-utils';
+import { GasRefundDistribution } from './models/GasRefundDistribution';
 
 const logger = global.LOGGER();
 
@@ -273,17 +277,17 @@ export default class Router {
             refundedByChain,
           } = computeAggregatedStakeChainDetails(transactions);
 
+          const latestDistributedEpoch = await loadLatestDistributedEpoch();
+
           return res.json(
             showTransactions
               ? {
+                  latestDistributedEpoch,
                   transactionsWithClaimableByChain,
                   claimableByChain,
                   refundedByChain,
                 }
-              : {
-                  claimableByChain,
-                  refundedByChain,
-                },
+              : { latestDistributedEpoch, claimableByChain, refundedByChain },
           );
         } catch (e) {
           logger.error('something went wrong', e);

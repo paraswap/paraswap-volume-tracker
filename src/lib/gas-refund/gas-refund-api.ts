@@ -416,3 +416,15 @@ export class GasRefundApi {
     };
   }
 }
+
+export async function loadLatestDistributedEpoch(): Promise<number> {
+  const result = await Database.sequelize.query<{
+    latestDistributedEpoch: number;
+  }>(
+    `select max(epoch) as "latestDistributedEpoch" from "GasRefundDistributions"`,
+    {
+      type: Sequelize.QueryTypes.SELECT,
+    },
+  );
+  return result[0].latestDistributedEpoch;
+}
