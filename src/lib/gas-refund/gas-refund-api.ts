@@ -323,12 +323,10 @@ export class GasRefundApi {
 
           const { refundedAmountPSP, ...rClaim } = claim;
 
-          const shouldSwitchToSePSP1Contract =
-            this.network === CHAIN_ID_MAINNET &&
-            claim.epoch >= EPOCH_WHEN_SWITCHED_TO_SE_PSP1;
-          const contract = shouldSwitchToSePSP1Contract
-            ? MerkleRedeemAddressSePSP1[this.network]
-            : MerkleRedeemAddress[this.network];
+          const contract =
+            (claim.epoch >= EPOCH_WHEN_SWITCHED_TO_SE_PSP1 &&
+              MerkleRedeemAddressSePSP1[this.network]) ||
+            MerkleRedeemAddress[this.network];
           acc.claims.push({ ...rClaim, amount: refundedAmountPSP, contract });
           acc.totalClaimable += BigInt(refundedAmountPSP);
 
