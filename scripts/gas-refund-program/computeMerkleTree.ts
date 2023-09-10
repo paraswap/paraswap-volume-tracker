@@ -33,6 +33,7 @@ import {
   AddressRewardsMapping,
   ChainRewardsMapping,
 } from './types';
+import { composeRefundWithPIP38Refunds } from './pip38';
 
 const logger = global.LOGGER('GRP:COMPUTE_MERKLE_TREE');
 
@@ -84,7 +85,7 @@ export async function computeAndStoreMerkleTree(epoch: number) {
     epoch,
   );
 
-  const userRewards: AddressRewards[] = Object.keys(userRewardsOnStakingChains)
+  const _userRewards: AddressRewards[] = Object.keys(userRewardsOnStakingChains)
     .map(account =>
       Object.entries(userRewardsOnStakingChains[account]).map(
         ([chainId, { amount, breakDownGRP }]) => ({
@@ -97,6 +98,8 @@ export async function computeAndStoreMerkleTree(epoch: number) {
     )
     .flat()
     .filter(entry => !entry.amount.eq(0));
+
+  const userRewards = composeRefundWithPIP38Refunds(epoch, _userRewards);
 
   const userGRPChainsBreakDowns = userRewards.reduce<{
     [stakeChainId: number]: AddressRewardsMapping;
