@@ -58,7 +58,7 @@ export function composeRefundWithPIP38Refunds(
 
     if (epochRefundsMultipleChains) {
       epochRefundsMultipleChains.forEach(epochRefundForChain => {
-        if ((epochRefundForChain.chainId = CHAIN_ID_MAINNET)) {
+        if (epochRefundForChain.chainId === CHAIN_ID_MAINNET) {
           const _breakDownGRPFantom =
             epochRefundForChain.breakDownGRP[CHAIN_ID_FANTOM] ||
             new BigNumber(0);
