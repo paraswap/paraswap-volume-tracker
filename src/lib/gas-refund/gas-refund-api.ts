@@ -21,7 +21,8 @@ import {
   sePSPMigrations,
   SePSPMigrationsData,
 } from '../../models/sePSPMigrations';
-import { getCurrentEpoch } from './epoch-helpers';
+import { getCurrentEpoch, resolveV2EpochNumber } from './epoch-helpers';
+import { grp2CConfigParticularities } from './config';
 
 interface MerkleRedeem extends Contract {
   callStatic: {
@@ -45,10 +46,22 @@ const MerkleRedeemAddress: { [chainId: number]: string } = {
 
 export const MerkleRedeemAddressSePSP1: { [chainId: number]: string } = {
   [CHAIN_ID_MAINNET]: '0x0ecb7de52096638c01757180c88b74e4474473ab',
-  [CHAIN_ID_OPTIMISM]: '0xeA6cC6949c1DF315Af93aB82D567A8FCEe41016d',
+  [CHAIN_ID_OPTIMISM]: '0xd57Fd755F53666Ce2d3ED8c862A8D06e38C21ce6',
 };
 
 export const EPOCH_WHEN_SWITCHED_TO_SE_PSP1 = 32;
+
+const OPTIMISM_STAKING_START_TIMESTAMP =
+  grp2CConfigParticularities[CHAIN_ID_OPTIMISM].stakingStartCalcTimestamp;
+assert(
+  OPTIMISM_STAKING_START_TIMESTAMP,
+  'OPTIMISM_STAKING_START_TIMESTAMP should be defined',
+);
+const EPOCH_WHEN_OPTIMISM_STAKING_ENABLED = resolveV2EpochNumber(
+  OPTIMISM_STAKING_START_TIMESTAMP + 1,
+);
+
+// debugger;
 
 const MERKLE_DATA_SQL_QUERY = `
   SELECT  grp.address, grp.epoch, grp."merkleProofs", refunds."refundedAmountPSP"
@@ -56,7 +69,11 @@ const MERKLE_DATA_SQL_QUERY = `
   JOIN (
     SELECT grt."address", grt.epoch, SUM(grt."refundedAmountPSP") AS "refundedAmountPSP"
     FROM "GasRefundTransactions" grt
-    WHERE grt."chainId" = :chainId and status='validated'
+    WHERE 
+      grt."chainId" = :chainId and status='validated'
+      AND grt.address=:address
+      AND grt.epoch < ${EPOCH_WHEN_OPTIMISM_STAKING_ENABLED}
+
     GROUP BY grt.address, grt.epoch
   ) AS refunds ON grp.address = refunds.address and grp.epoch = refunds.epoch
   WHERE grp.address=:address AND grp."chainId"=:chainId
@@ -166,16 +183,34 @@ export class GasRefundApi {
   }
 
   async _fetchMerkleData(address: string): Promise<GasRefundClaim[]> {
-    const grpDataResult: GasRefundClaim[] = await Database.sequelize.query(
-      MERKLE_DATA_SQL_QUERY,
-      {
-        type: Sequelize.QueryTypes.SELECT,
-        replacements: {
-          address,
-          chainId: this.network,
-        },
-      },
-    );
+    const grpDataResult: GasRefundClaim[] = (
+      await Promise.all([
+        Database.sequelize.query<GasRefundClaim>(MERKLE_DATA_SQL_QUERY, {
+          type: Sequelize.QueryTypes.SELECT,
+          replacements: {
+            address,
+            chainId: this.network,
+          },
+        }),
+        (
+          await GasRefundParticipation.findAll({
+            raw: true,
+            where: {
+              address,
+              chainId: this.network,
+              epoch: {
+                [Sequelize.Op.gte]: EPOCH_WHEN_OPTIMISM_STAKING_ENABLED,
+              },
+            },
+          })
+        ).map(m => ({
+          refundedAmountPSP: m.amount,
+          epoch: m.epoch,
+          address: m.address,
+          merkleProofs: m.merkleProofs,
+        })),
+      ])
+    ).flat();
 
     return grpDataResult;
   }
@@ -288,12 +323,10 @@ export class GasRefundApi {
 
           const { refundedAmountPSP, ...rClaim } = claim;
 
-          const shouldSwitchToSePSP1Contract =
-            this.network === CHAIN_ID_MAINNET &&
-            claim.epoch >= EPOCH_WHEN_SWITCHED_TO_SE_PSP1;
-          const contract = shouldSwitchToSePSP1Contract
-            ? MerkleRedeemAddressSePSP1[this.network]
-            : MerkleRedeemAddress[this.network];
+          const contract =
+            (claim.epoch >= EPOCH_WHEN_SWITCHED_TO_SE_PSP1 &&
+              MerkleRedeemAddressSePSP1[this.network]) ||
+            MerkleRedeemAddress[this.network];
           acc.claims.push({ ...rClaim, amount: refundedAmountPSP, contract });
           acc.totalClaimable += BigInt(refundedAmountPSP);
 
@@ -324,8 +357,15 @@ export class GasRefundApi {
         ]);
 
     return {
-      totalClaimable: totalClaimable.toString(),
       claims,
+      // starting from distribution 38 (in the new style it's 07) the pending and totalClimable numbers below don't any more indicate the amounts to be claimed on this network.
+      // instead they indicate just aggregated amounts of refund for transactions made on this chain (same as earlier).
+      // the amounts to be claimed on this network are the ones in the claims array:
+      //  -- for non-staking network the array will only include legacy proofs (for old epochs)
+      //  -- for staking networks the array will include both legacy proofs (for old epochs) and the new ones.
+      // The new participations on staking networks inlcude refunds for transactions made on all GRP-supported the chains, proportionaly to the stakeScore on this paritcular network compared to total combined stakeScore on all staking chains
+      // refer to the related PIP fo more details: https://snapshot.org/#/paraswap-dao.eth/proposal/0x7605b06b97c9412a22c506d828f8d1bb3b60971c8b907c3ba962eab995bcaa53
+      totalClaimable: totalClaimable.toString(),
       pendingClaimable: totalPendingRefundAmount.toString(),
       pendingRefundBreakdownPerEpoch,
       // txParams: {
@@ -375,4 +415,16 @@ export class GasRefundApi {
       hasMigrated: true,
     };
   }
+}
+
+export async function loadLatestDistributedEpoch(): Promise<number> {
+  const result = await Database.sequelize.query<{
+    latestDistributedEpoch: number;
+  }>(
+    `select max(epoch) as "latestDistributedEpoch" from "GasRefundDistributions"`,
+    {
+      type: Sequelize.QueryTypes.SELECT,
+    },
+  );
+  return result[0].latestDistributedEpoch;
 }

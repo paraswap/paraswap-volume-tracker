@@ -30,7 +30,7 @@ export const grp2CConfigParticularities: {
   [CHAIN_ID_GOERLI]: {},
   [CHAIN_ID_MAINNET]: {},
   [CHAIN_ID_OPTIMISM]: {
-    stakingStartCalcTimestamp: 1691402400,
+    stakingStartCalcTimestamp: 1691409600,
   },
 };
 

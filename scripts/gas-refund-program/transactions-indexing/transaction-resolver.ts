@@ -163,14 +163,14 @@ export const getSwapTXs = async ({
 
   // check the swapper is a staker, and likewise hasn't used up their budget, to avoid subsequently wasting resources looking up gas unnecessarily
   const swapsOfQualifyingStakers = swaps.filter(swap => {
-    const swapperStake = StakesTracker.getInstance().computeStakedPSPBalance(
+    const swapperStake = StakesTracker.getInstance().computeStakeScore(
       swap.txOrigin,
       +swap.timestamp,
       epoch,
       epochEndTimestamp,
     );
     // tx address must be a staker && must not be over their budget in order to be processed
-    return swapperStake.isGreaterThanOrEqualTo(getMinStake(epoch));
+    return swapperStake.combined.isGreaterThanOrEqualTo(getMinStake(epoch));
   });
 
   const allTxsWithGas = await covalentGetTXsForContractV3({

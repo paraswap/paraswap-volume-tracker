@@ -10,7 +10,10 @@ import {
   CHAIN_ID_MAINNET,
   CHAINS_WITHOUT_PARASWAP_POOLS_SUPPORT,
 } from './lib/constants';
-import { GasRefundApi } from './lib/gas-refund/gas-refund-api';
+import {
+  GasRefundApi,
+  loadLatestDistributedEpoch,
+} from './lib/gas-refund/gas-refund-api';
 import { EpochInfo } from './lib/epoch-info';
 import {
   GRP_SUPPORTED_CHAINS,
@@ -18,6 +21,11 @@ import {
 } from './lib/gas-refund/gas-refund';
 import { StakingService } from './lib/staking/staking';
 import { assert } from 'ts-essentials';
+import {
+  computeAggregatedStakeChainDetails,
+  loadTransactionWithByStakeChainData,
+} from './lib/gas-refund/multi-staking-utils';
+import { GasRefundDistribution } from './models/GasRefundDistribution';
 
 const logger = global.LOGGER();
 
@@ -232,6 +240,91 @@ export default class Router {
       },
     );
 
+    // NB: this endpoint will return approximate amounts. They will differ from the ones in merkle tree
+    router.get(
+      '/gas-refund/by-network/:address/:epochFrom/:epochTo',
+      async (req, res) => {
+        const address = req.params.address.toLowerCase();
+        const epochFrom = req.params.epochFrom
+          ? parseInt(req.params.epochFrom)
+          : undefined;
+        const epochTo = req.params.epochTo
+          ? parseInt(req.params.epochTo)
+          : undefined;
+
+        const showTransactions = req.query.showTransactions === 'true';
+
+        if (!address)
+          return res
+            .status(400)
+            .send({ error: `address param is required: ${address}` });
+
+        if (!epochFrom || !epochTo)
+          return res
+            .status(400)
+            .send({ error: `epochFrom and epochTo params are required` });
+
+        try {
+          const transactions = await loadTransactionWithByStakeChainData({
+            address,
+            epochFrom,
+            epochTo,
+          });
+
+          const _data = computeAggregatedStakeChainDetails(transactions);
+          const data = showTransactions
+            ? _data
+            : Object.fromEntries(
+                Object.entries(_data).map(([key, value]) => {
+                  const withoutTransactions: any = {
+                    ...value,
+                  };
+                  delete withoutTransactions.transactionsWithClaimable;
+                  return [key, withoutTransactions];
+                }),
+              );
+
+          const latestDistributedEpoch = await loadLatestDistributedEpoch();
+
+          return res.json({
+            latestDistributedEpoch,
+            byEpoch: data,
+          });
+        } catch (e) {
+          logger.error('something went wrong', e);
+          return res.status(400).send({ error: `something went wrong` });
+        }
+      },
+    );
+
+    router.get(
+      '/gas-refund/user-data/consolidated/:address',
+      async (req, res) => {
+        const address = req.params.address.toLowerCase();
+
+        try {
+          const byNetworkId = Object.fromEntries(
+            await Promise.all(
+              GRP_SUPPORTED_CHAINS.map(async network => {
+                const gasRefundApi = GasRefundApi.getInstance(network);
+                return [
+                  network,
+                  await gasRefundApi.getAllGasRefundDataForAddress(address),
+                ];
+              }),
+            ),
+          );
+
+          return res.json(byNetworkId);
+        } catch (e) {
+          logger.error(req.path, e);
+          res.status(403).send({
+            error: `GasRefundError: could not retrieve merkle datas for ${address}`,
+          });
+        }
+      },
+    );
+
     router.get('/gas-refund/user-data/:network/:address', async (req, res) => {
       const address = req.params.address.toLowerCase();
 
@@ -239,7 +332,7 @@ export default class Router {
         const network = Number(req.params.network);
         if (!GRP_SUPPORTED_CHAINS.includes(network))
           return res
-            .status(403)
+            .status(400)
             .send({ error: `Unsupported network: ${network}` });
         const gasRefundApi = GasRefundApi.getInstance(network);
         const gasRefundDataAddress =
