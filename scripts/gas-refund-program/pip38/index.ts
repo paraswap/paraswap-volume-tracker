@@ -1,6 +1,6 @@
 import { assert } from 'ts-essentials';
-import fantomEpoch36 from './merkletree-chain-250-epoch-36.json';
-import fantomEpoch37 from './merkletree-chain-250-epoch-37.json';
+import * as fantomEpoch36 from './merkletree-chain-250-epoch-36.json';
+import * as fantomEpoch37 from './merkletree-chain-250-epoch-37.json';
 import { AddressRewards } from '../types';
 import { groupBy } from 'lodash';
 import BigNumber from 'bignumber.js';
