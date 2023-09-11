@@ -47,6 +47,7 @@ export const GasRefundSafetyModuleAllPSPInBptFixStartEpoch = 20;
 export const GasRefundV2EpochFlip = 31;
 export const GasRefundV2EpochPSPEP3Flip = 32;
 export const GasRefundV2EpochOptimismFlip = 34;
+export const GasRefundV2PIP38 = 38;
 
 interface BaseGasRefundData {
   epoch: number;
@@ -96,13 +97,27 @@ type GasRefundLevelsDef = {
   refundPercent: number;
 };
 
+export function stringifyGRPChainBreakDown(
+  input: GRPChainBreakDown<BigNumber>,
+): GRPChainBreakDown<string> {
+  return Object.entries(input).reduce<GRPChainBreakDown<string>>(
+    (acc, [chainId, amount]) => {
+      acc[Number(chainId)] = amount.toFixed();
+      return acc;
+    },
+    {},
+  );
+}
+type GRPChainBreakDown<T extends BigNumber | string> = {
+  [grpChainId: number]: T;
+};
 export interface GasRefundParticipantData {
   epoch: number;
   address: string;
   chainId: number;
   merkleProofs: string[];
   isCompleted: boolean;
-  GRPChainBreakDown: { [grpChainId: number]: BigNumber };
+  GRPChainBreakDown: GRPChainBreakDown<string>;
 }
 
 export enum TransactionStatus {

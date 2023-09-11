@@ -10,6 +10,7 @@ import { AbstractStateTracker } from './AbstractStateTracker';
 import BPTStateTracker from './BPTStateTracker';
 import { ClaimableSePSP1StateTracker } from './ClaimableSePSP1StateTracker';
 import ERC20StateTracker from './ERC20StateTracker';
+import { StakedScoreV2 } from '../stakes-tracker';
 
 export class StakeV2Resolver extends AbstractStateTracker {
   sePSP1Tracker: ERC20StateTracker;
@@ -102,7 +103,10 @@ export class StakeV2Resolver extends AbstractStateTracker {
   }
 
   // returns stakesScore(t)
-  getStakeForRefund(timestamp: number, account: string): BigNumber {
+  getStakeForRefund(
+    timestamp: number,
+    account: string,
+  ): StakedScoreV2['byNetwork'][number] {
     this.assertTimestampWithinLoadInterval(timestamp);
 
     const sePSP1Balance = this.sePSP1Tracker.getBalance(timestamp, account);
@@ -124,6 +128,13 @@ export class StakeV2Resolver extends AbstractStateTracker {
       .plus(pspInSePSP2.multipliedBy(grp2GlobalConfig.sePSP2PowerMultiplier))
       .decimalPlaces(0, BigNumber.ROUND_DOWN);
 
-    return stake;
+    return {
+      stakeScore: stake.toFixed(),
+      sePSP1Balance: sePSP1Balance.toFixed(),
+      sePSP2Balance: sePSP2Balance.toFixed(),
+      bptTotalSupply: bptTotalSupply.toFixed(),
+      bptPSPBalance: bptPSPBalance.toFixed(),
+      claimableSePSP1Balance: claimableSePSP1.toFixed(),
+    };
   }
 }

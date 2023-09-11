@@ -1,6 +1,7 @@
 import { AddressRewardsMapping, MerkleTreeData } from '../types';
 import { writeFile, mkdir } from 'fs/promises';
 import * as path from 'path';
+import { stringifyGRPChainBreakDown } from '../../../src/lib/gas-refund/gas-refund';
 
 const dir = path.join(__dirname, './merkle-trees');
 
@@ -54,7 +55,9 @@ export async function saveMerkleTreeInFile({
       return {
         ...r,
         proof: merkleProofs,
-        GRPChainBreakDown: userGRPChainsBreakDowns[r.address],
+        GRPChainBreakDown: stringifyGRPChainBreakDown(
+          userGRPChainsBreakDowns[r.address],
+        ),
       };
     }),
   };

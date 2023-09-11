@@ -33,11 +33,18 @@ import {
   AddressRewardsMapping,
   ChainRewardsMapping,
 } from './types';
+import { composeRefundWithPIP38Refunds } from './pip38';
 
 const logger = global.LOGGER('GRP:COMPUTE_MERKLE_TREE');
 
 const skipCheck = process.env.SKIP_CHECKS === 'true';
 const saveFile = process.env.SAVE_FILE === 'true';
+
+function asserted<T>(val: T) {
+  assert(val !== null && val !== undefined, 'val should not be null or undef');
+
+  return val;
+}
 
 type RefundableTransaction = {
   address: string;
@@ -78,7 +85,7 @@ export async function computeAndStoreMerkleTree(epoch: number) {
     epoch,
   );
 
-  const userRewards: AddressRewards[] = Object.keys(userRewardsOnStakingChains)
+  const _userRewards: AddressRewards[] = Object.keys(userRewardsOnStakingChains)
     .map(account =>
       Object.entries(userRewardsOnStakingChains[account]).map(
         ([chainId, { amount, breakDownGRP }]) => ({
@@ -92,26 +99,29 @@ export async function computeAndStoreMerkleTree(epoch: number) {
     .flat()
     .filter(entry => !entry.amount.eq(0));
 
-  const userGRPChainsBreakDowns = userRewards.reduce<AddressRewardsMapping>(
-    (acc, curr) => {
-      acc[curr.account] = curr.breakDownGRP;
+  const userRewards = composeRefundWithPIP38Refunds(epoch, _userRewards);
 
-      return acc;
-    },
-    {},
-  );
+  const userGRPChainsBreakDowns = userRewards.reduce<{
+    [stakeChainId: number]: AddressRewardsMapping;
+  }>((acc, curr) => {
+    if (!acc[curr.chainId]) acc[curr.chainId] = {};
+    acc[curr.chainId][curr.account] = curr.breakDownGRP;
+
+    return acc;
+  }, {});
 
   const merkleTreeData = await computeMerkleData({ userRewards, epoch });
 
   return Promise.all(
     merkleTreeData.map(async ({ chainId, merkleTree }) => {
+      const chainBreakdowns = userGRPChainsBreakDowns[Number(chainId)];
       if (saveFile) {
         logger.info('saving merkle tree in file');
         await saveMerkleTreeInFile({
           chainId: +chainId,
           epoch,
           merkleTree,
-          userGRPChainsBreakDowns,
+          userGRPChainsBreakDowns: chainBreakdowns,
         });
       } else {
         logger.info('saving merkle tree in db');
@@ -119,7 +129,7 @@ export async function computeAndStoreMerkleTree(epoch: number) {
           chainId: +chainId,
           epoch,
           merkleTree,
-          userGRPChainsBreakDowns,
+          userGRPChainsBreakDowns: chainBreakdowns,
         });
       }
     }),
@@ -183,7 +193,10 @@ async function computeStakingChainsRefundedAmounts(epoch: number) {
 
           const totalStakesAtTimestamp = Object.values(
             stakesForTimestamp,
-          ).reduce((sum, e) => sum.plus(e.stake), new BigNumber(0));
+          ).reduce(
+            (sum, e) => sum.plus(asserted(e.stake?.stakeScore) || 0),
+            new BigNumber(0),
+          );
 
           stakesForTimestamp.forEach(entry => {
             if (!acc[entry.chainId])
@@ -191,9 +204,13 @@ async function computeStakingChainsRefundedAmounts(epoch: number) {
                 amount: new BigNumber(0),
                 breakDownGRP: {},
               };
-            const refundAmountForChain = entry.stake
+            const refundAmountForChain = new BigNumber(
+              asserted(entry.stake?.stakeScore) || 0,
+            )
               .multipliedBy(curr.refundedAmountPSP)
-              .dividedBy(totalStakesAtTimestamp);
+              .dividedBy(totalStakesAtTimestamp)
+              .decimalPlaces(0, BigNumber.ROUND_DOWN);
+
             refundTransactionRemainingRefundableAmount =
               refundTransactionRemainingRefundableAmount.minus(
                 refundAmountForChain,
@@ -215,7 +232,7 @@ async function computeStakingChainsRefundedAmounts(epoch: number) {
 
           if (!refundTransactionRemainingRefundableAmount.eq(0)) {
             for (const entry of stakesForTimestamp) {
-              if (!entry.stake.eq(0)) {
+              if (asserted(entry.stake?.stakeScore) !== '0') {
                 if (acc[entry.chainId].amount.eq(0)) {
                   acc[entry.chainId].amount = new BigNumber(
                     refundTransactionRemainingRefundableAmount,
