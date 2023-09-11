@@ -74,7 +74,7 @@ export function composeRefundWithPIP38Refunds(
             amount: epochRefundForChain.amount.plus(amountPip38),
 
             breakDownGRP: {
-              ...epochRefundForChain,
+              ...epochRefundForChain.breakDownGRP,
               [CHAIN_ID_FANTOM]: _breakDownGRPFantom.plus(amountPip38),
             },
           });
