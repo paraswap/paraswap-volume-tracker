@@ -47,6 +47,7 @@ export const GasRefundSafetyModuleAllPSPInBptFixStartEpoch = 20;
 export const GasRefundV2EpochFlip = 31;
 export const GasRefundV2EpochPSPEP3Flip = 32;
 export const GasRefundV2EpochOptimismFlip = 34;
+export const GasRefundV2PIP38 = 38;
 
 interface BaseGasRefundData {
   epoch: number;
