@@ -35,14 +35,14 @@ export function composeRefundWithPIP38Refunds(
   return allAccounts.reduce<AddressRewards[]>((acc, account) => {
     const epochRefundsMultipleChains = epochRefundsByAddress[account];
 
-    assert(
-      epoch37FantomRefundByAddress[account]?.length < 1,
-      'each account should have at most one record for epoch 37 fantom',
-    );
-    assert(
-      epoch38FantomRefundByAddress[account]?.length < 1,
-      'each account should have at most one record for epoch 38 fantom',
-    );
+     assert(
+        (epoch37FantomRefundByAddress[account]?.length ?? 0) <= 1,
+        'each account should have at most one record for epoch 37 fantom',
+      );
+      assert(
+        (epoch38FantomRefundByAddress[account]?.length ?? 0) <= 1,
+        'each account should have at most one record for epoch 38 fantom',
+      );
 
     const epoch37FantomRefund = epoch37FantomRefundByAddress[account]?.[0];
     const epoch38FantomRefund = epoch38FantomRefundByAddress[account]?.[0];
