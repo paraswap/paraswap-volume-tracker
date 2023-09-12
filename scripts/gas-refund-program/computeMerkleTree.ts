@@ -81,6 +81,7 @@ export async function getRefundableTransactionData(
 }
 
 export async function computeAndStoreMerkleTree(epoch: number) {
+   debugger;
   const userRewardsOnStakingChains = await computeStakingChainsRefundedAmounts(
     epoch,
   );
@@ -98,8 +99,10 @@ export async function computeAndStoreMerkleTree(epoch: number) {
     )
     .flat()
     .filter(entry => !entry.amount.eq(0));
+  debugger
 
   const userRewards = composeRefundWithPIP38Refunds(epoch, _userRewards);
+  debugger
 
   const userGRPChainsBreakDowns = userRewards.reduce<{
     [stakeChainId: number]: AddressRewardsMapping;
@@ -110,6 +113,7 @@ export async function computeAndStoreMerkleTree(epoch: number) {
     return acc;
   }, {});
 
+ 
   const merkleTreeData = await computeMerkleData({ userRewards, epoch });
 
   return Promise.all(
@@ -271,29 +275,30 @@ async function startComputingMerkleTreesAllChains() {
   await Database.connectAndSync();
   await loadEpochMetaData();
 
-  const latestEpochRefunded = await fetchLastEpochRefunded(skipCheck);
-  let startEpoch = latestEpochRefunded
-    ? latestEpochRefunded + 1
-    : GasRefundGenesisEpoch;
+  // const latestEpochRefunded = await fetchLastEpochRefunded(skipCheck);
+  // let startEpoch = latestEpochRefunded
+  //   ? latestEpochRefunded + 1
+  //   : GasRefundGenesisEpoch;
 
-  assert(
-    startEpoch >= GasRefundGenesisEpoch,
-    'cannot compute grp merkle data for epoch < genesis_epoch',
-  );
+  // assert(
+  //   startEpoch >= GasRefundGenesisEpoch,
+  //   'cannot compute grp merkle data for epoch < genesis_epoch',
+  // );
 
-  const currentEpoch = getCurrentEpoch();
+  // const currentEpoch = getCurrentEpoch();
 
-  for (let epoch = startEpoch; epoch <= currentEpoch; epoch++) {
-    const { isEpochEnded } = await resolveEpochCalcTimeInterval(epoch);
+  // for (let epoch = startEpoch; epoch <= currentEpoch; epoch++) {
+  //   const { isEpochEnded } = await resolveEpochCalcTimeInterval(epoch);
 
-    if (!skipCheck && !isEpochEnded) {
-      return logger.warn(
-        `Epoch ${epoch} has not ended or full onchain data not available yet`,
-      );
-    }
+  //   if (!skipCheck && !isEpochEnded) {
+  //     return logger.warn(
+  //       `Epoch ${epoch} has not ended or full onchain data not available yet`,
+  //     );
+  //   }
 
-    await computeAndStoreMerkleTree(epoch);
-  }
+  //   await computeAndStoreMerkleTree(epoch);
+  // }
+  await computeAndStoreMerkleTree(38);
 }
 
 startComputingMerkleTreesAllChains()

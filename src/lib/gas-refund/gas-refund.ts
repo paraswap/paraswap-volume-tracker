@@ -8,8 +8,6 @@ import {
   CHAIN_ID_POLYGON,
 } from '../constants';
 import { isTruthy } from '../utils';
-import { ChainBalanceMapping } from '../../types';
-import { AddressRewardsMapping } from '../../../scripts/gas-refund-program/types';
 
 export const isMainnetStaking = true; // TODO FIXME move to env var
 
