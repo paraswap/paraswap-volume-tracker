@@ -115,9 +115,10 @@ export class ClaimableSePSP1StateTracker extends AbstractStateTracker {
     }
   }
 
-  async getClaimsFromEpoch32ToStartEpoch(): Promise<TimeSeriesByAccount> {
+  // FIXME use chainId for optimism
+  async getClaimsFromEpoch32ToStartEpoch(chainId: number): Promise<TimeSeriesByAccount> {
     // epoch 33 has already started when users started claiming sePSP1 (first distribution in sePSP for epoch 32 + grace period + pending period)
-    const timestampWhenStartedClaimingSePSP1 = await getEpochStartCalcTime(33);
+    const timestampWhenStartedClaimingSePSP1 = await getEpochStartCalcTime(33); // FIXME not compatible claimable sePSP1 on optimism
     const blockWhenStartedClaimingSePSP1 = await BlockInfo.getInstance(
       this.network,
     ).getBlockAfterTimeStamp(timestampWhenStartedClaimingSePSP1);
@@ -174,10 +175,10 @@ export class ClaimableSePSP1StateTracker extends AbstractStateTracker {
     return timeSeriesByAccount;
   }
 
-  async getDistributionsFromEpoch32ToStartEpoch(): Promise<TimeSeriesByAccount> {
+  async getDistributionsFromEpoch32ToStartEpoch(chainId: number): Promise<TimeSeriesByAccount> {
     const startEpoch = resolveV2EpochNumber(this.startTimestamp);
     // sePSP1 started being accrued since epoch 33, so early return for earlier epochs
-    if (startEpoch <= EPOCH_WHEN_SWITCHED_TO_SE_PSP1) return {};
+    if (startEpoch <= EPOCH_WHEN_SWITCHED_TO_SE_PSP1[chainId]) return {};
 
     const epochsDistributedByTheStart: (epoch: number) => boolean = epoch =>
       epoch < startEpoch;
@@ -202,8 +203,8 @@ export class ClaimableSePSP1StateTracker extends AbstractStateTracker {
       distributionsFromEpoch32ToStartEpoch,
       claimsFromEpoch32ToStartEpoch,
     ] = await Promise.all([
-      this.getDistributionsFromEpoch32ToStartEpoch(),
-      this.getClaimsFromEpoch32ToStartEpoch(),
+      this.getDistributionsFromEpoch32ToStartEpoch(this.chainId),
+      this.getClaimsFromEpoch32ToStartEpoch(this.chainId),
     ]);
     const allParticipantsFromEpoch32ToStartEpoch = Object.keys(
       distributionsFromEpoch32ToStartEpoch,
