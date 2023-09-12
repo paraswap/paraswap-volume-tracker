@@ -85,7 +85,9 @@ export async function computeAndStoreMerkleTree(epoch: number) {
     epoch,
   );
 
-  const _userRewards: AddressRewards[] = Object.keys(userRewardsOnStakingChains)
+  const _allChainsRefunds: AddressRewards[] = Object.keys(
+    userRewardsOnStakingChains,
+  )
     .map(account =>
       Object.entries(userRewardsOnStakingChains[account]).map(
         ([chainId, { amount, breakDownGRP }]) => ({
@@ -99,9 +101,12 @@ export async function computeAndStoreMerkleTree(epoch: number) {
     .flat()
     .filter(entry => !entry.amount.eq(0));
 
-  const userRewards = composeRefundWithPIP38Refunds(epoch, _userRewards);
+  const allChainsRefunds = composeRefundWithPIP38Refunds(
+    epoch,
+    _allChainsRefunds,
+  );
 
-  const userGRPChainsBreakDowns = userRewards.reduce<{
+  const userGRPChainsBreakDowns = allChainsRefunds.reduce<{
     [stakeChainId: number]: AddressRewardsMapping;
   }>((acc, curr) => {
     if (!acc[curr.chainId]) acc[curr.chainId] = {};
@@ -110,8 +115,10 @@ export async function computeAndStoreMerkleTree(epoch: number) {
     return acc;
   }, {});
 
- 
-  const merkleTreeData = await computeMerkleData({ userRewards, epoch });
+  const merkleTreeData = await computeMerkleData({
+    userRewards: allChainsRefunds,
+    epoch,
+  });
 
   return Promise.all(
     merkleTreeData.map(async ({ chainId, merkleTree }) => {
