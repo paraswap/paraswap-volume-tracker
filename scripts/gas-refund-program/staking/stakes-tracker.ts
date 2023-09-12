@@ -80,7 +80,6 @@ export default class StakesTracker {
       let startTimeStakeV2 = await getEpochStartCalcTime(
         latestEpochRefunded || GasRefundV2EpochFlip,
       );
-      // debugger;
 
       await Promise.all(
         this.chainIds.map(async chainId =>

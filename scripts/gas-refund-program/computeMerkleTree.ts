@@ -81,7 +81,6 @@ export async function getRefundableTransactionData(
 }
 
 export async function computeAndStoreMerkleTree(epoch: number) {
-   debugger;
   const userRewardsOnStakingChains = await computeStakingChainsRefundedAmounts(
     epoch,
   );
@@ -99,10 +98,8 @@ export async function computeAndStoreMerkleTree(epoch: number) {
     )
     .flat()
     .filter(entry => !entry.amount.eq(0));
-  debugger
 
   const userRewards = composeRefundWithPIP38Refunds(epoch, _userRewards);
-  debugger
 
   const userGRPChainsBreakDowns = userRewards.reduce<{
     [stakeChainId: number]: AddressRewardsMapping;
