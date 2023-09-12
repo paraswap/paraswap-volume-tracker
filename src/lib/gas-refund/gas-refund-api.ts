@@ -49,7 +49,10 @@ export const MerkleRedeemAddressSePSP1: { [chainId: number]: string } = {
   [CHAIN_ID_OPTIMISM]: '0xd57Fd755F53666Ce2d3ED8c862A8D06e38C21ce6',
 };
 
-export const EPOCH_WHEN_SWITCHED_TO_SE_PSP1 = 32;
+export const EPOCH_WHEN_SWITCHED_TO_SE_PSP1: Record<number, number> = {
+  1: 32,
+  10: 38,
+};
 
 const OPTIMISM_STAKING_START_TIMESTAMP =
   grp2CConfigParticularities[CHAIN_ID_OPTIMISM].stakingStartCalcTimestamp;
@@ -324,7 +327,7 @@ export class GasRefundApi {
           const { refundedAmountPSP, ...rClaim } = claim;
 
           const contract =
-            (claim.epoch >= EPOCH_WHEN_SWITCHED_TO_SE_PSP1 &&
+            (claim.epoch >= EPOCH_WHEN_SWITCHED_TO_SE_PSP1[this.network] &&
               MerkleRedeemAddressSePSP1[this.network]) ||
             MerkleRedeemAddress[this.network];
           acc.claims.push({ ...rClaim, amount: refundedAmountPSP, contract });
