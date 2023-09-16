@@ -7,7 +7,7 @@ import {
   resolveV2EpochNumber,
 } from '../../../../src/lib/gas-refund/epoch-helpers';
 import { assert } from 'ts-essentials';
-import { ETH_NETWORKS, STAKING_CHAIN_IDS } from '../../../../src/lib/constants';
+import { STAKING_CHAIN_IDS } from '../../../../src/lib/constants';
 import { BigNumber as EthersBN, Contract, Event } from 'ethers';
 import * as MerkleRedeemAbi from '../../../../src/lib/abi/merkle-redeem.abi.json';
 import { Provider } from '../../../../src/lib/provider';
@@ -116,9 +116,13 @@ export class ClaimableSePSP1StateTracker extends AbstractStateTracker {
   }
 
   // FIXME use chainId for optimism
-  async getClaimsFromEpoch32ToStartEpoch(chainId: number): Promise<TimeSeriesByAccount> {
+  async getClaimsFromEpoch32ToStartEpoch(
+    chainId: number,
+  ): Promise<TimeSeriesByAccount> {
     // epoch 33 has already started when users started claiming sePSP1 (first distribution in sePSP for epoch 32 + grace period + pending period)
-    const timestampWhenStartedClaimingSePSP1 = await getEpochStartCalcTime(33); // FIXME not compatible claimable sePSP1 on optimism
+    const timestampWhenStartedClaimingSePSP1 = await getEpochStartCalcTime(
+      EPOCH_WHEN_SWITCHED_TO_SE_PSP1[chainId] + 1,
+    );
     const blockWhenStartedClaimingSePSP1 = await BlockInfo.getInstance(
       this.network,
     ).getBlockAfterTimeStamp(timestampWhenStartedClaimingSePSP1);
@@ -175,7 +179,9 @@ export class ClaimableSePSP1StateTracker extends AbstractStateTracker {
     return timeSeriesByAccount;
   }
 
-  async getDistributionsFromEpoch32ToStartEpoch(chainId: number): Promise<TimeSeriesByAccount> {
+  async getDistributionsFromEpoch32ToStartEpoch(
+    chainId: number,
+  ): Promise<TimeSeriesByAccount> {
     const startEpoch = resolveV2EpochNumber(this.startTimestamp);
     // sePSP1 started being accrued since epoch 33, so early return for earlier epochs
     if (startEpoch <= EPOCH_WHEN_SWITCHED_TO_SE_PSP1[chainId]) return {};
@@ -189,16 +195,6 @@ export class ClaimableSePSP1StateTracker extends AbstractStateTracker {
 
   async loadInitialState() {
     // initial state = sumDistributions(from epoch 32 to startEpoch) - sumClaims(from epoch 32 to startEpoch)
-
-    if (!ETH_NETWORKS.includes(this.network)) {
-      // TODO needs to support Optimism as well
-      this.initState = {
-        balance: {},
-      };
-
-      return;
-    }
-
     const [
       distributionsFromEpoch32ToStartEpoch,
       claimsFromEpoch32ToStartEpoch,
@@ -230,15 +226,6 @@ export class ClaimableSePSP1StateTracker extends AbstractStateTracker {
   }
 
   async loadStateChanges() {
-    if (!ETH_NETWORKS.includes(this.network)) {
-      // TODO needs to support Optimism as well
-      this.differentialStates = {
-        balance: {},
-      };
-
-      return;
-    }
-
     const [epochFrom, epochTo] = await Promise.all([
       resolveV2EpochNumber(this.startTimestamp),
       resolveV2EpochNumber(this.endTimestamp),
