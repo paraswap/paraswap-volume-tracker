@@ -22,7 +22,11 @@ export type MerkleTreeData = {
 const TREE_DATA_URL_BY_EPOCH_URL =
   'https://raw.githubusercontent.com/paraswap/paraswap-volume-tracker/master/scripts/gas-refund-program/distributions.json';
 const TREE_DATA_URL_BY_EPOCH_CACHE_MAX_AGE_MS = 60 * 5 * 1000; // 5 minutes
-type UrlByEpoch = Record<number, string>;
+type UrlByEpoch = {
+  [epoch: number]: {
+    [chainId: number]: string;
+  };
+};
 const httpClientWithTempCache = constructHttpClient({
   cacheOptions: {
     // debug: console.log, // will refetch on `cache-miss` and `cache-stale`
@@ -43,18 +47,25 @@ const fetchEpochData = pMemoize(_fetchEpochData, {
 
 export type MerkleTreeDataByEpoch = Record<number, MerkleTreeData>;
 export class MerkleRedeemHelperSePSP1 {
-  private static instance: MerkleRedeemHelperSePSP1;
+  private static instances: { [chainId: number]: MerkleRedeemHelperSePSP1 };
+
+  private chainId: number;
+
+  constructor(chainId: number) {
+    this.chainId = chainId;
+  }
 
   private cacheData?: {
     cacheKey: string;
     merkleDataByEpoch: MerkleTreeDataByEpoch;
   };
 
-  static getInstance() {
-    if (!MerkleRedeemHelperSePSP1.instance) {
-      MerkleRedeemHelperSePSP1.instance = new MerkleRedeemHelperSePSP1();
+  static getInstance(chainId: number) {
+    if (!MerkleRedeemHelperSePSP1.instances[chainId]) {
+      MerkleRedeemHelperSePSP1.instances[chainId] =
+        new MerkleRedeemHelperSePSP1(chainId);
     }
-    return MerkleRedeemHelperSePSP1.instance;
+    return MerkleRedeemHelperSePSP1.instances[chainId];
   }
 
   async getMerkleDataByEpochWithCacheKey(): Promise<{
@@ -70,7 +81,9 @@ export class MerkleRedeemHelperSePSP1 {
         .map(Number)
         .map(async epoch => ({
           epoch,
-          data: await fetchEpochData(merkleTreeDataUrlByLegacyEpoch[epoch]),
+          data: await fetchEpochData(
+            merkleTreeDataUrlByLegacyEpoch[epoch][this.chainId],
+          ),
         }));
 
       const datas = await Promise.all(promises);
