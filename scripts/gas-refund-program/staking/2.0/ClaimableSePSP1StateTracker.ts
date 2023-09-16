@@ -139,8 +139,9 @@ export class ClaimableSePSP1StateTracker extends AbstractStateTracker {
   async _getDistributionsTimeSeriesByAccount(
     filterEpoch: (epoch: number) => boolean,
   ) {
-    const { merkleDataByEpoch } =
-      await MerkleRedeemHelperSePSP1.getInstance().getMerkleDataByEpochWithCacheKey(); // TODO needs fix will duplicate the values for the chains
+    const { merkleDataByEpoch } = await MerkleRedeemHelperSePSP1.getInstance(
+      this.chainId,
+    ).getMerkleDataByEpochWithCacheKey(); // TODO needs fix will duplicate the values for the chains
     const epochsDistributedWithinInterval = Object.keys(merkleDataByEpoch)
       .map(Number)
       .filter(filterEpoch);
