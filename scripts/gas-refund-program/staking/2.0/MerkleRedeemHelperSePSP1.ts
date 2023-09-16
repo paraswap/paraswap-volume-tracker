@@ -79,6 +79,7 @@ export class MerkleRedeemHelperSePSP1 {
     if (!this.cacheData || this.cacheData.cacheKey !== newCacheKey) {
       const promises = Object.keys(merkleTreeDataUrlByLegacyEpoch)
         .map(Number)
+        .filter(epoch => merkleTreeDataUrlByLegacyEpoch[epoch][this.chainId])
         .map(async epoch => ({
           epoch,
           data: await fetchEpochData(
