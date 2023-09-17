@@ -47,7 +47,7 @@ const fetchEpochData = pMemoize(_fetchEpochData, {
 
 export type MerkleTreeDataByEpoch = Record<number, MerkleTreeData>;
 export class MerkleRedeemHelperSePSP1 {
-  private static instances: { [chainId: number]: MerkleRedeemHelperSePSP1 };
+  private static instances: { [chainId: number]: MerkleRedeemHelperSePSP1 }  = {};
 
   private chainId: number;
 
