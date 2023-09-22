@@ -6,7 +6,7 @@ import { reduceTimeSeries, TimeSeries } from '../../timeseries';
 import BigNumber from 'bignumber.js';
 import { AbstractStateTracker } from './AbstractStateTracker';
 import { getTokenHolders } from '../../../../src/lib/utils/covalent';
-import { queryFilterBatched } from './utils';
+import { QUERY_EVENT_BATCH_SIZE_BY_CHAIN, queryFilterBatched } from './utils';
 
 const logger = global.LOGGER('ERC20StateTracker');
 
@@ -107,6 +107,7 @@ export default class ERC20StateTracker extends AbstractStateTracker {
       this.contract.filters.Transfer(),
       this.startBlock,
       this.endBlock,
+      { batchSize: QUERY_EVENT_BATCH_SIZE_BY_CHAIN[this.chainId]}
     )) as Transfer[];
 
     logger.info(

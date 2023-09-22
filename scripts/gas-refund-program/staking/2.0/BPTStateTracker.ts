@@ -26,7 +26,7 @@ import {
 } from './AbstractStateTracker';
 import BigNumber from 'bignumber.js';
 import { imReverse } from '../../../../src/lib/utils';
-import { queryFilterBatched } from './utils';
+import { QUERY_EVENT_BATCH_SIZE_BY_CHAIN, queryFilterBatched } from './utils';
 import { grp2CConfigParticularities } from '../../../../src/lib/gas-refund/config';
 
 interface MinERC20 extends Contract {
@@ -161,6 +161,7 @@ export default class BPTStateTracker extends AbstractStateTracker {
       ),
       this.startBlock,
       this.endBlock,
+      { batchSize: QUERY_EVENT_BATCH_SIZE_BY_CHAIN[this.chainId]}
     )) as PoolBalanceChanged[];
 
     const blockNumToTimestamp = await fetchBlockTimestampForEvents(
@@ -213,6 +214,7 @@ export default class BPTStateTracker extends AbstractStateTracker {
       ),
       this.startBlock,
       this.endBlock,
+      { batchSize: QUERY_EVENT_BATCH_SIZE_BY_CHAIN[this.chainId]}
     )) as Swap[];
 
     const blockNumToTimestamp = await fetchBlockTimestampForEvents(
@@ -266,12 +268,14 @@ export default class BPTStateTracker extends AbstractStateTracker {
           this.bptAsERC20.filters.Transfer(NULL_ADDRESS),
           this.startBlock,
           this.endBlock,
+          { batchSize: QUERY_EVENT_BATCH_SIZE_BY_CHAIN[this.chainId]}
         ),
         queryFilterBatched(
           this.bptAsERC20,
           this.bptAsERC20.filters.Transfer(null, NULL_ADDRESS),
           this.startBlock,
           this.endBlock,
+          { batchSize: QUERY_EVENT_BATCH_SIZE_BY_CHAIN[this.chainId]}
         ),
       ])
     ).flat() as Transfer[];
