@@ -15,6 +15,13 @@ export const fetchMigrationsTxHashesSet = async () => {
   return txHashes;
 };
 
+export const QUERY_EVENT_BATCH_SIZE_BY_CHAIN : {
+  [chainId: number]: number
+} = {
+  1: 10_000,
+  10: 20_000
+}
+
 interface QueryFilterOptions {
   batchSize: number;
 }
