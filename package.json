@@ -19,6 +19,7 @@
     "gas-refund:dump-data-to-file": "patch-package && ts-node scripts/gas-refund-program/dump-data-to-file",
     "gas-refund:produce-grp-data-summary-by-account": "ts-node scripts/gas-refund-program/persistance/produce-grp-data-summary-by-account",
     "gas-refund:generate-dune-query": "patch-package && NODE_ENV=development ts-node scripts/gas-refund-program/generate-dune-query",
+    "gas-refund:index-dune-transactions": "patch-package && NODE_ENV=development NODE_OPTIONS='--max-old-space-size=8200' ts-node scripts/gas-refund-program/index-dune-transactions",
     "test": "jest"
   },
   "husky": {
