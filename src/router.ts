@@ -265,11 +265,12 @@ export default class Router {
             .send({ error: `epochFrom and epochTo params are required` });
 
         try {
+          const latestDistributedEpoch = await loadLatestDistributedEpoch();
           const transactions = await loadTransactionWithByStakeChainData({
             address,
             epochFrom,
-            epochTo,
-          });
+            epochTo: Math.min(epochTo, latestDistributedEpoch) // no need to fetch TXs after latest distributed epoch, cause they won't have stake data attached            
+          });      
 
           const _data = computeAggregatedStakeChainDetails(transactions);
           const data = showTransactions
@@ -284,7 +285,7 @@ export default class Router {
                 }),
               );
 
-          const latestDistributedEpoch = await loadLatestDistributedEpoch();
+          
 
           return res.json({
             latestDistributedEpoch,
