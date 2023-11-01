@@ -276,7 +276,6 @@ async function computeStakingChainsRefundedAmounts(epoch: number) {
 }
 
 async function startComputingMerkleTreesAllChains() {
-  throw new Error('not safe to distribute, fix bsc issues first');
   await Database.connectAndSync();
   await loadEpochMetaData();
 
