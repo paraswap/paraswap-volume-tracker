@@ -256,11 +256,7 @@ export class GasRefundApi {
     const latestEpochRefunded = await GasRefundDistribution.max<
       number,
       GasRefundDistribution
-    >('epoch', {
-      where: {
-        chainId: this.network,
-      },
-    });
+    >('epoch');
 
     const rawPendingData: PendingRefundRawData[] =
       await Database.sequelize.query(PENDING_DATA_SQL_QUERY, {
