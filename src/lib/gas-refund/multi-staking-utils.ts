@@ -203,12 +203,18 @@ export function computeAggregatedStakeChainDetails(
       {
         transactionsWithClaimable: transactionsWithClaimableByEpoch[epoch],
 
-        refundedByChain: refundedByEpochByChain[epoch],
-        claimableByChain: claimableByEpochByChain[epoch],
+        refundedByChain: toFixed(refundedByEpochByChain[epoch]),
+        claimableByChain: toFixed(claimableByEpochByChain[epoch]),
       },
     ];
   });
   const byEpoch = Object.fromEntries(entries);
 
   return byEpoch;
+}
+
+
+function toFixed<K  extends string | number | symbol>(dictionary: Record<K, BigNumber>) {
+  const entries = Object.entries<BigNumber>(dictionary).map(([k, v]) => [k, v.toFixed()]);
+  return Object.fromEntries(entries)
 }
