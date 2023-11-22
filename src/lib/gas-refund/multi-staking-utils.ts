@@ -110,8 +110,8 @@ type BigNumberByEpochByChain = {
 type ComputedAggregatedEpochData = {
   transactionsWithClaimable: TransactionWithCaimableByStakeChain[];
 
-  refundedByChain: { [chainId: number]: BigNumber };
-  claimableByChain: { [chainId: number]: BigNumber };
+  refundedByChain: { [chainId: number]: string };
+  claimableByChain: { [chainId: number]: string };
 };
 type ComputeAggregatedStakeChainDetailsResult = {
   [epoch: number]: ComputedAggregatedEpochData;
@@ -214,7 +214,7 @@ export function computeAggregatedStakeChainDetails(
 }
 
 
-function toFixed<K  extends string | number | symbol>(dictionary: Record<K, BigNumber>) {
+function toFixed<K  extends string | number | symbol>(dictionary: Record<K, BigNumber>): Record<K, string> {
   const entries = Object.entries<BigNumber>(dictionary).map(([k, v]) => [k, v.toFixed()]);
   return Object.fromEntries(entries)
 }
