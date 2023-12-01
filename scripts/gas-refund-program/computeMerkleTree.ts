@@ -276,7 +276,6 @@ async function computeStakingChainsRefundedAmounts(epoch: number) {
 }
 
 async function startComputingMerkleTreesAllChains() {
-  throw new Error('need to compute BSC data first')
   await Database.connectAndSync();
   await loadEpochMetaData();
 
