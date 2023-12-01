@@ -18,7 +18,7 @@ export const covalentClient = constructHttpClient({
     timeout: 30_000,
   },
   rateLimitOptions: {
-    maxRPS: 2,
+    maxRPS: 20,
   },
 });
 
