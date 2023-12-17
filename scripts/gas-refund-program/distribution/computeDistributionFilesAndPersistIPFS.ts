@@ -8,7 +8,7 @@ import path from 'path';
 import { computeDistributionSafeProposal } from './lib/computeDistributionSafeProposal';
 import { mkdirp } from 'mkdirp';
 
-import { persistDirectoryToPinata } from './utils/utils/pinata';
+import { persistDirectoryToPinata } from './utils/pinata';
 import { GasRefundGenesisEpoch } from '../../../src/lib/gas-refund/gas-refund';
 
 const constructBasePath = (epoch: number) =>

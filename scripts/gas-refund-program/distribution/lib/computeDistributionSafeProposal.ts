@@ -1,10 +1,7 @@
 import { Interface } from 'ethers/lib/utils';
 import '../../../setup';
 import { MerkleTreeAndChain } from './types';
-import {
-  SafeProposalConfig,
-  generateSafeProposal,
-} from '../utils/utils/safeHelper';
+import { SafeProposalConfig, generateSafeProposal } from '../utils/safeHelper';
 import { MerkleRedeemAddressSePSP1 } from '../../../../src/lib/gas-refund/gas-refund-api';
 import { Contract } from 'ethers';
 import { Provider } from '../../../../src/lib/provider';
