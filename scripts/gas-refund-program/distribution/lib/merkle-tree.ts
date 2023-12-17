@@ -1,8 +1,9 @@
-import { Claimable, MerkleTreeData } from '../types';
+import { Claimable } from './types';
 import { utils, logger } from 'ethers';
 import { MerkleTree } from 'merkletreejs';
-import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
+import { GasRefundTransaction } from '../../../../src/models/GasRefundTransaction';
 import BigNumber from 'bignumber.js';
+import { MerkleTreeAndChain } from './types';
 
 export type MinGasRefundTransaction = Pick<
   GasRefundTransaction,
@@ -19,7 +20,7 @@ export async function computeMerkleData({
     amount: BigNumber;
     chainId: number;
   }[];
-}): Promise<{ merkleTree: MerkleTreeData; chainId: string }[]> {
+}): Promise<MerkleTreeAndChain[]> {
   const userRefundsByChain = userRewards.reduce<{
     [chainId: number]: {
       account: string;
