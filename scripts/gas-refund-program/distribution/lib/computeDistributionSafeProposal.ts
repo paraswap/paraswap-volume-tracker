@@ -1,25 +1,10 @@
-import { Interface } from 'ethers/lib/utils';
 import '../../../setup';
 import { MerkleTreeAndChain } from './types';
 import { SafeProposalConfig, generateSafeProposal } from '../utils/safeHelper';
 import { MerkleRedeemAddressSePSP1 } from '../../../../src/lib/gas-refund/gas-refund-api';
 import { Contract } from 'ethers';
 import { Provider } from '../../../../src/lib/provider';
-
-export const ERC20Interface = new Interface([
-  'function approve(address spender, uint256 amount) external returns (bool)',
-]);
-
-const MerkleRedeemIface = new Interface([
-  'function owner() public view returns (address)',
-  'function token() public view returns (address)',
-  'function seedAllocations(uint256 _week, bytes32 _merkleRoot, uint256 _totalAllocation)',
-]);
-
-const SePSPIface = new Interface([
-  'function deposit(uint256 _assetAmount) public',
-  'function asset() public returns (address)',
-]);
+import { ERC20Interface, MerkleRedeemIface, SePSPIface } from './abis';
 
 export async function computeDistributionSafeProposal(
   merkleDistributionData: MerkleTreeAndChain,

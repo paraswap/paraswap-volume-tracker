@@ -10,6 +10,7 @@ import { mkdirp } from 'mkdirp';
 
 import { persistDirectoryToPinata } from './utils/pinata';
 import { GasRefundGenesisEpoch } from '../../../src/lib/gas-refund/gas-refund';
+import { computeDistributionSimulation } from './lib/computeDistributionSimulation';
 
 const constructBasePath = (epoch: number) =>
   path.join(__dirname, `data/grp-distribution-epoch-${epoch}`);
@@ -58,7 +59,9 @@ const constructRewardsListFilePath = ({
   epoch: number;
 }) => constructFilePath(epoch, `grp-chain-${chainId}-epoch-${epoch}.csv`);
 
-async function serialiseRefundToCSV(epoch: number): Promise<string> {
+async function serialiseHumanReadableRefundDataToCSV(
+  epoch: number,
+): Promise<string> {
   assert(epoch >= GasRefundGenesisEpoch, 'logic error');
 
   const query = `
@@ -118,20 +121,22 @@ async function computeDistributionFilesAndPersistIPFS() {
         epoch,
       });
 
+      // 1- write merkle Tree as is (raw json)
       await writeFile(
         merkleDataFilePath,
         JSON.stringify(merkleData.merkleTree),
       );
 
-      const serialisedParticipations = await serialiseRefundToCSV(epoch);
+      const serialisedParticipations =
+        await serialiseHumanReadableRefundDataToCSV(epoch);
 
+      // 2- write human reable refund data as csv
       await writeFile(rewardsFilePath, serialisedParticipations);
 
       const proposal = await computeDistributionSafeProposal(merkleData);
       await writeFile(proposalFilePath, JSON.stringify(proposal));
 
-      // TODO simulation
-      /*
+      // 3- generate a proof of simulation with multiple scenarios by impersonating DAO multisigs and actual claimers
       const simulationUrlsWithBalanceChecks =
         await computeDistributionSimulation(merkleData, proposal, true);
 
@@ -155,10 +160,10 @@ async function computeDistributionFilesAndPersistIPFS() {
         }),
         simulationUrlsWithoutBalanceChecks,
       );
-      */
     }),
   );
 
+  // Final step: push the full directory to ipfs with merkle trees, refund data and proofs of simulation for all the chains
   const ipfsHash = await persistDirectoryToPinata(directoryPath);
 
   console.log(
