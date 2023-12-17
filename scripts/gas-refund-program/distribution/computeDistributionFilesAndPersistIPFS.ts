@@ -130,6 +130,7 @@ async function computeDistributionFilesAndPersistIPFS() {
       const proposal = await computeDistributionSafeProposal(merkleData);
       await writeFile(proposalFilePath, JSON.stringify(proposal));
 
+      // TODO simulation
       /*
       const simulationUrlsWithBalanceChecks =
         await computeDistributionSimulation(merkleData, proposal, true);
@@ -163,6 +164,8 @@ async function computeDistributionFilesAndPersistIPFS() {
   console.log(
     `Successfully pushed all files to IPFS through pinata, ipfsHash=${ipfsHash}`,
   );
+
+  // TODO: add step to add new entry in scripts/gas-refund-program/distributions.json
 }
 
 computeDistributionFilesAndPersistIPFS().catch(e => {
