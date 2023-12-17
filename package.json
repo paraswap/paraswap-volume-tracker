@@ -14,10 +14,8 @@
     "store-airdrop-data": "NODE_ENV=development ts-node scripts/store-airdrop-data.ts",
     "gas-refund:dev:compute-gas-refund-save-db": "patch-package && NODE_ENV=development ts-node scripts/gas-refund-program/computeGasRefund",
     "gas-refund:prod:compute-gas-refund-save-db": "node scripts/gas-refund-program/computeGasRefund.js",
-    "gas-refund:compute-merkle-tree-save-db": "patch-package && NODE_ENV=development ts-node scripts/gas-refund-program/computeMerkleTree",
-    "gas-refund:compute-merkle-tree-save-file": "patch-package && SAVE_FILE=true SKIP_CHECKS=false NODE_ENV=development ts-node scripts/gas-refund-program/computeMerkleTree",
-    "gas-refund:dump-data-to-file": "patch-package && ts-node scripts/gas-refund-program/dump-data-to-file",
-    "gas-refund:produce-grp-data-summary-by-account": "ts-node scripts/gas-refund-program/persistance/produce-grp-data-summary-by-account",
+    "gas-refund:computeDistributionDataAndPersistDB": "patch-package && NODE_ENV=development ts-node scripts/gas-refund-program/distributuon/computeDistributionDataAndPersistDB",
+    "gas-refund:computeDistributionFilesAndPersistIPFS": "patch-package && NODE_ENV=development ts-node scripts/gas-refund-program/distributuon/computeDistributionFilesAndPersistIPFS",
     "test": "jest"
   },
   "husky": {
