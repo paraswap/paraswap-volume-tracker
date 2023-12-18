@@ -191,52 +191,8 @@ export class GasRefundApi {
   }
 
   async _fetchMerkleData(address: string): Promise<DistData> {
-    const oldEpochs = Database.sequelize.query<GasRefundClaim>(
-      MERKLE_DATA_SQL_QUERY,
-      {
-        type: Sequelize.QueryTypes.SELECT,
-        replacements: {
-          address,
-          chainId: this.network,
-        },
-      },
-    );
-
-    const newEpochs = GasRefundParticipation.findAll({
-      raw: true,
-      where: {
-        address,
-        chainId: this.network,
-        epoch: {
-          [Sequelize.Op.gte]: EPOCH_WHEN_OPTIMISM_STAKING_ENABLED,
-        },
-      },
-    }).then(v => {
-      return Promise.all(
-        v.map(async m => {
-          const auraWei =  await getApproximateUserRewardWei(
-            m.address.toLowerCase(),
-            m.epoch,
-            m.chainId,
-          );
-          return {
-            amountsByProgram: {
-              aura: auraWei,
-              paraswapGasRefund: new BigNumber(m.amount)
-                .minus(auraWei)
-                .toFixed(),
-            },
-            refundedAmountPSP: m.amount,
-            epoch: m.epoch,
-            address: m.address,
-            merkleProofs: m.merkleProofs,
-          };
-        }),
-      );
-    });
-
     const grpDataResult: DistData = (
-      await Promise.all([oldEpochs, newEpochs])
+      await Promise.all([loadOldEpochs(address), loadNewEpochs(address)])
     ).flat();
 
     return grpDataResult;
@@ -391,11 +347,6 @@ export class GasRefundApi {
       totalClaimable: totalClaimable.toString(),
       pendingClaimable: totalPendingRefundAmount.toString(),
       pendingRefundBreakdownPerEpoch,
-      // txParams: {
-      //   to: this.merkleRedem.address,
-      //   data,
-      //   chainId: this.network,
-      // },
     };
   }
 
@@ -450,4 +401,47 @@ export async function loadLatestDistributedEpoch(): Promise<number> {
     },
   );
   return result[0].latestDistributedEpoch;
+}
+
+async function loadOldEpochs(address: string) {
+  return Database.sequelize.query<GasRefundClaim>(MERKLE_DATA_SQL_QUERY, {
+    type: Sequelize.QueryTypes.SELECT,
+    replacements: {
+      address,
+      chainId: this.network,
+    },
+  });
+}
+
+async function loadNewEpochs(address: string) {
+  const newEpochs = await GasRefundParticipation.findAll({
+    raw: true,
+    where: {
+      address,
+      chainId: this.network,
+      epoch: {
+        [Sequelize.Op.gte]: EPOCH_WHEN_OPTIMISM_STAKING_ENABLED,
+      },
+    },
+  });
+
+  return Promise.all(
+    newEpochs.map(async m => {
+      const auraWei = await getApproximateUserRewardWei(
+        m.address.toLowerCase(),
+        m.epoch,
+        m.chainId,
+      );
+      return {
+        amountsByProgram: {
+          aura: auraWei,
+          paraswapGasRefund: new BigNumber(m.amount).minus(auraWei).toFixed(),
+        },
+        refundedAmountPSP: m.amount,
+        epoch: m.epoch,
+        address: m.address,
+        merkleProofs: m.merkleProofs,
+      };
+    }),
+  );
 }
