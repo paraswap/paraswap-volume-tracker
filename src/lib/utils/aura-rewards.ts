@@ -14,7 +14,9 @@ const config: Record<number, string> = {
   39: '1234567890123123123',
 };
 
-const AURA_REWARDS_START_EPOCH_OLD_STYLE = Math.min(...Object.keys(config).map(Number));
+const AURA_REWARDS_START_EPOCH_OLD_STYLE = Math.min(
+  ...Object.keys(config).map(Number),
+);
 
 const logger = global.LOGGER('aura-rewards');
 
@@ -32,7 +34,9 @@ async function _fetchEpochData(epoch: number) {
     {},
   );
 
-  logger.info(`loaded pre-requisites for computing Aura rewards for epoch ${epoch}`)
+  logger.info(
+    `loaded pre-requisites for computing Aura rewards for epoch ${epoch}`,
+  );
 
   return {
     totalScore,
@@ -50,15 +54,18 @@ const fetchPastEpochData = pMemoize(_fetchEpochData, {
 export async function getApproximateUserRewardWei(
   user: string,
   epochOldStyle: number,
-  chainId: number
+  chainId: number,
 ) {
-  if(epochOldStyle == getCurrentEpoch()){
-    // not known yet
-    return "0";
+  if (epochOldStyle == getCurrentEpoch()) {
+    // not known yet - hence display 0
+    return '0';
   }
-  if(chainId !== CHAIN_ID_OPTIMISM) return "0"
-  // for epochs before Aura rewards started, return 0 
-  if(epochOldStyle < AURA_REWARDS_START_EPOCH_OLD_STYLE) return "0"
+
+  // Aura rewards only applicable on Optimism
+  if (chainId !== CHAIN_ID_OPTIMISM) return '0';
+
+  // for epochs before Aura rewards started, return 0
+  if (epochOldStyle < AURA_REWARDS_START_EPOCH_OLD_STYLE) return '0';
 
   const epoch = epochOldStyle - GasRefundV2EpochFlip;
   const { byAccountLowercase, totalScore } = await fetchPastEpochData(epoch);
