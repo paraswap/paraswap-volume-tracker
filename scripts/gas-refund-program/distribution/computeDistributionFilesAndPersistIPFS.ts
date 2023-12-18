@@ -51,13 +51,8 @@ const constructSimulationFilePath = ({
     }.txt`,
   );
 
-const constructRewardsListFilePath = ({
-  chainId,
-  epoch,
-}: {
-  chainId: number;
-  epoch: number;
-}) => constructFilePath(epoch, `grp-chain-${chainId}-epoch-${epoch}.csv`);
+const constructRewardsListFilePath = ({ epoch }: { epoch: number }) =>
+  constructFilePath(epoch, `grp-refund-details-epoch-${epoch}.csv`);
 
 async function serialiseHumanReadableRefundDataToCSV(
   epoch: number,
@@ -93,6 +88,7 @@ async function computeDistributionFilesAndPersistIPFS() {
   await database.connectAndSync();
 
   const epoch = parseInt(process.env.DISTRIBUTED_EPOCH || '-1', 10);
+
   if (epoch < 0)
     throw new Error(
       `LOGIC ERROR: wrong epoch index for distribution epoch=${epoch}`,
@@ -115,28 +111,16 @@ async function computeDistributionFilesAndPersistIPFS() {
         epoch,
       });
 
-      const rewardsFilePath = constructRewardsListFilePath({
-        chainId: +chainId,
-
-        epoch,
-      });
-
-      // 1- write merkle Tree as is (raw json)
+      // write merkle Tree as is (raw json)
       await writeFile(
         merkleDataFilePath,
         JSON.stringify(merkleData.merkleTree),
       );
 
-      const serialisedParticipations =
-        await serialiseHumanReadableRefundDataToCSV(epoch);
-
-      // 2- write human reable refund data as csv
-      await writeFile(rewardsFilePath, serialisedParticipations);
-
       const proposal = await computeDistributionSafeProposal(merkleData);
       await writeFile(proposalFilePath, JSON.stringify(proposal));
 
-      // 3- generate a proof of simulation with multiple scenarios by impersonating DAO multisigs and actual claimers
+      // generate a proof of simulation with multiple scenarios by impersonating DAO multisigs and actual claimers
       const simulationUrlsWithBalanceChecks =
         await computeDistributionSimulation(merkleData, proposal, true);
 
@@ -162,6 +146,15 @@ async function computeDistributionFilesAndPersistIPFS() {
       );
     }),
   );
+
+  const rewardsFilePath = constructRewardsListFilePath({
+    epoch,
+  });
+  const serialisedParticipations = await serialiseHumanReadableRefundDataToCSV(
+    epoch,
+  );
+  // write human reable refund data as csv
+  await writeFile(rewardsFilePath, serialisedParticipations);
 
   // Final step: push the full directory to ipfs with merkle trees, refund data and proofs of simulation for all the chains
   const ipfsHash = await persistDirectoryToPinata(directoryPath);
