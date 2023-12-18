@@ -192,7 +192,10 @@ export class GasRefundApi {
 
   async _fetchMerkleData(address: string): Promise<DistData> {
     const grpDataResult: DistData = (
-      await Promise.all([loadOldEpochs(address), loadNewEpochs(address)])
+      await Promise.all([
+        loadOldEpochs(address, this.network),
+        loadNewEpochs(address, this.network),
+      ])
     ).flat();
 
     return grpDataResult;
@@ -403,22 +406,22 @@ export async function loadLatestDistributedEpoch(): Promise<number> {
   return result[0].latestDistributedEpoch;
 }
 
-async function loadOldEpochs(address: string) {
+async function loadOldEpochs(address: string, chainId: number) {
   return Database.sequelize.query<GasRefundClaim>(MERKLE_DATA_SQL_QUERY, {
     type: Sequelize.QueryTypes.SELECT,
     replacements: {
       address,
-      chainId: this.network,
+      chainId,
     },
   });
 }
 
-async function loadNewEpochs(address: string) {
+async function loadNewEpochs(address: string, chainId: number) {
   const newEpochs = await GasRefundParticipation.findAll({
     raw: true,
     where: {
       address,
-      chainId: this.network,
+      chainId,
       epoch: {
         [Sequelize.Op.gte]: EPOCH_WHEN_OPTIMISM_STAKING_ENABLED,
       },
