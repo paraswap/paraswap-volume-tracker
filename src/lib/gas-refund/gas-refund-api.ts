@@ -23,6 +23,8 @@ import {
 } from '../../models/sePSPMigrations';
 import { getCurrentEpoch, resolveV2EpochNumber } from './epoch-helpers';
 import { grp2CConfigParticularities } from './config';
+import { getApproximateUserRewardWei } from '../utils/aura-rewards';
+import BigNumber from 'bignumber.js';
 
 interface MerkleRedeem extends Contract {
   callStatic: {
@@ -128,6 +130,9 @@ type MigrationData =
       hasMigrated: true;
     } & SePSPMigrationsData);
 
+type DistData = (GasRefundClaim & {
+  amountsByProgram?: Record<string, string>;
+})[];
 export class GasRefundApi {
   merkleRedem: MerkleRedeem;
   merkleRedemSePSP1?: MerkleRedeem;
@@ -185,34 +190,53 @@ export class GasRefundApi {
     };
   }
 
-  async _fetchMerkleData(address: string): Promise<GasRefundClaim[]> {
-    const grpDataResult: GasRefundClaim[] = (
-      await Promise.all([
-        Database.sequelize.query<GasRefundClaim>(MERKLE_DATA_SQL_QUERY, {
-          type: Sequelize.QueryTypes.SELECT,
-          replacements: {
-            address,
-            chainId: this.network,
-          },
-        }),
-        (
-          await GasRefundParticipation.findAll({
-            raw: true,
-            where: {
-              address,
-              chainId: this.network,
-              epoch: {
-                [Sequelize.Op.gte]: EPOCH_WHEN_OPTIMISM_STAKING_ENABLED,
-              },
+  async _fetchMerkleData(address: string): Promise<DistData> {
+    const oldEpochs = Database.sequelize.query<GasRefundClaim>(
+      MERKLE_DATA_SQL_QUERY,
+      {
+        type: Sequelize.QueryTypes.SELECT,
+        replacements: {
+          address,
+          chainId: this.network,
+        },
+      },
+    );
+
+    const newEpochs = GasRefundParticipation.findAll({
+      raw: true,
+      where: {
+        address,
+        chainId: this.network,
+        epoch: {
+          [Sequelize.Op.gte]: EPOCH_WHEN_OPTIMISM_STAKING_ENABLED,
+        },
+      },
+    }).then(v => {
+      return Promise.all(
+        v.map(async m => {
+          const auraWei =  await getApproximateUserRewardWei(
+            m.address.toLowerCase(),
+            m.epoch,
+            m.chainId,
+          );
+          return {
+            amountsByProgram: {
+              aura: auraWei,
+              paraswapGasRefund: new BigNumber(m.amount)
+                .minus(auraWei)
+                .toFixed(),
             },
-          })
-        ).map(m => ({
-          refundedAmountPSP: m.amount,
-          epoch: m.epoch,
-          address: m.address,
-          merkleProofs: m.merkleProofs,
-        })),
-      ])
+            refundedAmountPSP: m.amount,
+            epoch: m.epoch,
+            address: m.address,
+            merkleProofs: m.merkleProofs,
+          };
+        }),
+      );
+    });
+
+    const grpDataResult: DistData = (
+      await Promise.all([oldEpochs, newEpochs])
     ).flat();
 
     return grpDataResult;
