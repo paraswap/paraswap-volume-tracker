@@ -63,8 +63,9 @@ const fetchPastEpochData = pMemoize(_fetchEpochData, {
   cacheKey: ([epoch]) => `paraboost_epochData_${epoch}`,
 });
 
-// approximate -> because there's no integrity check (sum of parts = whole), just simple pro rata calc
-export async function getApproximateUserRewardWei(
+// is used during when executing distribution script.
+// is intended to compute user rewards for the current epoch without remainder
+export async function computeUserRewardWei(
   user: string,
   epochOldStyle: number,
   counter: RewardsDistributionCounter,
@@ -78,10 +79,9 @@ export async function getApproximateUserRewardWei(
   if (epochOldStyle < AURA_REWARDS_START_EPOCH_OLD_STYLE) return '0';
 
   const epoch = epochOldStyle - GasRefundV2EpochFlip;
-  const { byAccountLowercase, totalScore, list } = await fetchPastEpochData(
+  const { byAccountLowercase, totalScore } = await fetchPastEpochData(
     epoch,
-  );
-  // debugger;
+  );  
 
   const userScore = byAccountLowercase[user.toLowerCase()]?.score || '0';
 
@@ -97,6 +97,7 @@ export async function getApproximateUserRewardWei(
     .div(remainingTotalScore)
     .toFixed(0, BigNumber.ROUND_HALF_FLOOR);
 
+  // deduct from remaining rewards and scores - to guarantee that there is no remainder or excession
   counter.count(BigInt(userScore), BigInt(userRewards));
 
   return userRewards;
@@ -142,7 +143,7 @@ export async function composeWithAmountsByProgram(
   const adjustedOptimismRefunds: Promise<AddressRewardsWithAmountsByProgram[]> =
     Promise.all(
       optimismRefunds.map(async v => {
-        const aura = await getApproximateUserRewardWei(
+        const aura = await computeUserRewardWei(
           v.account,
           epoch,
           rewardsDistributionCounter,
@@ -164,7 +165,7 @@ export async function composeWithAmountsByProgram(
     Array.from(nonOptimismStakers).map<
       Promise<AddressRewardsWithAmountsByProgram>
     >(async account => {
-      const aura = await getApproximateUserRewardWei(
+      const aura = await computeUserRewardWei(
         account,
         epoch,
         rewardsDistributionCounter,
