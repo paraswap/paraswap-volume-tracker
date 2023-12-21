@@ -23,8 +23,7 @@ import {
 } from '../../models/sePSPMigrations';
 import { getCurrentEpoch, resolveV2EpochNumber } from './epoch-helpers';
 import { grp2CConfigParticularities } from './config';
-import { getApproximateUserRewardWei } from '../utils/aura-rewards';
-import BigNumber from 'bignumber.js';
+import { AmountsByProgram } from '../../types';
 
 interface MerkleRedeem extends Contract {
   callStatic: {
@@ -130,9 +129,9 @@ type MigrationData =
       hasMigrated: true;
     } & SePSPMigrationsData);
 
-type DistData = (GasRefundClaim & {
-  amountsByProgram?: Record<string, string>;
-})[];
+type GasRefundClaimWithAmountsByProgram = GasRefundClaim & {
+  amountsByProgram?: AmountsByProgram | null;
+};
 export class GasRefundApi {
   merkleRedem: MerkleRedeem;
   merkleRedemSePSP1?: MerkleRedeem;
@@ -190,8 +189,10 @@ export class GasRefundApi {
     };
   }
 
-  async _fetchMerkleData(address: string): Promise<DistData> {
-    const grpDataResult: DistData = (
+  async _fetchMerkleData(
+    address: string,
+  ): Promise<GasRefundClaimWithAmountsByProgram[]> {
+    const grpDataResult: GasRefundClaimWithAmountsByProgram[] = (
       await Promise.all([
         loadOldEpochs(address, this.network),
         loadNewEpochs(address, this.network),
@@ -430,16 +431,8 @@ async function loadNewEpochs(address: string, chainId: number) {
 
   return Promise.all(
     newEpochs.map(async m => {
-      const auraWei = await getApproximateUserRewardWei(
-        m.address.toLowerCase(),
-        m.epoch,
-        m.chainId,
-      );
       return {
-        amountsByProgram: {
-          aura: auraWei,
-          paraswapGasRefund: new BigNumber(m.amount).minus(auraWei).toFixed(),
-        },
+        amountsByProgram: m.amountsByProgram,
         refundedAmountPSP: m.amount,
         epoch: m.epoch,
         address: m.address,
