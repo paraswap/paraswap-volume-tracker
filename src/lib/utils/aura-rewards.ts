@@ -92,7 +92,6 @@ export async function computeUserRewardWei(
   return userRewards;
 }
 
-// @TODO: sort out cross-importing between scripts/ and src/
 export async function composeWithAmountsByProgram(
   epoch: number,
   data: AddressRewards[],
