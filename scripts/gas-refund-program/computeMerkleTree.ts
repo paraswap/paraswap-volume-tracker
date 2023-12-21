@@ -34,6 +34,7 @@ import {
   ChainRewardsMapping,
 } from './types';
 import { composeRefundWithPIP38Refunds } from './pip38';
+import { composeWithAmountsByProgram } from '../../src/lib/utils/aura-rewards';
 
 const logger = global.LOGGER('GRP:COMPUTE_MERKLE_TREE');
 
@@ -101,16 +102,18 @@ export async function computeAndStoreMerkleTree(epoch: number) {
     .flat()
     .filter(entry => !entry.amount.eq(0));
 
-  const allChainsRefunds = composeRefundWithPIP38Refunds(
-    epoch,
-    _allChainsRefunds,
-  );
+  const withPIP38 = composeRefundWithPIP38Refunds(epoch, _allChainsRefunds);
+
+  const allChainsRefunds = await composeWithAmountsByProgram(epoch, withPIP38);
 
   const userGRPChainsBreakDowns = allChainsRefunds.reduce<{
     [stakeChainId: number]: AddressRewardsMapping;
   }>((acc, curr) => {
     if (!acc[curr.chainId]) acc[curr.chainId] = {};
-    acc[curr.chainId][curr.account] = curr.breakDownGRP;
+    acc[curr.chainId][curr.account] = {
+      byChain: curr.breakDownGRP,
+      amountsByProgram: curr.amountsByProgram,
+    };
 
     return acc;
   }, {});
