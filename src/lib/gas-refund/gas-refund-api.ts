@@ -431,12 +431,12 @@ async function loadNewEpochs(address: string, chainId: number) {
 
   return Promise.all(
     newEpochs.map(async m => {
-      return {
-        amountsByProgram: m.amountsByProgram,
+      return {        
         refundedAmountPSP: m.amount,
         epoch: m.epoch,
         address: m.address,
         merkleProofs: m.merkleProofs,
+        amountsByProgram: m.amountsByProgram,
       };
     }),
   );
