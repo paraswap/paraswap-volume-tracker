@@ -1,9 +1,5 @@
 import * as pMemoize from 'p-memoize';
-import {
-  MinParaBoostData,
-  fetchAccountsScores,
-  fetchTotalScore,
-} from './staking-supervisor';
+import { MinParaBoostData, fetchAccountsScores } from './staking-supervisor';
 import BigNumber from 'bignumber.js';
 import { GasRefundV2EpochFlip } from '../gas-refund/gas-refund';
 import { getCurrentEpoch } from '../gas-refund/epoch-helpers';
@@ -25,11 +21,7 @@ const AURA_REWARDS_START_EPOCH_OLD_STYLE = Math.min(
 const logger = global.LOGGER('aura-rewards');
 
 async function _fetchEpochData(epoch: number) {
-  // @TODO: don't fetch total score at all as it's not accurate
-  const [_totalScore, list] = await Promise.all([
-    fetchTotalScore(epoch),
-    fetchAccountsScores(epoch),
-  ]);
+  const list = await fetchAccountsScores(epoch);
 
   const byAccountLowercase = list.reduce<Record<string, MinParaBoostData>>(
     (acc, curr) => {
@@ -43,14 +35,13 @@ async function _fetchEpochData(epoch: number) {
     `loaded pre-requisites for computing Aura rewards for epoch ${epoch}`,
   );
 
+  // computing total with BigNumber instead of taking it from the endpoint
   const totalScore = list
     .reduce((acc, curr) => {
       return acc.plus(curr.score);
     }, new BigNumber(0))
     .toFixed();
 
-  logger.info(`computed total score for epoch ${epoch}: ${totalScore}`);
-  logger.info(`fetched total score for epoch ${epoch}: ${_totalScore}`);
   return {
     totalScore,
     list,
@@ -79,9 +70,7 @@ export async function computeUserRewardWei(
   if (epochOldStyle < AURA_REWARDS_START_EPOCH_OLD_STYLE) return '0';
 
   const epoch = epochOldStyle - GasRefundV2EpochFlip;
-  const { byAccountLowercase, totalScore } = await fetchPastEpochData(
-    epoch,
-  );  
+  const { byAccountLowercase, totalScore } = await fetchPastEpochData(epoch);
 
   const userScore = byAccountLowercase[user.toLowerCase()]?.score || '0';
 

@@ -431,7 +431,7 @@ async function loadNewEpochs(address: string, chainId: number) {
 
   return Promise.all(
     newEpochs.map(async m => {
-      return {        
+      return {
         refundedAmountPSP: m.amount,
         epoch: m.epoch,
         address: m.address,

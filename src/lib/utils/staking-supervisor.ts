@@ -23,10 +23,3 @@ export async function fetchAccountsScores(
   );
   return data;
 }
-
-export async function fetchTotalScore(epoch: number): Promise<string> {
-  const { data } = await axios.get<string>(
-    `https://api.paraswap.io/stk/paraboost/totalScore?epoch=${epoch}`,
-  );
-  return data;
-}
