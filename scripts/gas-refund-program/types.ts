@@ -1,5 +1,6 @@
 import { GasRefundTransactionData } from '../../src/lib/gas-refund/gas-refund';
 import BigNumber from 'bignumber.js';
+import { AmountsByProgram } from '../../src/types';
 
 export type HistoricalPrice = { [timestamp: string]: number };
 
@@ -108,8 +109,13 @@ export type AddressRewards = {
   breakDownGRP: { [GRPChainId: number]: BigNumber };
 };
 
+export type AddressRewardsWithAmountsByProgram = AddressRewards & {
+  amountsByProgram: AmountsByProgram;
+};
+
 export type AddressRewardsMapping = {
   [account: string]: {
-    [grpChainId: number]: BigNumber;
+    amountsByProgram: AmountsByProgram;
+    byChain: { [grpChainId: number]: BigNumber };
   };
 };
