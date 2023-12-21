@@ -14,7 +14,7 @@ import {
   DataType_ADDRESS,
   DataType_KECCAK256_HASHED_VALUE,
 } from '../lib/sql-data-types';
-import { ChainBalanceMapping } from '../types';
+import { AmountsByProgram, ChainBalanceMapping } from '../types';
 
 const compositeIndex = createIndexDecorator({
   name: 'epochgasrefund_epoch_address_chain',
@@ -50,6 +50,10 @@ export class GasRefundParticipation extends Model<GasRefundParticipantData> {
   @AllowNull(true)
   @Column({ type: DataType.JSONB })
   GRPChainBreakDown: ChainBalanceMapping;
+
+  @AllowNull(true)
+  @Column({ type: DataType.JSONB })
+  amountsByProgram: AmountsByProgram;
 
   @AllowNull(true)
   @Column(DataType.DECIMAL)
