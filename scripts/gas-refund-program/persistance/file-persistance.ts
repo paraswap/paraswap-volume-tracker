@@ -26,6 +26,7 @@ type FileMerkleTreeData = {
     amount: string;
     epoch: number;
     proof: string[];
+    amountsByProgram?: Record<string, string>;
   }[];
 };
 
@@ -56,8 +57,9 @@ export async function saveMerkleTreeInFile({
         ...r,
         proof: merkleProofs,
         GRPChainBreakDown: stringifyGRPChainBreakDown(
-          userGRPChainsBreakDowns[r.address],
+          userGRPChainsBreakDowns[r.address].byChain,
         ),
+        amountsByProgram: userGRPChainsBreakDowns[r.address].amountsByProgram,
       };
     }),
   };

@@ -262,8 +262,9 @@ export const saveMerkleTreeInDB = async ({
       isCompleted: true,
       amount: leaf.amount,
       GRPChainBreakDown: stringifyGRPChainBreakDown(
-        userGRPChainsBreakDowns[leaf.address],
+        userGRPChainsBreakDowns[leaf.address].byChain,
       ),
+      amountsByProgram: userGRPChainsBreakDowns[leaf.address].amountsByProgram,
     }),
   );
 
