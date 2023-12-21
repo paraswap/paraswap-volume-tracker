@@ -29,12 +29,12 @@ import BigNumber from 'bignumber.js';
 import { isTruthy } from '../../src/lib/utils';
 import {
   AddressChainRewardsMapping,
-  AddressRewards,
   AddressRewardsMapping,
   ChainRewardsMapping,
 } from './types';
 import { composeRefundWithPIP38Refunds } from './pip38';
 import { composeWithAmountsByProgram } from '../../src/lib/utils/aura-rewards';
+import { AddressRewards } from '../../src/types';
 
 const logger = global.LOGGER('GRP:COMPUTE_MERKLE_TREE');
 
@@ -305,12 +305,13 @@ async function startComputingMerkleTreesAllChains() {
 
   //   await computeAndStoreMerkleTree(epoch);
   // }
-  await computeAndStoreMerkleTree(38);
+  await computeAndStoreMerkleTree(41);
 }
 
 startComputingMerkleTreesAllChains()
   .then(() => process.exit(0))
   .catch(err => {
+    debugger;
     logger.error('computeMerkleTreesAllChains exited with error:', err);
     process.exit(1);
   });

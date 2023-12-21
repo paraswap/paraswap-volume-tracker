@@ -3,11 +3,11 @@ import { MinParaBoostData, fetchAccountsScores } from './staking-supervisor';
 import BigNumber from 'bignumber.js';
 import { GasRefundV2EpochFlip } from '../gas-refund/gas-refund';
 import { getCurrentEpoch } from '../gas-refund/epoch-helpers';
+import { CHAIN_ID_OPTIMISM, STAKING_CHAIN_IDS } from '../constants';
 import {
   AddressRewards,
   AddressRewardsWithAmountsByProgram,
-} from '../../../scripts/gas-refund-program/types';
-import { CHAIN_ID_OPTIMISM, STAKING_CHAIN_IDS } from '../constants';
+} from '../../types';
 
 const config: Record<number, string> = {
   // @TODO: update this config

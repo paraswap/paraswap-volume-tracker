@@ -102,17 +102,6 @@ export type ChainRewardsMapping = {
   };
 };
 
-export type AddressRewards = {
-  account: string;
-  amount: BigNumber;
-  chainId: number;
-  breakDownGRP: { [GRPChainId: number]: BigNumber };
-};
-
-export type AddressRewardsWithAmountsByProgram = AddressRewards & {
-  amountsByProgram: AmountsByProgram;
-};
-
 export type AddressRewardsMapping = {
   [account: string]: {
     amountsByProgram: AmountsByProgram;
