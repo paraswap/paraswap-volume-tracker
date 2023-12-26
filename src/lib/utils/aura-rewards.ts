@@ -111,8 +111,8 @@ export async function composeWithAmountsByProgram(
       return acc;
     },
     {
-      optimismRefunds: [] as AddressRewards[],
-      nonOptimismRefunds: [] as AddressRewards[],
+      optimismRefunds: [],
+      nonOptimismRefunds: [],
     },
   );
 
