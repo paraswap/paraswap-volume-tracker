@@ -85,7 +85,7 @@ export async function computeUserRewardWei(
   const userRewards = new BigNumber(userScore)
     .times(remainingRewards)
     .div(remainingTotalScore)
-    .toFixed(0, BigNumber.ROUND_HALF_FLOOR);
+    .toFixed(0);
 
   // deduct from remaining rewards and scores - to guarantee that there is no remainder or excession
   counter.count(BigInt(userScore), BigInt(userRewards));
