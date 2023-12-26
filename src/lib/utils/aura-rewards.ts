@@ -119,7 +119,7 @@ export async function composeWithAmountsByProgram(
   const optimismRefundEligibleStakers = new Set(
     optimismRefunds.map(v => v.account),
   );
-  const { byAccountLowercase, totalScore, list } = await fetchPastEpochData(
+  const { byAccountLowercase, totalScore } = await fetchPastEpochData(
     epoch - GasRefundV2EpochFlip,
   );
   // prepare list of stakers that don't have refund on optimism
