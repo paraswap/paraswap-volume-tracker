@@ -8,6 +8,7 @@ import {
   AddressRewards,
   AddressRewardsWithAmountsByProgram,
 } from '../../types';
+import { assert } from 'ts-essentials';
 
 const config: Record<number, string> = {
   // @TODO: update this config
@@ -115,15 +116,17 @@ export async function composeWithAmountsByProgram(
     },
   );
 
-  const optimismStakers = new Set(optimismRefunds.map(v => v.account));
-  const { byAccountLowercase } = await fetchPastEpochData(
+  const optimismRefundEligibleStakers = new Set(
+    optimismRefunds.map(v => v.account),
+  );
+  const { byAccountLowercase, totalScore, list } = await fetchPastEpochData(
     epoch - GasRefundV2EpochFlip,
   );
   // prepare list of stakers that don't have refund on optimism
-  const nonOptimismStakers = new Set(
+  const stakersNotEligibleForOptimismRefund = new Set(
     Object.keys(byAccountLowercase)
       // .map(v => v.account)
-      .filter(account => !optimismStakers.has(account)),
+      .filter(account => !optimismRefundEligibleStakers.has(account)),
   );
 
   const rewardsDistributionCounter = constructRewardsDistributionCounter();
@@ -150,7 +153,7 @@ export async function composeWithAmountsByProgram(
   const additionalOptimismRefunds: Promise<
     AddressRewardsWithAmountsByProgram[]
   > = Promise.all(
-    Array.from(nonOptimismStakers).map<
+    Array.from(stakersNotEligibleForOptimismRefund).map<
       Promise<AddressRewardsWithAmountsByProgram>
     >(async account => {
       const aura = await computeUserRewardWei(
@@ -191,6 +194,15 @@ export async function composeWithAmountsByProgram(
   )
     .flat()
     .concat(nonOptimismRefundsWithAmountsByProgram);
+
+  assert(
+    rewardsDistributionCounter.rewardsAllocated == BigInt(config[epoch]),
+    'rewards distribution counter does not match the total rewards',
+  );
+  assert(
+    rewardsDistributionCounter.scoreCleared === BigInt(totalScore),
+    'rewards distribution counter does not match the total score',
+  );
 
   return newAllRefunds;
 }
