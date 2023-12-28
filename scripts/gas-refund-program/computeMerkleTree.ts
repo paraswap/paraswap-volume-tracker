@@ -310,7 +310,7 @@ async function startComputingMerkleTreesAllChains() {
 
 startComputingMerkleTreesAllChains()
   .then(() => process.exit(0))
-  .catch(err => {    
+  .catch(err => {
     logger.error('computeMerkleTreesAllChains exited with error:', err);
     process.exit(1);
   });
