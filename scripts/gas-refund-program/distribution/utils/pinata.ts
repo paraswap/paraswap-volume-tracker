@@ -1,7 +1,6 @@
-import pinataSDK from '@pinata/sdk';
-
+const PinataClient = require('@pinata/sdk');
 export async function persistDirectoryToPinata(directoryPath: string) {
-  const pinata = new pinataSDK({
+  const pinata = new PinataClient({
     pinataApiKey: process.env.PINATA_API_KEY,
     pinataSecretApiKey: process.env.PINATE_API_SECRET,
   });
