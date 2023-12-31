@@ -1,4 +1,4 @@
-import '../../../setup';
+import '../../setup';
 import { MerkleTreeAndChain } from './types';
 import { SafeProposalConfig, generateSafeProposal } from '../utils/safeHelper';
 import { MerkleRedeemAddressSePSP1 } from '../../../../src/lib/gas-refund/gas-refund-api';

@@ -4,7 +4,7 @@ import database from '../../../src/database';
 import { computeDistributionMerkleData } from './lib/computeDistributionMerkleData';
 
 import { writeFile } from 'fs/promises';
-import path from 'path';
+import * as path from 'path';
 import { computeDistributionSafeProposal } from './lib/computeDistributionSafeProposal';
 import { mkdirp } from 'mkdirp';
 

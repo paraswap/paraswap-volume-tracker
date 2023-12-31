@@ -1,4 +1,4 @@
-import '../../../setup';
+import '../../setup';
 import { assert } from 'ts-essentials';
 import { BigNumberish, constants } from 'ethers';
 import { isTruthy } from '../../../../src/lib/utils';
