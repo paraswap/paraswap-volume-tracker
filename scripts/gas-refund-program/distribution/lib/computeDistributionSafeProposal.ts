@@ -25,8 +25,8 @@ export async function computeDistributionSafeProposal(
   );
 
   const [sePSP1Address, govCoMsAddress] = await Promise.all([
-    MerkleRedeem.token(),
-    MerkleRedeem.owner(),
+    MerkleRedeem.callStatic.token(),
+    MerkleRedeem.callStatic.owner(),
   ]);
 
   const sePSP1 = new Contract(
@@ -35,7 +35,7 @@ export async function computeDistributionSafeProposal(
     Provider.getJsonRpcProvider(+chainId),
   );
 
-  const PSPAddress = await sePSP1.asset();
+  const PSPAddress = await sePSP1.callStatic.asset();
 
   const txs = [
     {
@@ -53,7 +53,7 @@ export async function computeDistributionSafeProposal(
     },
     {
       to: sePSP1Address,
-      data: SePSPIface.encodeFunctionData('approve', [
+      data: ERC20Interface.encodeFunctionData('approve', [
         merkleRedeemAddress,
         totalAmountRefunded,
       ]),

@@ -8,6 +8,7 @@ export const MerkleRedeemIface = new Interface([
   'function owner() public view returns (address)',
   'function token() public view returns (address)',
   'function seedAllocations(uint256 _week, bytes32 _merkleRoot, uint256 _totalAllocation)',
+  'function claimWeek(address _liquidityProvider, uint _week, uint _claimedBalance, bytes32[] memory _merkleProof) public',
 ]);
 
 export const SePSPIface = new Interface([

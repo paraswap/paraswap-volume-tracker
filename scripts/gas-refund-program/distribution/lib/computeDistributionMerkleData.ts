@@ -236,8 +236,8 @@ export async function computeDistributionMerkleData(
 
   // TODO ADD MORE SANITY CHECK
 
-  Object.entries(merkleTreeData).forEach(([chainId, merkleTreeData]) => {
-    merkleTreeData.merkleTree.leaves.forEach(l => {
+  merkleTreeData.forEach(({ chainId, merkleTree }) => {
+    merkleTree.leaves.forEach(l => {
       const GRPChainBreakDown = userGRPChainsBreakDowns[+chainId][l.address];
       if (GRPChainBreakDown) {
         l.GRPChainBreakDown = stringifyGRPChainBreakDown(GRPChainBreakDown);
