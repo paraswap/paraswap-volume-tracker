@@ -33,6 +33,7 @@ export class TenderlySimulation {
         `https://api.tenderly.co/api/v1/account/${TENDERLY_ACCOUNT_ID}/project/${TENDERLY_PROJECT}/fork`,
         {
           network_id: this.network.toString(),
+          shared: true,
         },
         {
           timeout: 20000,
