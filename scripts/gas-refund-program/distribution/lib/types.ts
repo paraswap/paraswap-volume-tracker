@@ -16,7 +16,7 @@ export type GasRefundMerkleProof = {
   address: string;
   amount: string;
   epoch: number;
-  GRPChainBreakDown?: { [chainId: number]: string };
+  GRPChainBreakDown: { [chainId: number]: string };
 };
 
 export type GasRefundMerkleTree = {
