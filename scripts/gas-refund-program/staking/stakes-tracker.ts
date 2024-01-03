@@ -70,13 +70,12 @@ export default class StakesTracker {
   }
 
   async loadHistoricalStakes() {
-    //const latestEpochRefunded = await getLatestEpochRefundedAllChains(); // FIXME
+    const latestEpochRefunded = await getLatestEpochRefundedAllChains();
 
     const endTime = SCRIPT_START_TIME_SEC - OFFSET_CALC_TIME;
 
     // V2
     const currentEpoch = getCurrentEpoch();
-    const latestEpochRefunded = currentEpoch - 1; // FIXME
     if (currentEpoch >= GasRefundV2EpochFlip) {
       let startTimeStakeV2 = await getEpochStartCalcTime(
         latestEpochRefunded || GasRefundV2EpochFlip,
