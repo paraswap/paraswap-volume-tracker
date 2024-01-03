@@ -17,6 +17,7 @@ import {
   EPOCH_WHEN_SWITCHED_TO_SE_PSP1,
   MerkleRedeemAddressSePSP1,
 } from '../../../../src/lib/gas-refund/gas-refund-api';
+import { loadEpochToStartFromWithFix } from './fix';
 
 const logger = global.LOGGER('ClaimableSePSP1StateTracker');
 const DISTRIBUTED_EPOCH = process.env.DISTRIBUTED_EPOCH
@@ -212,6 +213,9 @@ export class ClaimableSePSP1StateTracker extends AbstractStateTracker {
     const allParticipantsFromEpoch32ToStartEpoch = Object.keys(
       distributionsFromEpoch32ToStartEpoch,
     );
+
+    const { filterSePSP1ClaimTimeseriesOnInit } =
+      await loadEpochToStartFromWithFix();
     const balance: InitState['balance'] =
       allParticipantsFromEpoch32ToStartEpoch.reduce((acc, account) => {
         acc[account] = reduceTimeSeries(
@@ -219,11 +223,15 @@ export class ClaimableSePSP1StateTracker extends AbstractStateTracker {
           undefined,
           distributionsFromEpoch32ToStartEpoch[account],
         );
+        // artificially skip some claims to maintain consitent roots for pre-fix epochs
+        const claimsTimeseriesWithFix = claimsFromEpoch32ToStartEpoch[
+          account
+        ]?.filter(filterSePSP1ClaimTimeseriesOnInit);
         acc[account] = acc[account].plus(
           reduceTimeSeries(
             this.startTimestamp,
             undefined,
-            claimsFromEpoch32ToStartEpoch[account],
+            claimsTimeseriesWithFix,
           ),
         );
         return acc;

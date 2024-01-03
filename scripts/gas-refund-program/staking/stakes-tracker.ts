@@ -30,7 +30,7 @@ import SPSPStakesTracker from './spsp-stakes-tracker';
 import BigNumber from 'bignumber.js';
 
 import { GasRefundTransactionStakeSnapshotData } from '../../../src/models/GasRefundTransactionStakeSnapshot';
-import { fetchLastMultichainDistribution } from '../transactions-indexing/fetchRefundableTransactionsAllChains';
+import { loadEpochToStartFromWithFix } from './2.0/fix';
 
 export type StakedScoreV2 = {
   combined: BigNumber;
@@ -71,10 +71,8 @@ export default class StakesTracker {
   }
 
   async loadHistoricalStakes() {
-    const lastMultichainDistribution = await fetchLastMultichainDistribution();
-    const epochToStartFrom = lastMultichainDistribution
-      ? lastMultichainDistribution + 1 /// start from the currently indexed epoch (i.e. next one after the last indexed one)
-      : await getLatestEpochRefundedAllChains();
+    // to maintain consistent roots for pre-fix epoch, epochToStartFrom is coupled with that fix
+    const { epochToStartFrom } = await loadEpochToStartFromWithFix();
 
     const endTime = SCRIPT_START_TIME_SEC - OFFSET_CALC_TIME;
 
