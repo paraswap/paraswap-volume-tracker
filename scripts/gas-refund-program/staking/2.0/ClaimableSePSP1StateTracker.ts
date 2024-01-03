@@ -19,7 +19,9 @@ import {
 } from '../../../../src/lib/gas-refund/gas-refund-api';
 
 const logger = global.LOGGER('ClaimableSePSP1StateTracker');
-
+const DISTRIBUTED_EPOCH = process.env.DISTRIBUTED_EPOCH
+  ? Number(process.env.DISTRIBUTED_EPOCH)
+  : undefined;
 export interface Claimed extends Event {
   event: 'Claimed';
   args: [_claimant: string, _balance: EthersBN] & {
@@ -144,7 +146,11 @@ export class ClaimableSePSP1StateTracker extends AbstractStateTracker {
     ).getMerkleDataByEpochWithCacheKey(); // TODO needs fix will duplicate the values for the chains
     const epochsDistributedWithinInterval = Object.keys(merkleDataByEpoch)
       .map(Number)
-      .filter(filterEpoch);
+      .filter(
+        epoch =>
+          filterEpoch(epoch) &&
+          (!DISTRIBUTED_EPOCH || DISTRIBUTED_EPOCH > epoch),
+      );
     if (epochsDistributedWithinInterval.length === 0) return {};
 
     const timestampsOfNthPlusOneEpoch = await Promise.all(
