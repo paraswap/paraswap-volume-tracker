@@ -73,7 +73,7 @@ export default class StakesTracker {
   async loadHistoricalStakes() {
     const lastMultichainDistribution = await fetchLastMultichainDistribution();
     const epochToStartFrom = lastMultichainDistribution
-      ? lastMultichainDistribution + 1
+      ? lastMultichainDistribution + 1 /// start from the currently indexed epoch (i.e. next one after the last indexed one)
       : await getLatestEpochRefundedAllChains();
 
     const endTime = SCRIPT_START_TIME_SEC - OFFSET_CALC_TIME;
