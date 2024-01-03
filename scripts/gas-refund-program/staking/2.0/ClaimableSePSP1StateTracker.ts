@@ -219,7 +219,7 @@ export class ClaimableSePSP1StateTracker extends AbstractStateTracker {
           undefined,
           distributionsFromEpoch32ToStartEpoch[account],
         );
-        acc[account].plus(
+        acc[account] = acc[account].plus(
           reduceTimeSeries(
             this.startTimestamp,
             undefined,
