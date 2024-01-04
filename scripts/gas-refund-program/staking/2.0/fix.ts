@@ -5,13 +5,21 @@ import {
 } from '../../persistance/db-persistance';
 import { TimeSeriesItem } from '../../timeseries';
 import { getEpochStartCalcTime } from '../../../../src/lib/gas-refund/epoch-helpers';
+import { assert } from 'ts-essentials';
 
 // details about this fix: https://www.notion.so/Volume-tracker-taking-too-long-to-index-967c2469d913439dbc953266c99da6c8
 
 const LAST_EPOCH_DISTRIBUTED_ON_FANTOM = 35;
 const EPOCH_WHEN_FIX_WAS_APPLIED = 42;
 
-const forceWithFix: boolean = true;
+// the fix alters ClaimableSePSP1 logic on initing state in a different way for computation script and for indexing script, so need a reliable way to distinguish
+const IS_COMPUTATION_SCRIPT = process.argv
+  .join('')
+  .includes('computeDistribution');
+assert(
+  IS_COMPUTATION_SCRIPT === !!process.env.DISTRIBUTED_EPOCH,
+  'DISTRIBUTED_EPOCH must be provided for computation script and must not be provided for indexing script',
+);
 
 async function _loadEpochToStartFrom(): Promise<{
   epochToStartFrom?: number;
@@ -32,7 +40,7 @@ async function _loadEpochToStartFrom(): Promise<{
     lastEthereumDistribution &&
     lastEthereumDistribution >= EPOCH_WHEN_FIX_WAS_APPLIED - 1;
 
-  if (forceWithFix === false || !lastEthereumDistribution || !fixIsApplied) {
+  if (!lastEthereumDistribution || !fixIsApplied) {
     return {
       epochToStartFrom: legacyLastDistributionPreMultichain,
       filterSePSP1ClaimTimeseriesOnInit: () => false, // ignore claims on init state, just like it used to misbehave before the fix
@@ -52,10 +60,18 @@ async function _loadEpochToStartFrom(): Promise<{
   // the fix is applied
   return {
     epochToStartFrom: lastEthereumDistribution + 1, // start from the currently indexed epoch (i.e. next one after the last indexed one)
+
+    // this filter is intended to replicate legacy behaviour for past pre-fix epochs
     filterSePSP1ClaimTimeseriesOnInit: item => {
-      if (process.env.IS_COMPUTATION)
+      // if it's root computation script - suppress claims before the epoch of the fix
+      if (IS_COMPUTATION_SCRIPT)
         return EPOCH_WHEN_FIX_WAS_APPLIED_MS <= item.timestamp;
-      return item.timestamp >= LAST_EPOCH_DISTRIBUTED_ON_FANTOM_MS;
+
+      // if it's indexing routine - suppress all claims between last distribution on fantom and the epoch of the fix
+      return (
+        LAST_EPOCH_DISTRIBUTED_ON_FANTOM_MS <= item.timestamp &&
+        EPOCH_WHEN_FIX_WAS_APPLIED_MS <= item.timestamp
+      );
     },
   };
 }
