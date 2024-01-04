@@ -1,6 +1,8 @@
 import * as pMemoize from 'p-memoize';
-import { getLatestEpochRefundedAllChains } from '../../persistance/db-persistance';
-import { fetchLastMultichainDistribution } from '../../transactions-indexing/fetchRefundableTransactionsAllChains';
+import {
+  fetchLastMultichainDistribution,
+  getLatestEpochRefundedAllChains,
+} from '../../persistance/db-persistance';
 import { TimeSeriesItem } from '../../timeseries';
 import { getEpochStartCalcTime } from '../../../../src/lib/gas-refund/epoch-helpers';
 

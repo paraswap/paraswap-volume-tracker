@@ -10,6 +10,7 @@ import {
 } from '../../../src/lib/gas-refund/gas-refund';
 
 import {
+  fetchLastMultichainDistribution,
   getLatestEpochRefunded,
   merkleRootExists,
 } from '../persistance/db-persistance';
@@ -23,17 +24,6 @@ import { forceEthereumMainnet } from '../../../src/lib/gas-refund/config';
 
 const logger = global.LOGGER('GRP::fetchRefundableTransactionsAllChains');
 
-export async function fetchLastMultichainDistribution() {
-  const lastRefundedEpochOnMainnet = await getLatestEpochRefunded(
-    CHAIN_ID_MAINNET,
-  );
-  const lastMultichainDistribution =
-    lastRefundedEpochOnMainnet > GasRefundV2EpochOptimismFlip
-      ? lastRefundedEpochOnMainnet
-      : undefined;
-
-  return lastMultichainDistribution;
-}
 export async function fetchRefundableTransactionsAllChains() {
   const lastMultichainDistribution = await fetchLastMultichainDistribution();
   return Promise.all(

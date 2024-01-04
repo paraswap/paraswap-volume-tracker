@@ -1,7 +1,10 @@
 import BigNumber from 'bignumber.js';
 import { Op, Sequelize } from 'sequelize';
 import { assert } from 'ts-essentials';
-import { CHAIN_ID_OPTIMISM } from '../../../src/lib/constants';
+import {
+  CHAIN_ID_MAINNET,
+  CHAIN_ID_OPTIMISM,
+} from '../../../src/lib/constants';
 import {
   GRP_SUPPORTED_CHAINS,
   GasRefundTransactionData,
@@ -111,6 +114,18 @@ export async function getLatestEpochRefunded(chainId: number): Promise<number> {
       chainId,
     },
   });
+}
+
+export async function fetchLastMultichainDistribution() {
+  const lastRefundedEpochOnMainnet = await getLatestEpochRefunded(
+    CHAIN_ID_MAINNET,
+  );
+  const lastMultichainDistribution =
+    lastRefundedEpochOnMainnet > GasRefundV2EpochOptimismFlip
+      ? lastRefundedEpochOnMainnet
+      : undefined;
+
+  return lastMultichainDistribution;
 }
 
 export async function getLatestEpochRefundedAllChains() {
