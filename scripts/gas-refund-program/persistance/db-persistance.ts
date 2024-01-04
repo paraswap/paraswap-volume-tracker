@@ -116,7 +116,7 @@ export async function getLatestEpochRefunded(chainId: number): Promise<number> {
   });
 }
 
-export async function fetchLastMultichainDistribution() {
+export async function loadLastEthereumDistributionFromDb() {
   const lastRefundedEpochOnMainnet = await getLatestEpochRefunded(
     CHAIN_ID_MAINNET,
   );

@@ -1,6 +1,6 @@
 import * as pMemoize from 'p-memoize';
 import {
-  fetchLastMultichainDistribution,
+  loadLastEthereumDistributionFromDb,
   getLatestEpochRefundedAllChains,
 } from '../../persistance/db-persistance';
 import { TimeSeriesItem } from '../../timeseries';
@@ -24,7 +24,7 @@ async function _loadEpochToStartFrom(): Promise<{
     // as it was the latest epoch distributed on Fantom
     legacyLastDistributionPreMultichain,
   ] = await Promise.all([
-    fetchLastMultichainDistribution(),
+    loadLastEthereumDistributionFromDb(),
     getLatestEpochRefundedAllChains(),
   ]);
 
