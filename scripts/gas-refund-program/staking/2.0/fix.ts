@@ -26,10 +26,8 @@ async function _loadEpochToStartFrom(): Promise<{
   filterSePSP1ClaimTimeseriesOnInit: (item: TimeSeriesItem) => boolean;
 }> {
   const [
-    // refers to multichain staking, when we started distributing GRP on ethereum and optimism only as well
     lastEthereumDistribution,
-    // the value that used to be the "starting from" was 35 (epoch 5 in the new epoch numbering)
-    // as it was the latest epoch distributed on Fantom
+    // the value that used to be the "starting from" epoch in legacy code. It stuck at # 35 (epoch 5 in the new epoch numbering)  - the last distribution on Fantom
     legacyLastDistributionPreMultichain,
   ] = await Promise.all([
     loadLastEthereumDistributionFromDb(),
@@ -41,6 +39,7 @@ async function _loadEpochToStartFrom(): Promise<{
     lastEthereumDistribution >= EPOCH_WHEN_FIX_WAS_APPLIED - 1;
 
   if (!lastEthereumDistribution || !fixIsApplied) {
+    // old (pre-fix) epochs driven by legacy logic
     return {
       epochToStartFrom: legacyLastDistributionPreMultichain,
       filterSePSP1ClaimTimeseriesOnInit: () => false, // ignore claims on init state, just like it used to misbehave before the fix
@@ -57,7 +56,7 @@ async function _loadEpochToStartFrom(): Promise<{
   if (!lastEthereumDistribution)
     throw new Error('lastEthereumDistribution is undefined');
 
-  // the fix is applied
+  // after-fix epochs
   return {
     epochToStartFrom: lastEthereumDistribution + 1, // start from the currently indexed epoch (i.e. next one after the last indexed one)
 
