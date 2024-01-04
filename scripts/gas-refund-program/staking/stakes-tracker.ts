@@ -23,13 +23,13 @@ import {
   GasRefundV2EpochFlip,
   GasRefundVirtualLockupStartEpoch,
 } from '../../../src/lib/gas-refund/gas-refund';
+import { loadEpochToStartFromWithFix } from './2.0/fix';
 import { StakeV2Resolver } from './2.0/StakeV2Resolver';
 import SafetyModuleStakesTracker from './safety-module-stakes-tracker';
 import SPSPStakesTracker from './spsp-stakes-tracker';
 import BigNumber from 'bignumber.js';
 
 import { GasRefundTransactionStakeSnapshotData } from '../../../src/models/GasRefundTransactionStakeSnapshot';
-import { loadEpochToStartFromWithFix } from './2.0/fix';
 
 export type StakedScoreV2 = {
   combined: BigNumber;

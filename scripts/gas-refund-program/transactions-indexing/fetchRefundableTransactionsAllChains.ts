@@ -21,11 +21,11 @@ import { forceEthereumMainnet } from '../../../src/lib/gas-refund/config';
 const logger = global.LOGGER('GRP::fetchRefundableTransactionsAllChains');
 
 export async function fetchRefundableTransactionsAllChains() {
-  const lastMultichainDistribution = await loadLastEthereumDistributionFromDb();
+  const lastEthereumDistribution = await loadLastEthereumDistributionFromDb();
   return Promise.all(
     GRP_SUPPORTED_CHAINS.map(async chainId => {
       const _lastEpochRefunded =
-        lastMultichainDistribution ??
+        lastEthereumDistribution ??
         (await getLatestEpochRefunded(
           ETH_NETWORKS.includes(chainId)
             ? forceEthereumMainnet(chainId)
