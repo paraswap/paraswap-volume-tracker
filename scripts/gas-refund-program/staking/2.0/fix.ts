@@ -68,10 +68,11 @@ async function _loadEpochToStartFrom(): Promise<{
         return EPOCH_WHEN_FIX_WAS_APPLIED_MS <= item.timestamp;
 
       // if it's indexing routine - suppress all claims between last distribution on fantom and the epoch of the fix
-      return (
+      const shouldBeSkipped =
         LAST_EPOCH_DISTRIBUTED_ON_FANTOM_MS <= item.timestamp &&
-        EPOCH_WHEN_FIX_WAS_APPLIED_MS <= item.timestamp
-      );
+        item.timestamp <= EPOCH_WHEN_FIX_WAS_APPLIED_MS;
+
+      return shouldBeSkipped;
     },
   };
 }
