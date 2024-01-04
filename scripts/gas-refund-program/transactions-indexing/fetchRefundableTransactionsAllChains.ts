@@ -15,11 +15,7 @@ import {
   merkleRootExists,
 } from '../persistance/db-persistance';
 import { fetchPricingAndTransactions } from './fetchPricingAndTransactions';
-import {
-  CHAIN_ID_MAINNET,
-  CHAIN_ID_OPTIMISM,
-  ETH_NETWORKS,
-} from '../../../src/lib/constants';
+import { CHAIN_ID_OPTIMISM, ETH_NETWORKS } from '../../../src/lib/constants';
 import { forceEthereumMainnet } from '../../../src/lib/gas-refund/config';
 
 const logger = global.LOGGER('GRP::fetchRefundableTransactionsAllChains');

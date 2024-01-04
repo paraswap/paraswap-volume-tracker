@@ -23,7 +23,6 @@ import {
   GasRefundV2EpochFlip,
   GasRefundVirtualLockupStartEpoch,
 } from '../../../src/lib/gas-refund/gas-refund';
-import { getLatestEpochRefundedAllChains } from '../persistance/db-persistance';
 import { StakeV2Resolver } from './2.0/StakeV2Resolver';
 import SafetyModuleStakesTracker from './safety-module-stakes-tracker';
 import SPSPStakesTracker from './spsp-stakes-tracker';

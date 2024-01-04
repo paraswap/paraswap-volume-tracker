@@ -20,6 +20,7 @@ import {
 import { loadEpochToStartFromWithFix } from './fix';
 
 const logger = global.LOGGER('ClaimableSePSP1StateTracker');
+
 export interface Claimed extends Event {
   event: 'Claimed';
   args: [_claimant: string, _balance: EthersBN] & {
