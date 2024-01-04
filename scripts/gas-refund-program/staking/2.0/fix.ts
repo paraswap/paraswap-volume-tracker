@@ -19,7 +19,7 @@ async function _loadEpochToStartFrom(): Promise<{
 }> {
   const [
     // refers to multichain staking, when we started distributing GRP on ethereum and optimism only as well
-    lastMultichainDistribution,
+    lastEthereumDistribution,
     // the value that used to be the "starting from" was 35 (epoch 5 in the new epoch numbering)
     // as it was the latest epoch distributed on Fantom
     legacyLastDistributionPreMultichain,
@@ -29,13 +29,13 @@ async function _loadEpochToStartFrom(): Promise<{
   ]);
 
   const fixIsApplied =
-    lastMultichainDistribution &&
-    lastMultichainDistribution >= EPOCH_WHEN_FIX_WAS_APPLIED - 1;
+    lastEthereumDistribution &&
+    lastEthereumDistribution >= EPOCH_WHEN_FIX_WAS_APPLIED - 1;
 
-  if (forceWithFix === false || !lastMultichainDistribution || !fixIsApplied) {
+  if (forceWithFix === false || !lastEthereumDistribution || !fixIsApplied) {
     return {
       epochToStartFrom: legacyLastDistributionPreMultichain,
-      filterSePSP1ClaimTimeseriesOnInit: () => true,
+      filterSePSP1ClaimTimeseriesOnInit: () => false, // ignore claims on init state, just like it used to misbehave before the fix
     };
   }
   const LAST_EPOCH_DISTRIBUTED_ON_FANTOM_MS = await getEpochStartCalcTime(
@@ -46,12 +46,12 @@ async function _loadEpochToStartFrom(): Promise<{
     EPOCH_WHEN_FIX_WAS_APPLIED,
   );
 
-  if (!lastMultichainDistribution)
-    throw new Error('lastMultichainDistribution is undefined');
+  if (!lastEthereumDistribution)
+    throw new Error('lastEthereumDistribution is undefined');
 
   // the fix is applied
   return {
-    epochToStartFrom: lastMultichainDistribution + 1, // start from the currently indexed epoch (i.e. next one after the last indexed one)
+    epochToStartFrom: lastEthereumDistribution + 1, // start from the currently indexed epoch (i.e. next one after the last indexed one)
     filterSePSP1ClaimTimeseriesOnInit: item => {
       if (process.env.IS_COMPUTATION)
         return EPOCH_WHEN_FIX_WAS_APPLIED_MS <= item.timestamp;
