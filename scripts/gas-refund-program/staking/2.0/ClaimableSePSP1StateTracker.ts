@@ -18,11 +18,9 @@ import {
   MerkleRedeemAddressSePSP1,
 } from '../../../../src/lib/gas-refund/gas-refund-api';
 import { loadEpochToStartFromWithFix } from './fix';
+import { DISTRIBUTED_EPOCH } from '../../../../src/env';
 
 const logger = global.LOGGER('ClaimableSePSP1StateTracker');
-const DISTRIBUTED_EPOCH = process.env.DISTRIBUTED_EPOCH
-  ? Number(process.env.DISTRIBUTED_EPOCH)
-  : undefined;
 export interface Claimed extends Event {
   event: 'Claimed';
   args: [_claimant: string, _balance: EthersBN] & {

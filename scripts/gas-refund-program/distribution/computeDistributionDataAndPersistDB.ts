@@ -4,12 +4,13 @@ import { isTruthy } from '../../../src/lib/utils';
 import database from '../../../src/database';
 import { computeDistributionMerkleData } from './lib/computeDistributionMerkleData';
 import { storeDistributionDataInDB } from './lib/storeDistributionDataInDB';
+import { DISTRIBUTED_EPOCH } from '../../../src/env';
 
 async function main() {
   await database.connectAndSync();
 
-  const epoch = parseInt(process.env.DISTRIBUTED_EPOCH || '-1', 10);
-  if (epoch < 0)
+  const epoch = DISTRIBUTED_EPOCH;
+  if (!epoch)
     throw new Error(`wrong epoch index for distribution epoch=${epoch}`);
 
   const merkleData = await computeDistributionMerkleData(epoch);
