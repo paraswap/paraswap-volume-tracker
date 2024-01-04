@@ -18,7 +18,6 @@ import {
   MerkleRedeemAddressSePSP1,
 } from '../../../../src/lib/gas-refund/gas-refund-api';
 import { loadEpochToStartFromWithFix } from './fix';
-import { DISTRIBUTED_EPOCH } from '../../../../src/env';
 
 const logger = global.LOGGER('ClaimableSePSP1StateTracker');
 export interface Claimed extends Event {
@@ -145,11 +144,7 @@ export class ClaimableSePSP1StateTracker extends AbstractStateTracker {
     ).getMerkleDataByEpochWithCacheKey(); // TODO needs fix will duplicate the values for the chains
     const epochsDistributedWithinInterval = Object.keys(merkleDataByEpoch)
       .map(Number)
-      .filter(
-        epoch =>
-          filterEpoch(epoch) &&
-          (!DISTRIBUTED_EPOCH || DISTRIBUTED_EPOCH > epoch),
-      );
+      .filter(filterEpoch);
     if (epochsDistributedWithinInterval.length === 0) return {};
 
     const timestampsOfNthPlusOneEpoch = await Promise.all(
