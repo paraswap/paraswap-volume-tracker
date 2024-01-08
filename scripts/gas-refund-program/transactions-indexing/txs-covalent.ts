@@ -178,7 +178,7 @@ export function duneToCovalentLike(
     gas_price: parseInt(dbTx.gas_price),
     gas_spent: dbTx.gas_used,
     block_height: dbTx.block_number,
-    block_signed_at: new Date(Date.parse(dbTx.block_time))
+    block_signed_at: new Date(dbTx.block_timestamp * 1000)
       .toISOString()
       .replace(/\.\d+Z$/, 'Z'),
     fees_paid: (

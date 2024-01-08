@@ -62,22 +62,17 @@ async function loadSlicesIntoDb() {
       fs.readFileSync(`${tmpDirname}/${filename}`).toString(),
     );
 
-    const rows: Partial<DuneRow>[] = origRows
-      .filter(
-        ({ l1_fee_scalar }: { l1_fee_scalar: string }) =>
-          true || l1_fee_scalar !== 'n/a',
-      )
-      .map(row => ({
-        ...Object.fromEntries(
-          Object.entries(row).map(([key, value]) => [
-            key,
-            value === 'n/a' ? null : value,
-          ]),
-        ),
-        block_timestamp: row.block_time
-          ? Date.parse(row.block_time) / 1000
-          : undefined, // looks like 2023-08-31 22:14:05.000 UTC
-      }));
+    const rows: Partial<DuneRow>[] = origRows.map(row => ({
+      ...Object.fromEntries(
+        Object.entries(row).map(([key, value]) => [
+          key,
+          value === 'n/a' ? null : value,
+        ]),
+      ),
+      block_timestamp: row.block_time
+        ? Date.parse(row.block_time) / 1000
+        : undefined, // looks like 2023-08-31 22:14:05.000 UTC
+    }));
 
     const queries = sliceCalls({
       inputArray: rows,

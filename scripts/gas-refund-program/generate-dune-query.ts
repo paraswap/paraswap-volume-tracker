@@ -58,31 +58,16 @@ async function generateDuneQuery() {
     const contracts = conractsByChainId[chainId].join(',');
 
     const txTableColumns = `
-    block_hash
 from
 gas_price
 hash
-l1_tx_origin
 to
-value
-l1_fee_scalar
 block_number
 block_time
-gas_limit
 gas_used
-index
-l1_block_number
 l1_fee
-l1_gas_price
-l1_gas_used
-l1_timestamp
-max_fee_per_gas
-max_priority_fee_per_gas
-nonce
-priority_fee_per_gas
 success
-type
-block_date`
+`
       .split(/\n/)
       .map(s => s.trim())
       .filter(isTruthy);
@@ -122,7 +107,7 @@ block_date`
      ),
      ${networkData} as (
    select
-     '${network}' as network, ${chainId} as chainId, ${transactionsInvolvingContract}.contract as contract, ${txTableColumnsPart}
+     ${chainId} as chainId, ${transactionsInvolvingContract}.contract as contract, ${txTableColumnsPart}
    from
      ${transactionsInvolvingContract}
      left join ${network}.transactions as transactions on ${transactionsInvolvingContract}.block_number = transactions.block_number
