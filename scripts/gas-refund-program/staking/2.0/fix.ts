@@ -56,23 +56,30 @@ async function _loadEpochToStartFrom(): Promise<{
   if (!lastEthereumDistribution)
     throw new Error('lastEthereumDistribution is undefined');
 
+  // if last saved distribution is AFTER the fix was applied - no need to be in the compatibility mode, do count all claims
+  const isProcessingLegacyEpoch =
+    lastEthereumDistribution <= EPOCH_WHEN_FIX_WAS_APPLIED;
+
   // after-fix epochs
   return {
     epochToStartFrom: lastEthereumDistribution + 1, // start from the currently indexed epoch (i.e. next one after the last indexed one)
 
     // this filter is intended to replicate legacy behaviour for past pre-fix epochs
-    filterSePSP1ClaimTimeseriesOnInit: item => {
-      // if it's root computation script - suppress claims before the epoch of the fix
-      if (IS_COMPUTATION_SCRIPT)
-        return EPOCH_WHEN_FIX_WAS_APPLIED_MS <= item.timestamp;
+    filterSePSP1ClaimTimeseriesOnInit: isProcessingLegacyEpoch
+      ? item => {
+          // if it's root computation script - suppress claims before the epoch of the fix
+          if (IS_COMPUTATION_SCRIPT)
+            return EPOCH_WHEN_FIX_WAS_APPLIED_MS <= item.timestamp;
 
-      // if it's indexing routine - suppress all claims between last distribution on fantom and the epoch of the fix
-      const shouldBeSkipped =
-        LAST_EPOCH_DISTRIBUTED_ON_FANTOM_MS <= item.timestamp &&
-        item.timestamp <= EPOCH_WHEN_FIX_WAS_APPLIED_MS;
+          // if it's indexing routine - only count claims between last distribution on fantom and the epoch of the fix
+          const shouldCount =
+            LAST_EPOCH_DISTRIBUTED_ON_FANTOM_MS <= item.timestamp &&
+            item.timestamp <= EPOCH_WHEN_FIX_WAS_APPLIED_MS;
 
-      return shouldBeSkipped;
-    },
+          return shouldCount;
+        }
+      : // no need to skip any claims for after-fix epochs
+        () => true,
   };
 }
 export const loadEpochToStartFromWithFix = pMemoize(_loadEpochToStartFrom, {
