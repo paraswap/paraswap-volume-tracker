@@ -1,29 +1,27 @@
+import BigNumber from 'bignumber.js';
+import { Op, Sequelize } from 'sequelize';
+import { assert } from 'ts-essentials';
+import {
+  CHAIN_ID_MAINNET,
+  CHAIN_ID_OPTIMISM,
+} from '../../../src/lib/constants';
 import {
   GRP_SUPPORTED_CHAINS,
   GasRefundTransactionData,
-  GasRefundParticipantData,
-  TransactionStatus,
   GasRefundV2EpochOptimismFlip,
-  stringifyGRPChainBreakDown,
+  TransactionStatus,
 } from '../../../src/lib/gas-refund/gas-refund';
-import { GasRefundParticipation } from '../../../src/models/GasRefundParticipation';
-import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
 import { GasRefundDistribution } from '../../../src/models/GasRefundDistribution';
-import { AddressRewardsMapping, MerkleData, MerkleTreeData } from '../types';
-import { Sequelize, Op } from 'sequelize';
-import BigNumber from 'bignumber.js';
-import { assert } from 'ts-essentials';
-import { sliceCalls } from '../../../src/lib/utils/helpers';
-import { CHAIN_ID_OPTIMISM } from '../../../src/lib/constants';
+import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
+import {
+  GasRefundTransactionStakeSnapshot,
+  GasRefundTransactionStakeSnapshotData,
+} from '../../../src/models/GasRefundTransactionStakeSnapshot';
 import {
   StakedScoreV1,
   StakedScoreV2,
   isStakeScoreV2,
 } from '../staking/stakes-tracker';
-import {
-  GasRefundTransactionStakeSnapshot,
-  GasRefundTransactionStakeSnapshotData,
-} from '../../../src/models/GasRefundTransactionStakeSnapshot';
 
 export async function fetchLastTimestampTxByContract({
   chainId,
@@ -116,6 +114,18 @@ export async function getLatestEpochRefunded(chainId: number): Promise<number> {
       chainId,
     },
   });
+}
+
+export async function loadLastEthereumDistributionFromDb() {
+  const lastRefundedEpochOnMainnet = await getLatestEpochRefunded(
+    CHAIN_ID_MAINNET,
+  );
+  const lastMultichainDistribution =
+    lastRefundedEpochOnMainnet > GasRefundV2EpochOptimismFlip
+      ? lastRefundedEpochOnMainnet
+      : undefined;
+
+  return lastMultichainDistribution;
 }
 
 export async function getLatestEpochRefundedAllChains() {
@@ -235,59 +245,4 @@ export const merkleRootExists = async ({
     });
 
   return !!existingGasRefundDistributionEntry;
-};
-
-export const saveMerkleTreeInDB = async ({
-  chainId,
-  epoch,
-  merkleTree,
-  userGRPChainsBreakDowns,
-}: {
-  epoch: number;
-  chainId: number;
-  merkleTree: MerkleTreeData;
-  userGRPChainsBreakDowns: AddressRewardsMapping;
-}): Promise<void> => {
-  const {
-    root: { totalAmount, merkleRoot },
-    leaves,
-  } = merkleTree;
-
-  const epochDataToUpdate: GasRefundParticipantData[] = leaves.map(
-    (leaf: MerkleData) => ({
-      epoch,
-      address: leaf.address,
-      chainId: chainId,
-      merkleProofs: leaf.merkleProofs,
-      isCompleted: true,
-      amount: leaf.amount,
-      GRPChainBreakDown: stringifyGRPChainBreakDown(
-        userGRPChainsBreakDowns[leaf.address].byChain,
-      ),
-      amountsByProgram: userGRPChainsBreakDowns[leaf.address].amountsByProgram,
-    }),
-  );
-
-  const bulkUpdateParticipations = async (
-    participantsToUpdate: GasRefundParticipantData[],
-  ) => {
-    await GasRefundParticipation.bulkCreate(participantsToUpdate, {
-      updateOnDuplicate: ['merkleProofs', 'isCompleted'],
-    });
-  };
-
-  await Promise.all(
-    sliceCalls({
-      inputArray: epochDataToUpdate,
-      execute: bulkUpdateParticipations,
-      sliceLength: 100,
-    }),
-  );
-
-  await GasRefundDistribution.create({
-    epoch,
-    chainId,
-    totalPSPAmountToRefund: totalAmount,
-    merkleRoot,
-  });
 };

@@ -1,35 +1,7 @@
-import { GasRefundTransactionData } from '../../src/lib/gas-refund/gas-refund';
 import BigNumber from 'bignumber.js';
 import { AmountsByProgram } from '../../src/types';
 
 export type HistoricalPrice = { [timestamp: string]: number };
-
-export type TxFeesByAddress = {
-  [address: string]: GasRefundTransactionData;
-};
-
-export type Claimable = {
-  address: string;
-  amount: string;
-};
-
-export type MerkleRoot = {
-  merkleRoot: string;
-  totalAmount: string;
-  epoch: number;
-};
-
-export type MerkleData = {
-  merkleProofs: string[];
-  address: string;
-  amount: string;
-  epoch: number;
-};
-
-export type MerkleTreeData = {
-  root: MerkleRoot;
-  leaves: MerkleData[];
-};
 
 export type StakedPSPByAddress = {
   [address: string]: string;
@@ -90,21 +62,3 @@ export interface GasRefundTransaction
   blockNumber: string;
   contract: string;
 }
-
-export type AddressChainRewardsMapping = {
-  [account: string]: ChainRewardsMapping;
-};
-
-export type ChainRewardsMapping = {
-  [chainId: number]: {
-    amount: BigNumber;
-    breakDownGRP: { [GRPChainId: number]: BigNumber };
-  };
-};
-
-export type AddressRewardsMapping = {
-  [account: string]: {
-    amountsByProgram: AmountsByProgram;
-    byChain: { [grpChainId: number]: BigNumber };
-  };
-};

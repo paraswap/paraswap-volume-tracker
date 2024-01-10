@@ -10,6 +10,7 @@ import {
 } from '../../../src/lib/gas-refund/gas-refund';
 
 import {
+  loadLastEthereumDistributionFromDb,
   getLatestEpochRefunded,
   merkleRootExists,
 } from '../persistance/db-persistance';
@@ -20,13 +21,16 @@ import { forceEthereumMainnet } from '../../../src/lib/gas-refund/config';
 const logger = global.LOGGER('GRP::fetchRefundableTransactionsAllChains');
 
 export async function fetchRefundableTransactionsAllChains() {
+  const lastEthereumDistribution = await loadLastEthereumDistributionFromDb();
   return Promise.all(
     GRP_SUPPORTED_CHAINS.map(async chainId => {
-      const _lastEpochRefunded = await getLatestEpochRefunded(
-        ETH_NETWORKS.includes(chainId)
-          ? forceEthereumMainnet(chainId)
-          : chainId,
-      );
+      const _lastEpochRefunded =
+        lastEthereumDistribution ??
+        (await getLatestEpochRefunded(
+          ETH_NETWORKS.includes(chainId)
+            ? forceEthereumMainnet(chainId)
+            : chainId,
+        ));
 
       const lastEpochRefunded =
         chainId !== CHAIN_ID_OPTIMISM

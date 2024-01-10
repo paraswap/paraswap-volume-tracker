@@ -12,7 +12,7 @@ import { assert } from 'ts-essentials';
 
 const config: Record<number, string> = {
   // @TODO: update this config
-  41: '69311354102943179612461',
+  42: '0',
 };
 
 const AURA_REWARDS_START_EPOCH_OLD_STYLE = Math.min(
@@ -141,7 +141,7 @@ export async function composeWithAmountsByProgram(
         );
         return {
           ...v,
-          amount: new BigNumber(v.amount).plus(aura), // add aura rewards to gas refunds json
+          amount: v.amount.plus(aura), // add aura rewards to gas refunds json
           amountsByProgram: {
             aura,
             paraswapGasRefund: v.amount.toFixed(),

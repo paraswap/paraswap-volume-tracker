@@ -1,8 +1,13 @@
-import { Claimable, MerkleTreeData } from '../types';
+import {
+  AddressRewardsMapping,
+  Claimable,
+  GasRefundMerkleProof,
+} from './types';
 import { utils, logger } from 'ethers';
 import { MerkleTree } from 'merkletreejs';
-import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
+import { GasRefundTransaction } from '../../../../src/models/GasRefundTransaction';
 import BigNumber from 'bignumber.js';
+import { MerkleTreeAndChain } from './types';
 
 export type MinGasRefundTransaction = Pick<
   GasRefundTransaction,
@@ -12,6 +17,7 @@ export type MinGasRefundTransaction = Pick<
 export async function computeMerkleData({
   epoch,
   userRewards,
+  userGRPChainsBreakDowns,
 }: {
   epoch: number;
   userRewards: {
@@ -19,7 +25,10 @@ export async function computeMerkleData({
     amount: BigNumber;
     chainId: number;
   }[];
-}): Promise<{ merkleTree: MerkleTreeData; chainId: string }[]> {
+  userGRPChainsBreakDowns: {
+    [stakeChainId: number]: AddressRewardsMapping;
+  };
+}): Promise<MerkleTreeAndChain[]> {
   const userRefundsByChain = userRewards.reduce<{
     [chainId: number]: {
       account: string;
@@ -28,7 +37,12 @@ export async function computeMerkleData({
     }[];
   }>((acc, curr) => {
     if (!acc[curr.chainId]) acc[curr.chainId] = [];
-    acc[curr.chainId].push(curr);
+    if (curr.amount.isLessThan(0)) {
+      throw new Error(
+        `Negative amount for ${curr.account} on chain ${curr.chainId}`,
+      );
+    }
+    if (!curr.amount.isZero()) acc[curr.chainId].push(curr);
 
     return acc;
   }, {});
@@ -42,7 +56,7 @@ export async function computeMerkleData({
       }),
     )
     .filter(
-      chainDistribution => chainDistribution.merkleTree.leaves.length > 0,
+      chainDistribution => chainDistribution.merkleTree.merkleProofs.length > 0,
     );
 }
 
@@ -81,10 +95,18 @@ function computeMerkleDataForChain({
 
   const merkleRoot = merkleTree.getHexRoot();
 
-  const merkleLeaves = allLeaves.map(leaf => {
+  const merkleLeaves: GasRefundMerkleProof[] = allLeaves.map(leaf => {
     const { address, amount } = hashedClaimabled[leaf];
     const proofs = merkleTree.getHexProof(leaf);
-    return { address, amount, epoch, merkleProofs: proofs };
+    return {
+      address,
+      amount,
+      epoch,
+      proof: proofs,
+      // TODO revisit
+      GRPChainBreakDown: {},
+      amountsByProgram: {},
+    };
   });
 
   const merkleTreeData = {
@@ -94,7 +116,7 @@ function computeMerkleDataForChain({
       epoch,
     },
     chainId,
-    leaves: merkleLeaves,
+    merkleProofs: merkleLeaves,
   };
 
   logger.info(

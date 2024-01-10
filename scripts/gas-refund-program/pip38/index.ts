@@ -1,11 +1,11 @@
 import { assert } from 'ts-essentials';
 import * as fantomEpoch36 from './merkletree-chain-250-epoch-36.json';
 import * as fantomEpoch37 from './merkletree-chain-250-epoch-37.json';
-import { AddressRewards } from '../../../src/types';
 import { groupBy } from 'lodash';
 import BigNumber from 'bignumber.js';
 import { CHAIN_ID_FANTOM, CHAIN_ID_MAINNET } from '../../../src/lib/constants';
 import { GasRefundV2PIP38 } from '../../../src/lib/gas-refund/gas-refund';
+import { AddressRewards } from '../distribution/lib/types';
 
 export function composeRefundWithPIP38Refunds(
   epoch: number,

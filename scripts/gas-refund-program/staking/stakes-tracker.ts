@@ -23,7 +23,7 @@ import {
   GasRefundV2EpochFlip,
   GasRefundVirtualLockupStartEpoch,
 } from '../../../src/lib/gas-refund/gas-refund';
-import { getLatestEpochRefundedAllChains } from '../persistance/db-persistance';
+import { loadEpochToStartFromWithFix } from './2.0/fix';
 import { StakeV2Resolver } from './2.0/StakeV2Resolver';
 import SafetyModuleStakesTracker from './safety-module-stakes-tracker';
 import SPSPStakesTracker from './spsp-stakes-tracker';
@@ -70,7 +70,8 @@ export default class StakesTracker {
   }
 
   async loadHistoricalStakes() {
-    const latestEpochRefunded = await getLatestEpochRefundedAllChains();
+    // to maintain consistent roots for pre-fix epoch, epochToStartFrom is coupled with that fix
+    const { epochToStartFrom } = await loadEpochToStartFromWithFix();
 
     const endTime = SCRIPT_START_TIME_SEC - OFFSET_CALC_TIME;
 
@@ -78,7 +79,7 @@ export default class StakesTracker {
     const currentEpoch = getCurrentEpoch();
     if (currentEpoch >= GasRefundV2EpochFlip) {
       let startTimeStakeV2 = await getEpochStartCalcTime(
-        latestEpochRefunded || GasRefundV2EpochFlip,
+        epochToStartFrom || GasRefundV2EpochFlip,
       );
 
       await Promise.all(
@@ -93,13 +94,12 @@ export default class StakesTracker {
       // V1
       // Note: since we take start of latest epoch refunded, we don't need adjust start times with VIRTUAL_LOCKUP_PERIOD
       const startTimeSPSP = await getEpochStartCalcTime(
-        latestEpochRefunded || GasRefundGenesisEpoch,
+        epochToStartFrom || GasRefundGenesisEpoch,
       );
 
       const startTimeSM = await getEpochStartCalcTime(
-        latestEpochRefunded &&
-          latestEpochRefunded > GasRefundSafetyModuleStartEpoch
-          ? latestEpochRefunded
+        epochToStartFrom && epochToStartFrom > GasRefundSafetyModuleStartEpoch
+          ? epochToStartFrom
           : GasRefundSafetyModuleStartEpoch,
       );
 

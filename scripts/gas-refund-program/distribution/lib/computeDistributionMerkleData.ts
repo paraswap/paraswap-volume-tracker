@@ -1,45 +1,26 @@
-import '../../src/lib/log4js';
-import * as dotenv from 'dotenv';
-dotenv.config();
-
 import { Op } from 'sequelize';
-import { computeMerkleData } from './refund/merkle-tree';
-import {
-  fetchLastEpochRefunded,
-  saveMerkleTreeInDB,
-} from './persistance/db-persistance';
+import { computeMerkleData } from './merkle-tree';
 
-import { assert } from 'ts-essentials';
-import {
-  GasRefundGenesisEpoch,
-  TransactionStatus,
-} from '../../src/lib/gas-refund/gas-refund';
-import { GasRefundTransaction } from '../../src/models/GasRefundTransaction';
-import { saveMerkleTreeInFile } from './persistance/file-persistance';
-
-import Database from '../../src/database';
-import {
-  getCurrentEpoch,
-  loadEpochMetaData,
-  resolveEpochCalcTimeInterval,
-} from '../../src/lib/gas-refund/epoch-helpers';
-import { STAKING_CHAIN_IDS } from '../../src/lib/constants';
-import { StakeV2Resolver } from './staking/2.0/StakeV2Resolver';
 import BigNumber from 'bignumber.js';
-import { isTruthy } from '../../src/lib/utils';
+import { assert } from 'ts-essentials';
+import { STAKING_CHAIN_IDS } from '../../../../src/lib/constants';
+import { resolveEpochCalcTimeInterval } from '../../../../src/lib/gas-refund/epoch-helpers';
+import {
+  TransactionStatus,
+  stringifyGRPChainBreakDown,
+} from '../../../../src/lib/gas-refund/gas-refund';
+import { isTruthy } from '../../../../src/lib/utils';
+import { GasRefundTransaction } from '../../../../src/models/GasRefundTransaction';
+import { composeRefundWithPIP38Refunds } from '../../pip38';
+import { StakeV2Resolver } from '../../staking/2.0/StakeV2Resolver';
 import {
   AddressChainRewardsMapping,
+  AddressRewards,
   AddressRewardsMapping,
   ChainRewardsMapping,
+  MerkleTreeAndChain,
 } from './types';
-import { composeRefundWithPIP38Refunds } from './pip38';
-import { composeWithAmountsByProgram } from '../../src/lib/utils/aura-rewards';
-import { AddressRewards } from '../../src/types';
-
-const logger = global.LOGGER('GRP:COMPUTE_MERKLE_TREE');
-
-const skipCheck = process.env.SKIP_CHECKS === 'true';
-const saveFile = process.env.SAVE_FILE === 'true';
+import { composeWithAmountsByProgram } from '../../../../src/lib/utils/aura-rewards';
 
 function asserted<T>(val: T) {
   assert(val !== null && val !== undefined, 'val should not be null or undef');
@@ -79,72 +60,6 @@ export async function getRefundableTransactionData(
     attributes: ['address', 'timestamp', 'refundedAmountPSP', 'chainId'],
     raw: true,
   });
-}
-
-export async function computeAndStoreMerkleTree(epoch: number) {
-  const userRewardsOnStakingChains = await computeStakingChainsRefundedAmounts(
-    epoch,
-  );
-
-  const _allChainsRefunds: AddressRewards[] = Object.keys(
-    userRewardsOnStakingChains,
-  )
-    .map(account =>
-      Object.entries(userRewardsOnStakingChains[account]).map(
-        ([chainId, { amount, breakDownGRP }]) => ({
-          chainId: +chainId,
-          amount,
-          breakDownGRP,
-          account,
-        }),
-      ),
-    )
-    .flat()
-    .filter(entry => !entry.amount.eq(0));
-
-  const withPIP38 = composeRefundWithPIP38Refunds(epoch, _allChainsRefunds);
-
-  const allChainsRefunds = await composeWithAmountsByProgram(epoch, withPIP38);
-
-  const userGRPChainsBreakDowns = allChainsRefunds.reduce<{
-    [stakeChainId: number]: AddressRewardsMapping;
-  }>((acc, curr) => {
-    if (!acc[curr.chainId]) acc[curr.chainId] = {};
-    acc[curr.chainId][curr.account] = {
-      byChain: curr.breakDownGRP,
-      amountsByProgram: curr.amountsByProgram,
-    };
-
-    return acc;
-  }, {});
-
-  const merkleTreeData = await computeMerkleData({
-    userRewards: allChainsRefunds,
-    epoch,
-  });
-
-  return Promise.all(
-    merkleTreeData.map(async ({ chainId, merkleTree }) => {
-      const chainBreakdowns = userGRPChainsBreakDowns[Number(chainId)];
-      if (saveFile) {
-        logger.info('saving merkle tree in file');
-        await saveMerkleTreeInFile({
-          chainId: +chainId,
-          epoch,
-          merkleTree,
-          userGRPChainsBreakDowns: chainBreakdowns,
-        });
-      } else {
-        logger.info('saving merkle tree in db');
-        await saveMerkleTreeInDB({
-          chainId: +chainId,
-          epoch,
-          merkleTree,
-          userGRPChainsBreakDowns: chainBreakdowns,
-        });
-      }
-    }),
-  );
 }
 
 async function computeStakingChainsRefundedAmounts(epoch: number) {
@@ -278,39 +193,65 @@ async function computeStakingChainsRefundedAmounts(epoch: number) {
   return userRewardsOnStakingChains;
 }
 
-async function startComputingMerkleTreesAllChains() {
-  await Database.connectAndSync();
-  await loadEpochMetaData();
+export async function computeDistributionMerkleData(
+  epoch: number,
+): Promise<MerkleTreeAndChain[]> {
+  const userRewardsOnStakingChains = await computeStakingChainsRefundedAmounts(
+    epoch,
+  );
 
-  // const latestEpochRefunded = await fetchLastEpochRefunded(skipCheck);
-  // let startEpoch = latestEpochRefunded
-  //   ? latestEpochRefunded + 1
-  //   : GasRefundGenesisEpoch;
+  const _allChainsRefunds: AddressRewards[] = Object.keys(
+    userRewardsOnStakingChains,
+  )
+    .map(account =>
+      Object.entries(userRewardsOnStakingChains[account]).map(
+        ([chainId, { amount, breakDownGRP }]) => ({
+          chainId: +chainId,
+          amount,
+          breakDownGRP,
+          account,
+        }),
+      ),
+    )
+    .flat()
+    .filter(entry => !entry.amount.eq(0));
 
-  // assert(
-  //   startEpoch >= GasRefundGenesisEpoch,
-  //   'cannot compute grp merkle data for epoch < genesis_epoch',
-  // );
+  const withPIP38 = composeRefundWithPIP38Refunds(epoch, _allChainsRefunds);
 
-  // const currentEpoch = getCurrentEpoch();
+  const allChainsRefunds = await composeWithAmountsByProgram(epoch, withPIP38);
 
-  // for (let epoch = startEpoch; epoch <= currentEpoch; epoch++) {
-  //   const { isEpochEnded } = await resolveEpochCalcTimeInterval(epoch);
+  const userGRPChainsBreakDowns = allChainsRefunds.reduce<{
+    [stakeChainId: number]: AddressRewardsMapping;
+  }>((acc, curr) => {
+    if (!acc[curr.chainId]) acc[curr.chainId] = {};
+    acc[curr.chainId][curr.account] = {
+      byChain: curr.breakDownGRP,
+      amountsByProgram: curr.amountsByProgram,
+    };
 
-  //   if (!skipCheck && !isEpochEnded) {
-  //     return logger.warn(
-  //       `Epoch ${epoch} has not ended or full onchain data not available yet`,
-  //     );
-  //   }
+    return acc;
+  }, {});
 
-  //   await computeAndStoreMerkleTree(epoch);
-  // }
-  await computeAndStoreMerkleTree(41);
-}
-
-startComputingMerkleTreesAllChains()
-  .then(() => process.exit(0))
-  .catch(err => {
-    logger.error('computeMerkleTreesAllChains exited with error:', err);
-    process.exit(1);
+  // debugger;
+  const merkleTreeData = await computeMerkleData({
+    userRewards: allChainsRefunds,
+    epoch,
+    userGRPChainsBreakDowns,
   });
+
+  // TODO ADD MORE SANITY CHECK
+
+  merkleTreeData.forEach(({ chainId, merkleTree }) => {
+    merkleTree.merkleProofs.forEach(l => {
+      const GRPChainBreakDown =
+        userGRPChainsBreakDowns[+chainId][l.address].byChain;
+      if (GRPChainBreakDown) {
+        l.GRPChainBreakDown = stringifyGRPChainBreakDown(GRPChainBreakDown);
+        l.amountsByProgram =
+          userGRPChainsBreakDowns[+chainId][l.address].amountsByProgram;
+      }
+    });
+  });
+  debugger;
+  return merkleTreeData;
+}
