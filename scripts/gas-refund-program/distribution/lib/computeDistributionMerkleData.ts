@@ -232,11 +232,9 @@ export async function computeDistributionMerkleData(
     return acc;
   }, {});
 
-  // debugger;
   const merkleTreeData = await computeMerkleData({
     userRewards: allChainsRefunds,
     epoch,
-    userGRPChainsBreakDowns,
   });
 
   // TODO ADD MORE SANITY CHECK
@@ -252,6 +250,5 @@ export async function computeDistributionMerkleData(
       }
     });
   });
-  debugger;
   return merkleTreeData;
 }

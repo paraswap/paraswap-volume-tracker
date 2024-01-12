@@ -8,6 +8,7 @@ import { MerkleTree } from 'merkletreejs';
 import { GasRefundTransaction } from '../../../../src/models/GasRefundTransaction';
 import BigNumber from 'bignumber.js';
 import { MerkleTreeAndChain } from './types';
+import { assert } from 'ts-essentials';
 
 export type MinGasRefundTransaction = Pick<
   GasRefundTransaction,
@@ -17,7 +18,6 @@ export type MinGasRefundTransaction = Pick<
 export async function computeMerkleData({
   epoch,
   userRewards,
-  userGRPChainsBreakDowns,
 }: {
   epoch: number;
   userRewards: {
@@ -25,9 +25,6 @@ export async function computeMerkleData({
     amount: BigNumber;
     chainId: number;
   }[];
-  userGRPChainsBreakDowns: {
-    [stakeChainId: number]: AddressRewardsMapping;
-  };
 }): Promise<MerkleTreeAndChain[]> {
   const userRefundsByChain = userRewards.reduce<{
     [chainId: number]: {
@@ -37,11 +34,10 @@ export async function computeMerkleData({
     }[];
   }>((acc, curr) => {
     if (!acc[curr.chainId]) acc[curr.chainId] = [];
-    if (curr.amount.isLessThan(0)) {
-      throw new Error(
-        `Negative amount for ${curr.account} on chain ${curr.chainId}`,
-      );
-    }
+    assert(
+      curr.amount.isGreaterThanOrEqualTo(0),
+      `Negative amount for ${curr.account} on chain ${curr.chainId}`,
+    );
     if (!curr.amount.isZero()) acc[curr.chainId].push(curr);
 
     return acc;
