@@ -36,6 +36,7 @@ export async function storeDistributionDataInDB(
           proof: merkleProofs,
           amount,
           GRPChainBreakDown,
+          amountsByProgram,
         } = leaf;
         assert(
           account == account.toLowerCase(),
@@ -49,7 +50,7 @@ export async function storeDistributionDataInDB(
           isCompleted: true,
           amount,
           GRPChainBreakDown,
-          amountsByProgram: {},
+          amountsByProgram,
         };
       },
     );
