@@ -13,7 +13,7 @@ export async function storeDistributionDataInDB(
 ) {
   const {
     root: { epoch, merkleRoot, totalAmount },
-    leaves,
+    merkleProofs: leaves,
   } = merkleTree;
 
   await database.sequelize?.transaction(async t => {
@@ -33,9 +33,10 @@ export async function storeDistributionDataInDB(
       (leaf: GasRefundMerkleProof) => {
         const {
           address: account,
-          merkleProofs,
+          proof: merkleProofs,
           amount,
           GRPChainBreakDown,
+          amountsByProgram,
         } = leaf;
         assert(
           account == account.toLowerCase(),
@@ -49,6 +50,7 @@ export async function storeDistributionDataInDB(
           isCompleted: true,
           amount,
           GRPChainBreakDown,
+          amountsByProgram,
         };
       },
     );

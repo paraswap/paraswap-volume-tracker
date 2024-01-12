@@ -1,25 +1,15 @@
-import axios from 'axios';
 import { assert } from 'ts-essentials';
 import { GasRefundV2EpochFlip } from '../../../src/lib/gas-refund/gas-refund';
+import { fetchAccountsScores } from '../../../src/lib/utils/staking-supervisor';
 
 export type ParaBoostPerAccount = { [account: string]: number };
-type MinParaBoostData = {
-  account: string;
-  paraBoostFactor: string;
-};
 
 async function fetchParaBoostPerAccount(epoch1: number) {
   const epoch2 = epoch1 - GasRefundV2EpochFlip;
 
   assert(epoch2 >= 0, 'epoch2 can never be negative');
-
-  const { data } = await axios.get<MinParaBoostData[]>(
-    `https://api.paraswap.io/stk/paraboost/list?epoch=${epoch2}`,
-  );
-  assert(
-    data.length > 0,
-    'logic error: unlikely that no paraboost was recorded',
-  );
+    
+  const data = await fetchAccountsScores(epoch2);
 
   const paraBoostFactorByAccount = data.reduce<ParaBoostPerAccount>(
     (acc, paraBoostData) => {

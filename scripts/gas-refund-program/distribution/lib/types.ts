@@ -1,4 +1,5 @@
 import type BigNumber from 'bignumber.js';
+import { AmountsByProgram } from '../../../../src/types';
 
 export type Claimable = {
   address: string;
@@ -12,16 +13,17 @@ export type MerkleRoot = {
 };
 
 export type GasRefundMerkleProof = {
-  merkleProofs: string[];
+  proof: string[];
   address: string;
   amount: string;
   epoch: number;
   GRPChainBreakDown: { [chainId: number]: string };
+  amountsByProgram: Record<string, string>;
 };
 
 export type GasRefundMerkleTree = {
   root: MerkleRoot;
-  leaves: GasRefundMerkleProof[];
+  merkleProofs: GasRefundMerkleProof[];
 };
 
 export type MerkleTreeAndChain = {
@@ -49,7 +51,8 @@ export type AddressRewards = {
 
 export type AddressRewardsMapping = {
   [account: string]: {
-    [grpChainId: number]: BigNumber;
+    amountsByProgram: AmountsByProgram;
+    byChain: { [grpChainId: number]: BigNumber };
   };
 };
 

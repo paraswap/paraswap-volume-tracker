@@ -7,6 +7,7 @@
   "author": "Paraswap <shresth@paraswap.io>",
   "private": true,
   "scripts": {
+    "migrate": "npx sequelize-cli db:migrate",
     "dev": "NODE_ENV=development nodemon",
     "build": "NODE_ENV=production tsc",
     "build:grp": "NODE_ENV=production tsc --project scripts/gas-refund-program/tsconfig.json",

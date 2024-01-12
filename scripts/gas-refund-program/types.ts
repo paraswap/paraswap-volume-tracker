@@ -1,4 +1,5 @@
 import BigNumber from 'bignumber.js';
+import { AmountsByProgram } from '../../src/types';
 
 export type HistoricalPrice = { [timestamp: string]: number };
 

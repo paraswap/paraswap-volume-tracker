@@ -1,9 +1,14 @@
-import { Claimable, GasRefundMerkleProof } from './types';
+import {
+  AddressRewardsMapping,
+  Claimable,
+  GasRefundMerkleProof,
+} from './types';
 import { utils, logger } from 'ethers';
 import { MerkleTree } from 'merkletreejs';
 import { GasRefundTransaction } from '../../../../src/models/GasRefundTransaction';
 import BigNumber from 'bignumber.js';
 import { MerkleTreeAndChain } from './types';
+import { assert } from 'ts-essentials';
 
 export type MinGasRefundTransaction = Pick<
   GasRefundTransaction,
@@ -29,7 +34,11 @@ export async function computeMerkleData({
     }[];
   }>((acc, curr) => {
     if (!acc[curr.chainId]) acc[curr.chainId] = [];
-    acc[curr.chainId].push(curr);
+    assert(
+      curr.amount.isGreaterThanOrEqualTo(0),
+      `Negative amount for ${curr.account} on chain ${curr.chainId}`,
+    );
+    if (!curr.amount.isZero()) acc[curr.chainId].push(curr);
 
     return acc;
   }, {});
@@ -43,7 +52,7 @@ export async function computeMerkleData({
       }),
     )
     .filter(
-      chainDistribution => chainDistribution.merkleTree.leaves.length > 0,
+      chainDistribution => chainDistribution.merkleTree.merkleProofs.length > 0,
     );
 }
 
@@ -89,8 +98,10 @@ function computeMerkleDataForChain({
       address,
       amount,
       epoch,
-      merkleProofs: proofs,
+      proof: proofs,
+      // TODO revisit
       GRPChainBreakDown: {},
+      amountsByProgram: {},
     };
   });
 
@@ -101,7 +112,7 @@ function computeMerkleDataForChain({
       epoch,
     },
     chainId,
-    leaves: merkleLeaves,
+    merkleProofs: merkleLeaves,
   };
 
   logger.info(

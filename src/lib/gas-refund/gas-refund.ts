@@ -8,6 +8,7 @@ import {
   CHAIN_ID_POLYGON,
 } from '../constants';
 import { isTruthy } from '../utils';
+import { AmountsByProgram } from '../../types';
 
 export const isMainnetStaking = true; // TODO FIXME move to env var
 
@@ -116,6 +117,7 @@ export interface GasRefundParticipantData {
   merkleProofs: string[];
   isCompleted: boolean;
   GRPChainBreakDown: GRPChainBreakDown<string>;
+  amountsByProgram: AmountsByProgram;
 }
 
 export enum TransactionStatus {

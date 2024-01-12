@@ -20,6 +20,7 @@ import {
   ChainRewardsMapping,
   MerkleTreeAndChain,
 } from './types';
+import { composeWithAmountsByProgram } from '../../../../src/lib/utils/aura-rewards';
 
 function asserted<T>(val: T) {
   assert(val !== null && val !== undefined, 'val should not be null or undef');
@@ -215,16 +216,18 @@ export async function computeDistributionMerkleData(
     .flat()
     .filter(entry => !entry.amount.eq(0));
 
-  const allChainsRefunds = composeRefundWithPIP38Refunds(
-    epoch,
-    _allChainsRefunds,
-  );
+  const withPIP38 = composeRefundWithPIP38Refunds(epoch, _allChainsRefunds);
+
+  const allChainsRefunds = await composeWithAmountsByProgram(epoch, withPIP38);
 
   const userGRPChainsBreakDowns = allChainsRefunds.reduce<{
     [stakeChainId: number]: AddressRewardsMapping;
   }>((acc, curr) => {
     if (!acc[curr.chainId]) acc[curr.chainId] = {};
-    acc[curr.chainId][curr.account] = curr.breakDownGRP;
+    acc[curr.chainId][curr.account] = {
+      byChain: curr.breakDownGRP,
+      amountsByProgram: curr.amountsByProgram,
+    };
 
     return acc;
   }, {});
@@ -237,13 +240,15 @@ export async function computeDistributionMerkleData(
   // TODO ADD MORE SANITY CHECK
 
   merkleTreeData.forEach(({ chainId, merkleTree }) => {
-    merkleTree.leaves.forEach(l => {
-      const GRPChainBreakDown = userGRPChainsBreakDowns[+chainId][l.address];
+    merkleTree.merkleProofs.forEach(l => {
+      const GRPChainBreakDown =
+        userGRPChainsBreakDowns[+chainId][l.address].byChain;
       if (GRPChainBreakDown) {
         l.GRPChainBreakDown = stringifyGRPChainBreakDown(GRPChainBreakDown);
+        l.amountsByProgram =
+          userGRPChainsBreakDowns[+chainId][l.address].amountsByProgram;
       }
     });
   });
-
   return merkleTreeData;
 }

@@ -23,6 +23,7 @@ import {
 } from '../../models/sePSPMigrations';
 import { getCurrentEpoch, resolveV2EpochNumber } from './epoch-helpers';
 import { grp2CConfigParticularities } from './config';
+import { AmountsByProgram } from '../../types';
 
 interface MerkleRedeem extends Contract {
   callStatic: {
@@ -128,6 +129,9 @@ type MigrationData =
       hasMigrated: true;
     } & SePSPMigrationsData);
 
+type GasRefundClaimWithAmountsByProgram = GasRefundClaim & {
+  amountsByProgram?: AmountsByProgram | null;
+};
 export class GasRefundApi {
   merkleRedem: MerkleRedeem;
   merkleRedemSePSP1?: MerkleRedeem;
@@ -185,33 +189,13 @@ export class GasRefundApi {
     };
   }
 
-  async _fetchMerkleData(address: string): Promise<GasRefundClaim[]> {
-    const grpDataResult: GasRefundClaim[] = (
+  async _fetchMerkleData(
+    address: string,
+  ): Promise<GasRefundClaimWithAmountsByProgram[]> {
+    const grpDataResult: GasRefundClaimWithAmountsByProgram[] = (
       await Promise.all([
-        Database.sequelize.query<GasRefundClaim>(MERKLE_DATA_SQL_QUERY, {
-          type: Sequelize.QueryTypes.SELECT,
-          replacements: {
-            address,
-            chainId: this.network,
-          },
-        }),
-        (
-          await GasRefundParticipation.findAll({
-            raw: true,
-            where: {
-              address,
-              chainId: this.network,
-              epoch: {
-                [Sequelize.Op.gte]: EPOCH_WHEN_OPTIMISM_STAKING_ENABLED,
-              },
-            },
-          })
-        ).map(m => ({
-          refundedAmountPSP: m.amount,
-          epoch: m.epoch,
-          address: m.address,
-          merkleProofs: m.merkleProofs,
-        })),
+        loadOldEpochs(address, this.network),
+        loadNewEpochs(address, this.network),
       ])
     ).flat();
 
@@ -367,11 +351,6 @@ export class GasRefundApi {
       totalClaimable: totalClaimable.toString(),
       pendingClaimable: totalPendingRefundAmount.toString(),
       pendingRefundBreakdownPerEpoch,
-      // txParams: {
-      //   to: this.merkleRedem.address,
-      //   data,
-      //   chainId: this.network,
-      // },
     };
   }
 
@@ -426,4 +405,39 @@ export async function loadLatestDistributedEpoch(): Promise<number> {
     },
   );
   return result[0].latestDistributedEpoch;
+}
+
+async function loadOldEpochs(address: string, chainId: number) {
+  return Database.sequelize.query<GasRefundClaim>(MERKLE_DATA_SQL_QUERY, {
+    type: Sequelize.QueryTypes.SELECT,
+    replacements: {
+      address,
+      chainId,
+    },
+  });
+}
+
+async function loadNewEpochs(address: string, chainId: number) {
+  const newEpochs = await GasRefundParticipation.findAll({
+    raw: true,
+    where: {
+      address,
+      chainId,
+      epoch: {
+        [Sequelize.Op.gte]: EPOCH_WHEN_OPTIMISM_STAKING_ENABLED,
+      },
+    },
+  });
+
+  return Promise.all(
+    newEpochs.map(async m => {
+      return {
+        refundedAmountPSP: m.amount,
+        epoch: m.epoch,
+        address: m.address,
+        merkleProofs: m.merkleProofs,
+        amountsByProgram: m.amountsByProgram,
+      };
+    }),
+  );
 }

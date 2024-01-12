@@ -91,7 +91,7 @@ async function genClaimDistributionTxs(
   const {
     chainId,
     merkleTree: {
-      leaves: proofs,
+      merkleProofs: proofs,
       root: { epoch },
     },
   } = merkleDistributionData;
@@ -110,7 +110,10 @@ async function genClaimDistributionTxs(
     .concat(sortedClaims.slice(-CLAIMS_LENGHT));
 
   const txs = someClaims.flatMap(
-    ({ address: account, amount: claimableAmount, merkleProofs }, index) =>
+    (
+      { address: account, amount: claimableAmount, proof: merkleProofs },
+      index,
+    ) =>
       [
         withBalanceCheck && genSnapshotBalanceTx(+chainId, sePSP1, account),
         {
