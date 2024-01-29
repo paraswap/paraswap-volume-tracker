@@ -43,7 +43,7 @@ export async function computeMerkleData({
       }),
     )
     .filter(
-      chainDistribution => chainDistribution.merkleTree.leaves.length > 0,
+      chainDistribution => chainDistribution.merkleTree.merkleProofs.length > 0,
     );
 }
 
@@ -89,7 +89,7 @@ function computeMerkleDataForChain({
       address,
       amount,
       epoch,
-      merkleProofs: proofs,
+      proof: proofs,
       GRPChainBreakDown: {},
     };
   });
@@ -101,7 +101,7 @@ function computeMerkleDataForChain({
       epoch,
     },
     chainId,
-    leaves: merkleLeaves,
+    merkleProofs: merkleLeaves,
   };
 
   logger.info(

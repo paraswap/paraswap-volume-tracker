@@ -12,7 +12,7 @@ export type MerkleRoot = {
 };
 
 export type GasRefundMerkleProof = {
-  merkleProofs: string[];
+  proof: string[];
   address: string;
   amount: string;
   epoch: number;
@@ -21,7 +21,7 @@ export type GasRefundMerkleProof = {
 
 export type GasRefundMerkleTree = {
   root: MerkleRoot;
-  leaves: GasRefundMerkleProof[];
+  merkleProofs: GasRefundMerkleProof[];
 };
 
 export type MerkleTreeAndChain = {
