@@ -13,7 +13,7 @@ export async function storeDistributionDataInDB(
 ) {
   const {
     root: { epoch, merkleRoot, totalAmount },
-    leaves,
+    merkleProofs,
   } = merkleTree;
 
   await database.sequelize?.transaction(async t => {
@@ -29,14 +29,9 @@ export async function storeDistributionDataInDB(
       },
     );
 
-    const epochDataToUpdate: GasRefundParticipantData[] = leaves.map(
+    const epochDataToUpdate: GasRefundParticipantData[] = merkleProofs.map(
       (leaf: GasRefundMerkleProof) => {
-        const {
-          address: account,
-          merkleProofs,
-          amount,
-          GRPChainBreakDown,
-        } = leaf;
+        const { address: account, proof, amount, GRPChainBreakDown } = leaf;
         assert(
           account == account.toLowerCase(),
           `LOGIC ERROR: ${account} should be lowercased`,
@@ -45,7 +40,7 @@ export async function storeDistributionDataInDB(
           epoch,
           address: account,
           chainId: chainId,
-          merkleProofs,
+          merkleProofs: proof,
           isCompleted: true,
           amount,
           GRPChainBreakDown,
