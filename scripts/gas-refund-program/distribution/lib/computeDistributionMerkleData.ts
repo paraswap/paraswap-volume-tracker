@@ -213,7 +213,12 @@ export async function computeDistributionMerkleData(
       ),
     )
     .flat()
-    .filter(entry => !entry.amount.eq(0));
+    .filter(
+      entry =>
+        !entry.amount.eq(0) &&
+        // isNaN check to cover unstakes
+        !entry.amount.isNaN(),
+    );
 
   const allChainsRefunds = composeRefundWithPIP38Refunds(
     epoch,
@@ -237,7 +242,7 @@ export async function computeDistributionMerkleData(
   // TODO ADD MORE SANITY CHECK
 
   merkleTreeData.forEach(({ chainId, merkleTree }) => {
-    merkleTree.leaves.forEach(l => {
+    merkleTree.merkleProofs.forEach(l => {
       const GRPChainBreakDown = userGRPChainsBreakDowns[+chainId][l.address];
       if (GRPChainBreakDown) {
         l.GRPChainBreakDown = stringifyGRPChainBreakDown(GRPChainBreakDown);
