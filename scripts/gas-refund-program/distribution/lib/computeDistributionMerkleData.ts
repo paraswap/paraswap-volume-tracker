@@ -78,9 +78,8 @@ async function computeStakingChainsRefundedAmounts(epoch: number) {
 
   const stakeResolvers: { [chainId: number]: StakeV2Resolver } = {};
 
-  const { startCalcTime, endCalcTime } = await resolveEpochCalcTimeInterval(
-    epoch,
-  );
+  const { startCalcTime, endCalcTime } =
+    await resolveEpochCalcTimeInterval(epoch);
   for (const chainId of STAKING_CHAIN_IDS) {
     stakeResolvers[chainId] = StakeV2Resolver.getInstance(chainId);
 
@@ -195,9 +194,9 @@ async function computeStakingChainsRefundedAmounts(epoch: number) {
 export async function computeDistributionMerkleData(
   epoch: number,
 ): Promise<MerkleTreeAndChain[]> {
-  const userRewardsOnStakingChains = await computeStakingChainsRefundedAmounts(
-    epoch,
-  );
+  throw new Error('REENABLE POLYGON BEFORE DISTRIBUTING');
+  const userRewardsOnStakingChains =
+    await computeStakingChainsRefundedAmounts(epoch);
 
   const _allChainsRefunds: AddressRewards[] = Object.keys(
     userRewardsOnStakingChains,

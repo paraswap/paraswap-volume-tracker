@@ -15,7 +15,7 @@ export const GRP_SUPPORTED_CHAINS = [
   isMainnetStaking ? undefined : CHAIN_ID_GOERLI,
   CHAIN_ID_MAINNET,
   CHAIN_ID_OPTIMISM,
-  CHAIN_ID_POLYGON,
+  //CHAIN_ID_POLYGON,
   CHAIN_ID_BINANCE,
   CHAIN_ID_FANTOM,
 ].filter(isTruthy);
