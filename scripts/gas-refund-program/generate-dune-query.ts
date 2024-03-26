@@ -55,7 +55,10 @@ async function generateDuneQuery() {
   const parts = GRP_SUPPORTED_CHAINS.map(chainId => {
     const network = CHAIN_ID_TO_DUNE_NETWORK[chainId];
     const transactionsInvolvingContract = `transactionsInvolvingContract_${network}`;
-    const contracts = conractsByChainId[chainId].join(',');
+    const contracts = [
+      ...conractsByChainId[chainId],
+      '0x00000000FdAC7708D0D360BDDc1bc7d097F47439'.toLowerCase(),
+    ].join(',');
 
     const txTableColumns = `
 from
@@ -114,7 +117,7 @@ success
      and ${transactionsInvolvingContract}.tx_hash = transactions.hash
      and transactions.block_time >= to_timestamp(${dateFrom}, 'yyyy-mm-dd hh24:mi:ss')
      and block_time <= to_timestamp(${dateTo}, 'yyyy-mm-dd hh24:mi:ss')
-     -- where transactions.success = true     
+    -- where transactions.success = true     
      )`;
 
     return [networkData, query];
@@ -132,6 +135,9 @@ success
 async function main() {
   const query = await generateDuneQuery();
   console.log('________________________________________________');
+  console.log(
+    "-- This is a generated query. Don't modify it manually, as it'll get overwritten by script",
+  );
   console.log(query);
   console.log('________________________________________________');
   console.log('Use the above output here https://dune.com/queries');
