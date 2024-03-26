@@ -16,6 +16,8 @@
     "gas-refund:prod:compute-gas-refund-save-db": "node scripts/gas-refund-program/computeGasRefund.js",
     "gas-refund:computeDistributionDataAndPersistDB": "patch-package && NODE_ENV=development ts-node scripts/gas-refund-program/distribution/computeDistributionDataAndPersistDB",
     "gas-refund:computeDistributionFilesAndPersistIPFS": "patch-package && NODE_ENV=development ts-node scripts/gas-refund-program/distribution/computeDistributionFilesAndPersistIPFS",
+    "gas-refund:generate-dune-query": "patch-package && NODE_ENV=development ts-node scripts/gas-refund-program/generate-dune-query",
+    "gas-refund:index-dune-transactions": "patch-package && NODE_ENV=development NODE_OPTIONS='--max-old-space-size=8200' ts-node scripts/gas-refund-program/index-dune-transactions",
     "test": "jest"
   },
   "husky": {
@@ -59,6 +61,7 @@
     "@types/pg": "^8.6.1",
     "axios": "0.24.0",
     "axios-cache-adapter": "^2.7.3",
+    "axios-curlirize": "1.3.7",
     "axios-rate-limit": "^1.3.0",
     "axios-retry": "^3.2.4",
     "bignumber.js": "9.0.1",

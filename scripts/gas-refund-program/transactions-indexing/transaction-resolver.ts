@@ -11,7 +11,11 @@
  * is resolved, that is the response of the code in this file.
  */
 import { SPSPAddresses } from '../../../src/lib/staking/spsp-helper';
-import { covalentGetTXsForContractV3 } from './txs-covalent';
+import {
+  constructCovalentAddressToTransaction,
+  covalentGetTXsForContractV3,
+  duneToCovalentLike,
+} from './txs-covalent';
 import { getTransactionGasUsed } from '../../../src/lib/utils/covalent';
 import StakesTracker from '../staking/stakes-tracker';
 import { getSuccessfulSwaps } from './swaps-subgraph';
@@ -36,6 +40,8 @@ import { getMigrationsTxs } from '../staking/2.0/migrations';
 import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/utils';
 import { grp2ConfigByChain } from '../../../src/lib/gas-refund/config';
 import { assert } from 'ts-essentials';
+import { DuneTransaction } from '../../../src/models/DuneTransaction';
+import { Op } from 'sequelize';
 
 type GetAllTXsInput = {
   startTimestamp: number;
@@ -107,14 +113,27 @@ export const getAllTXs = async ({
   contractAddress,
 }: GetAllTXsInput): Promise<GasRefundTransaction[]> => {
   // fetch swaps and contract (staking pools, safety module) txs
-  if (contractAddress === AUGUSTUS_V5_ADDRESS && chainId !== CHAIN_ID_OPTIMISM)
-    return getSwapTXs({
-      epoch,
-      chainId,
-      startTimestamp,
-      endTimestamp,
-      epochEndTimestamp,
-    });
+  if (
+    contractAddress === AUGUSTUS_V5_ADDRESS &&
+    chainId !== CHAIN_ID_OPTIMISM
+  ) {
+    const swapTxs = (
+      await DuneTransaction.findAll({
+        where: {
+          chainId,
+          to: contractAddress,
+          block_timestamp: {
+            [Op.gte]: startTimestamp,
+            [Op.lte]: endTimestamp,
+          },
+          success: true,
+        },
+      })
+    )
+      .map(duneToCovalentLike)
+      .map(constructCovalentAddressToTransaction(contractAddress, chainId));
+    return swapTxs;
+  }
 
   if (contractAddress === MIGRATION_SEPSP2_100_PERCENT_KEY) {
     return getMigrationsTxs({
@@ -125,13 +144,22 @@ export const getAllTXs = async ({
     });
   }
 
-  return getTransactionForContract({
-    epoch,
-    chainId,
-    startTimestamp,
-    endTimestamp,
-    contractAddress,
-  });
+  const filteredTxs = (
+    await DuneTransaction.findAll({
+      where: {
+        chainId,
+        to: contractAddress,
+        block_timestamp: {
+          [Op.gte]: startTimestamp,
+          [Op.lte]: endTimestamp,
+        },
+      },
+    })
+  )
+    .map(duneToCovalentLike)
+    .map(constructCovalentAddressToTransaction(contractAddress, chainId));
+
+  return filteredTxs;
 };
 
 /**
@@ -146,7 +174,9 @@ type GetSwapTXsInput = {
   endTimestamp: number;
   epochEndTimestamp: number;
 };
-export const getSwapTXs = async ({
+
+// not used if replaced by dune
+const getSwapTXs = async ({
   epoch,
   chainId,
   startTimestamp,
