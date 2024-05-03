@@ -6,6 +6,8 @@ import axiosRetry, {
 } from 'axios-retry';
 import * as _rateLimit from 'axios-rate-limit';
 import { IAxiosCacheAdapterOptions, setupCache } from 'axios-cache-adapter';
+// @ts-ignore // was yelling at missing types, then an issue with ES mods
+const axiosCurlirize = require('axios-curlirize');
 
 type rateLimitOptions = {
   maxRequests?: number;
@@ -45,7 +47,10 @@ type Options = {
   cacheOptions?: IAxiosCacheAdapterOptions;
 };
 
-export const constructHttpClient = (options?: Options) => {
+export const constructHttpClient = (
+  options?: Options,
+  shouldCurlize = false,
+) => {
   const httpsAgent = new https.Agent({
     keepAlive: true,
     ...(options?.httpsAgent || {}),
@@ -76,6 +81,8 @@ export const constructHttpClient = (options?: Options) => {
     shouldResetTimeout: true,
     ...(options?.retryOptions || {}),
   });
+
+  if (shouldCurlize) axiosCurlirize(client);
 
   return client;
 };
