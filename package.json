@@ -17,6 +17,8 @@
     "gas-refund:prod:compute-gas-refund-save-db": "node scripts/gas-refund-program/computeGasRefund.js",
     "gas-refund:computeDistributionDataAndPersistDB": "patch-package && NODE_ENV=development ts-node scripts/gas-refund-program/distribution/computeDistributionDataAndPersistDB",
     "gas-refund:computeDistributionFilesAndPersistIPFS": "patch-package && NODE_ENV=development ts-node scripts/gas-refund-program/distribution/computeDistributionFilesAndPersistIPFS",
+    "migrate:up": "source .env && DATABASE_URL=$DATABASE_URL npx sequelize-cli db:migrate # <- executes any new migrations that are not in sequalize meta table yet, sorted alphabetically",
+    "migrate:undo": "source .env && DATABASE_URL=$DATABASE_URL npx sequelize-cli db:migrate:undo # <- undoes the last migration from sequalize meta table, sorted alphabetically",
     "test": "jest"
   },
   "husky": {
