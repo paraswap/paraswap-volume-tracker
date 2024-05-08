@@ -99,7 +99,6 @@ function computeMerkleDataForChain({
       amount,
       epoch,
       proof: proofs,
-      // TODO revisit
       GRPChainBreakDown: {},
       amountsByProgram: {},
     };

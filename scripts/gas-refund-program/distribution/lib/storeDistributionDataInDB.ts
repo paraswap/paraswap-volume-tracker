@@ -13,7 +13,7 @@ export async function storeDistributionDataInDB(
 ) {
   const {
     root: { epoch, merkleRoot, totalAmount },
-    merkleProofs: leaves,
+    merkleProofs,
   } = merkleTree;
 
   await database.sequelize?.transaction(async t => {
@@ -29,7 +29,7 @@ export async function storeDistributionDataInDB(
       },
     );
 
-    const epochDataToUpdate: GasRefundParticipantData[] = leaves.map(
+    const epochDataToUpdate: GasRefundParticipantData[] = merkleProofs.map(
       (leaf: GasRefundMerkleProof) => {
         const {
           address: account,

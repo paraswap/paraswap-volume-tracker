@@ -214,7 +214,12 @@ export async function computeDistributionMerkleData(
       ),
     )
     .flat()
-    .filter(entry => !entry.amount.eq(0));
+    .filter(
+      entry =>
+        !entry.amount.eq(0) &&
+        // isNaN check to cover unstakes
+        !entry.amount.isNaN(),
+    );
 
   const withPIP38 = composeRefundWithPIP38Refunds(epoch, _allChainsRefunds);
 
