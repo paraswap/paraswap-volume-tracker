@@ -12,7 +12,7 @@ import { assert } from 'ts-essentials';
 
 const config: Record<number, string> = {
   // @TODO: update this config
-  42: '0',
+  46: '0',
 };
 
 const AURA_REWARDS_START_EPOCH_OLD_STYLE = Math.min(
@@ -69,6 +69,11 @@ export async function computeUserRewardWei(
 
   // for epochs before Aura rewards started, return 0
   if (epochOldStyle < AURA_REWARDS_START_EPOCH_OLD_STYLE) return '0';
+
+  assert(
+    config[epochOldStyle],
+    `config for epoch [${epochOldStyle}] is not defined`,
+  );
 
   const epoch = epochOldStyle - GasRefundV2EpochFlip;
   const { byAccountLowercase, totalScore } = await fetchPastEpochData(epoch);
