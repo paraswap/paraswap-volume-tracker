@@ -101,7 +101,12 @@ export const getContractAddresses = ({
     );
   }
 
-  return contractAddressesByChain[chainId] ?? [AUGUSTUS_V5_ADDRESS];
+  const result = contractAddressesByChain[chainId] ?? [AUGUSTUS_V5_ADDRESS];
+
+  return [
+    ...result,
+    '0x00000000FdAC7708D0D360BDDc1bc7d097F47439'.toLowerCase(), // augustus 6.0
+  ];
 };
 
 export const getAllTXs = async ({
