@@ -47,7 +47,10 @@ type Options = {
   cacheOptions?: IAxiosCacheAdapterOptions;
 };
 
-export const constructHttpClient = (options?: Options) => {
+export const constructHttpClient = (
+  options?: Options,
+  shouldCurlize = false,
+) => {
   const httpsAgent = new https.Agent({
     keepAlive: true,
     ...(options?.httpsAgent || {}),
@@ -80,6 +83,7 @@ export const constructHttpClient = (options?: Options) => {
   });
 
   if (process.env.NODE_ENV === 'development') axiosCurlirize(client);
+  if (shouldCurlize) axiosCurlirize(client);
 
   return client;
 };
