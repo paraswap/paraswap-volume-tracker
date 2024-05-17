@@ -20,7 +20,144 @@ import {
   ChainRewardsMapping,
   MerkleTreeAndChain,
 } from './types';
-import { composeWithAmountsByProgram } from '../../../../src/lib/utils/aura-rewards';
+import { AddressRewardsWithAmountsByProgram } from '../../../../src/types';
+
+function combinePrograms(
+  input: { programName: string; rewards: AddressRewards[] }[],
+): AddressRewardsWithAmountsByProgram[] {
+  // TODO
+  return [];
+}
+
+// accepts list of distribution entries
+// returns [extended] list of distribution entries, the items of which are extended with "amount by program" and the amount adjusted respectively
+export async function composeWithAmountsByProgram(
+  epoch: number,
+  originalGasRefundProgramItems: AddressRewards[],
+): Promise<AddressRewardsWithAmountsByProgram[]> {
+  // 1. compute AddressRewards[] rows for Aura Program
+  // 2. combined AddressRewardsWithAmountsByProgram[] = Aura + GasRefund
+  return combinePrograms([
+    {
+      programName: 'paraswapGasRefund',
+      rewards: originalGasRefundProgramItems,
+    },
+    {
+      programName: 'auraRewards',
+      rewards: [], // TODO: compute Aura rewards
+    },
+  ]);
+  // // split optimism and non-optimism refunds
+  // const { optimismRefunds, nonOptimismRefunds } = data.reduce<{
+  //   optimismRefunds: AddressRewards[];
+  //   nonOptimismRefunds: AddressRewards[];
+  // }>(
+  //   (acc, curr) => {
+  //     if (curr.chainId === CHAIN_ID_OPTIMISM) {
+  //       acc.optimismRefunds.push(curr);
+  //     } else {
+  //       acc.nonOptimismRefunds.push(curr);
+  //     }
+  //     return acc;
+  //   },
+  //   {
+  //     optimismRefunds: [],
+  //     nonOptimismRefunds: [],
+  //   },
+  // );
+  // const optimismRefundEligibleStakers = new Set(
+  //   optimismRefunds.map(v => v.account),
+  // );
+  // // TODO: revisit going from byAccountLowercase to sePSP2StakersByAccountLowercase here
+  // const { sePSP2BalancesByUserByChain, totalSupplySePSP2 } =
+  //   await fetchPastEpochData(epoch - GasRefundV2EpochFlip);
+  // // prepare list of stakers that don't have refund on optimism
+  // const stakersNotEligibleForOptimismRefund = new Set(
+  //   // TODO: revisit going from byAccountLowercase to sePSP2StakersByAccountLowercase here
+  //   // will need to change the approach to distributing blockchain-wise (ethereum vs optimism)
+  //   // current code doesn't make sense any more and was updated just for the sake of interim commit
+  //   Object.keys(sePSP2BalancesByUserByChain)
+  //     // .map(v => v.account)
+  //     .filter(account => !optimismRefundEligibleStakers.has(account)),
+  // );
+  // const rewardsDistributionCounter = constructRewardsDistributionCounter();
+  // // compute resulting array by adjusting optimism refunds + creating optimism refunds for those who don't have it
+  // const adjustedOptimismRefunds: Promise<AddressRewardsWithAmountsByProgram[]> =
+  //   Promise.all(
+  //     optimismRefunds.map(async v => {
+  //       const aura = await computeUserRewardWei(
+  //         v.account,
+  //         epoch,
+  //         rewardsDistributionCounter,
+  //       );
+  //       return {
+  //         ...v,
+  //         amount: v.amount.plus(aura), // add aura rewards to gas refunds json
+  //         amountsByProgram: {
+  //           aura,
+  //           paraswapGasRefund: v.amount.toFixed(),
+  //         },
+  //       };
+  //     }),
+  //   );
+  // const additionalOptimismRefunds: Promise<
+  //   AddressRewardsWithAmountsByProgram[]
+  // > = Promise.all(
+  //   Array.from(stakersNotEligibleForOptimismRefund).map<
+  //     Promise<AddressRewardsWithAmountsByProgram>
+  //   >(async account => {
+  //     const aura = await computeUserRewardWei(
+  //       account,
+  //       epoch,
+  //       rewardsDistributionCounter,
+  //     );
+  //     return {
+  //       account,
+  //       amount: new BigNumber(aura),
+  //       chainId: CHAIN_ID_OPTIMISM,
+  //       amountsByProgram: {
+  //         aura,
+  //         paraswapGasRefund: '0', // the value is chain specific, relates to the `amount` field, not to total amount accross all networks
+  //       },
+  //       breakDownGRP: STAKING_CHAIN_IDS.reduce<Record<number, BigNumber>>(
+  //         (acc, curr) => {
+  //           acc[curr] = new BigNumber(0);
+  //           return acc;
+  //         },
+  //         {},
+  //       ),
+  //     };
+  //   }),
+  // );
+  // const nonOptimismRefundsWithAmountsByProgram: AddressRewardsWithAmountsByProgram[] =
+  //   nonOptimismRefunds.map(v => ({
+  //     ...v,
+  //     amountsByProgram: {
+  //       aura: '0',
+  //       paraswapGasRefund: v.amount.toFixed(),
+  //     },
+  //   }));
+  // const newAllRefunds = (
+  //   await Promise.all([adjustedOptimismRefunds, additionalOptimismRefunds])
+  // )
+  //   .flat()
+  //   .concat(nonOptimismRefundsWithAmountsByProgram);
+  // try {
+  //   assert(
+  //     rewardsDistributionCounter.rewardsAllocated == BigInt(config[epoch]),
+  //     'rewards distribution counter does not match the total rewards',
+  //   );
+  // } catch (e) {
+  //   debugger;
+  //   throw e;
+  // }
+  // assert(
+  //   rewardsDistributionCounter.sePSP2BalanceCleared ===
+  //     BigInt(totalSupplySePSP2),
+  //   'rewards distribution counter does not match the total supply of sePSP2',
+  // );
+  // return newAllRefunds;
+}
 
 function asserted<T>(val: T) {
   assert(val !== null && val !== undefined, 'val should not be null or undef');
