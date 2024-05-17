@@ -12,22 +12,22 @@ export type MerkleRoot = {
   epoch: number;
 };
 
-export type GasRefundMerkleProof = {
+export type RewardMerkleProof = {
   proof: string[];
   address: string;
   amount: string;
   epoch: number;
-  GRPChainBreakDown: { [chainId: number]: string };
-  amountsByProgram: Record<string, string>;
+  GRPChainBreakDown: { [chainId: number]: string } | null; // will be null if address is not eligible for GRP (could be if they are still eligible for Aura for example)
+  amountsByProgram: AmountsByProgram;
 };
 
-export type GasRefundMerkleTree = {
+export type RewardMerkleTree = {
   root: MerkleRoot;
-  merkleProofs: GasRefundMerkleProof[];
+  merkleProofs: RewardMerkleProof[];
 };
 
 export type MerkleTreeAndChain = {
-  merkleTree: GasRefundMerkleTree;
+  merkleTree: RewardMerkleTree;
   chainId: string;
 };
 
@@ -49,10 +49,10 @@ export type AddressRewards = {
   breakDownGRP: { [GRPChainId: number]: BigNumber };
 };
 
-export type AddressRewardsMapping = {
+export type AddressRewardsMappingWithMaybeGRP = {
   [account: string]: {
     amountsByProgram: AmountsByProgram;
-    byChain: { [grpChainId: number]: BigNumber };
+    byChain: { [grpChainId: number]: BigNumber } | null;
   };
 };
 

@@ -5,11 +5,11 @@ import { sliceCalls } from '../../../../src/lib/utils/helpers';
 import { GasRefundDistribution } from '../../../../src/models/GasRefundDistribution';
 import { GasRefundParticipation } from '../../../../src/models/GasRefundParticipation';
 import { GasRefundParticipantData } from '../../../../src/lib/gas-refund/gas-refund';
-import { GasRefundMerkleProof, GasRefundMerkleTree } from './types';
+import { RewardMerkleProof, RewardMerkleTree } from './types';
 
 export async function storeDistributionDataInDB(
   chainId: number,
-  merkleTree: GasRefundMerkleTree,
+  merkleTree: RewardMerkleTree,
 ) {
   const {
     root: { epoch, merkleRoot, totalAmount },
@@ -30,7 +30,7 @@ export async function storeDistributionDataInDB(
     );
 
     const epochDataToUpdate: GasRefundParticipantData[] = merkleProofs.map(
-      (leaf: GasRefundMerkleProof) => {
+      (leaf: RewardMerkleProof) => {
         const {
           address: account,
           proof: merkleProofs,

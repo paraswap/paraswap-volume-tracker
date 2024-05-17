@@ -1,8 +1,4 @@
-import {
-  AddressRewardsMapping,
-  Claimable,
-  GasRefundMerkleProof,
-} from './types';
+import { Claimable, RewardMerkleProof } from './types';
 import { utils, logger } from 'ethers';
 import { MerkleTree } from 'merkletreejs';
 import { GasRefundTransaction } from '../../../../src/models/GasRefundTransaction';
@@ -91,7 +87,7 @@ function computeMerkleDataForChain({
 
   const merkleRoot = merkleTree.getHexRoot();
 
-  const merkleLeaves: GasRefundMerkleProof[] = allLeaves.map(leaf => {
+  const merkleLeaves: RewardMerkleProof[] = allLeaves.map(leaf => {
     const { address, amount } = hashedClaimabled[leaf];
     const proofs = merkleTree.getHexProof(leaf);
     return {

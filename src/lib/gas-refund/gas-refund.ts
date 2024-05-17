@@ -116,7 +116,7 @@ export interface GasRefundParticipantData {
   chainId: number;
   merkleProofs: string[];
   isCompleted: boolean;
-  GRPChainBreakDown: GRPChainBreakDown<string>;
+  GRPChainBreakDown: GRPChainBreakDown<string> | null;
   amountsByProgram: AmountsByProgram;
 }
 
