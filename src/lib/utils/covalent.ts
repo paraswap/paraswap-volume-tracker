@@ -120,7 +120,7 @@ interface ErrorResponse {
   error_code: number; // e.g. 507
 }
 
-interface TokenItem {
+export interface TokenItem {
   contract_decimals: number;
   contract_name: string;
   contract_ticker_symbol: string;
