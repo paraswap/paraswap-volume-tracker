@@ -12,7 +12,7 @@ import { assert } from 'ts-essentials';
 
 const config: Record<number, string> = {
   // @TODO: update this config
-  46: '0',
+  47: new BigNumber(1e18).multipliedBy(1000_000).toFixed(),
 };
 
 const AURA_REWARDS_START_EPOCH_OLD_STYLE = Math.min(
@@ -21,32 +21,50 @@ const AURA_REWARDS_START_EPOCH_OLD_STYLE = Math.min(
 
 const logger = global.LOGGER('aura-rewards');
 
+// TotalSupplySePSP2 = TotalSupply(SePSP2[ethereum]) + TotalSupply(SePSP2[optimism])
+async function fetchTotalSupplySePSP2(epoch: number): Promise<string> {
+  throw new Error('TODO: Function not implemented.');
+  return '123';
+}
+
+// TODO: fetch all holders from covalent?
+// AllSePSP2Holders = Unique( Holders(SePSP2[ethereum]) + Holders(SePSP2[optimism]) )
+async function fetchSePSP2BalancesByUserByChain(
+  epoch: number,
+): Promise<Record<string, Record<1 | 10 | 'combined', string>>> {
+  throw new Error('TODO: Function not implemented.');
+  return {};
+}
 async function _fetchEpochData(epoch: number) {
   const list = await fetchAccountsScores(epoch);
 
-  const byAccountLowercase = list.reduce<Record<string, MinParaBoostData>>(
-    (acc, curr) => {
+  const sePSP2StakersByAccountLowercase = list.reduce<
+    Record<string, MinParaBoostData>
+  >((acc, curr) => {
+    if (Number(curr.sePSP2UnderlyingPSPBalance) > 0) {
       acc[curr.account.toLowerCase()] = curr;
-      return acc;
-    },
-    {},
+    }
+    return acc;
+  }, {});
+
+  const sePSP2BalancesByUserByChain = await fetchSePSP2BalancesByUserByChain(
+    epoch,
+  );
+
+  assertSePSP2BalancesIntegrity(
+    sePSP2StakersByAccountLowercase,
+    sePSP2BalancesByUserByChain,
   );
 
   logger.info(
     `loaded pre-requisites for computing Aura rewards for epoch ${epoch}`,
   );
 
-  // computing total with BigNumber instead of taking it from the endpoint
-  const totalScore = list
-    .reduce((acc, curr) => {
-      return acc.plus(curr.score);
-    }, new BigNumber(0))
-    .toFixed();
+  const totalSupplySePSP2 = await fetchTotalSupplySePSP2(epoch);
 
   return {
-    totalScore,
-    list,
-    byAccountLowercase,
+    totalSupplySePSP2,
+    sePSP2BalancesByUserByChain,
   };
 }
 
@@ -76,24 +94,30 @@ export async function computeUserRewardWei(
   );
 
   const epoch = epochOldStyle - GasRefundV2EpochFlip;
-  const { byAccountLowercase, totalScore } = await fetchPastEpochData(epoch);
+  const { sePSP2BalancesByUserByChain, totalSupplySePSP2 } =
+    await fetchPastEpochData(epoch);
 
-  const userScore = byAccountLowercase[user.toLowerCase()]?.score || '0';
+  // after going from byAccountLowercase to sePSP2BalancesByUserByChain here, it relies on sePSP2 balances rather than scores.
+  const userSePSP2Balance: {
+    1: string;
+    10: string;
+    combined: string;
+  } = sePSP2BalancesByUserByChain[user.toLowerCase()];
 
   const totalRewards = config[epochOldStyle] || '0';
   const remainingRewards = new BigNumber(totalRewards)
     .minus(counter.rewardsAllocated.toString())
     .toFixed();
-  const remainingTotalScore = new BigNumber(totalScore)
-    .minus(counter.scoreCleared.toString())
+  const remainingTotalScore = new BigNumber(totalSupplySePSP2)
+    .minus(counter.sePSP2BalanceCleared.toString())
     .toFixed();
-  const userRewards = new BigNumber(userScore)
+  const userRewards = new BigNumber(userSePSP2Balance.combined)
     .times(remainingRewards)
     .div(remainingTotalScore)
     .toFixed(0);
 
   // deduct from remaining rewards and scores - to guarantee that there is no remainder or excession
-  counter.count(BigInt(userScore), BigInt(userRewards));
+  counter.count(BigInt(userSePSP2Balance.combined), BigInt(userRewards));
 
   return userRewards;
 }
@@ -124,12 +148,16 @@ export async function composeWithAmountsByProgram(
   const optimismRefundEligibleStakers = new Set(
     optimismRefunds.map(v => v.account),
   );
-  const { byAccountLowercase, totalScore } = await fetchPastEpochData(
-    epoch - GasRefundV2EpochFlip,
-  );
+
+  // TODO: revisit going from byAccountLowercase to sePSP2StakersByAccountLowercase here
+  const { sePSP2BalancesByUserByChain, totalSupplySePSP2 } =
+    await fetchPastEpochData(epoch - GasRefundV2EpochFlip);
   // prepare list of stakers that don't have refund on optimism
   const stakersNotEligibleForOptimismRefund = new Set(
-    Object.keys(byAccountLowercase)
+    // TODO: revisit going from byAccountLowercase to sePSP2StakersByAccountLowercase here
+    // will need to change the approach to distributing blockchain-wise (ethereum vs optimism)
+    // current code doesn't make sense any more and was updated just for the sake of interim commit
+    Object.keys(sePSP2BalancesByUserByChain)
       // .map(v => v.account)
       .filter(account => !optimismRefundEligibleStakers.has(account)),
   );
@@ -205,25 +233,36 @@ export async function composeWithAmountsByProgram(
     'rewards distribution counter does not match the total rewards',
   );
   assert(
-    rewardsDistributionCounter.scoreCleared === BigInt(totalScore),
-    'rewards distribution counter does not match the total score',
+    rewardsDistributionCounter.sePSP2BalanceCleared ===
+      BigInt(totalSupplySePSP2),
+    'rewards distribution counter does not match the total supply of sePSP2',
   );
 
   return newAllRefunds;
 }
 
 type RewardsDistributionCounter = {
-  scoreCleared: BigInt;
+  sePSP2BalanceCleared: BigInt;
   rewardsAllocated: BigInt;
-  count: (userScore: BigInt, userRewards: BigInt) => void;
+  count: (userSePSP2Balance: BigInt, userRewards: BigInt) => void;
 };
 function constructRewardsDistributionCounter(): RewardsDistributionCounter {
   return {
-    scoreCleared: BigInt(0),
+    sePSP2BalanceCleared: BigInt(0),
     rewardsAllocated: BigInt(0),
-    count(userScore: BigInt, userRewards: BigInt) {
-      this.scoreCleared += userScore;
+    count(userSePSP2Balance: BigInt, userRewards: BigInt) {
+      this.sePSP2BalanceCleared += userSePSP2Balance;
       this.rewardsAllocated += userRewards;
     },
   };
+}
+function assertSePSP2BalancesIntegrity(
+  sePSP2StakersByAccountLowercase: Record<string, MinParaBoostData>,
+  sePSP2BalancesByUserByChain: Record<
+    string,
+    Record<1 | 10 | 'combined', string>
+  >,
+) {
+  // see if the stakers list is inclusive of all holders (throw exception)
+  throw new Error('TODO: Function not implemented.');
 }
