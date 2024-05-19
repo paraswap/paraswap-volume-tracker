@@ -23,6 +23,8 @@ import {
 import {
   ProgramAgnosticAddressRewards,
   AddressRewardsWithAmountsByProgramVariation,
+  isGRPItem,
+  AddressRewardsGRP,
 } from '../../../../src/types';
 import { composeAuraRewards } from '../../../../src/lib/utils/aura-rewards';
 
@@ -30,13 +32,96 @@ function combinePrograms(
   input: { programName: string; rewards: ProgramAgnosticAddressRewards[] }[],
 ): AddressRewardsWithAmountsByProgramVariation[] {
   // TODO
-  return input[0].rewards.map(reward => ({
-    ...reward,
-    amountsByProgram: {
-      [input[0].programName]: reward.amount.toFixed(),
+  // return input[0].rewards.map(reward => ({
+  //   ...reward,
+  //   amountsByProgram: {
+  //     [input[0].programName]: reward.amount.toFixed(),
+  //   },
+  // }));
+  // return [];
+
+  const mergedByChainByUserByProgram: {
+    [chainId: number]: {
+      [user: string]: {
+        srcItems: {
+          programName: string;
+          item: ProgramAgnosticAddressRewards;
+        }[];
+        totalAmount: BigNumber;
+      };
+    };
+  } = {};
+
+  input.forEach(({ programName, rewards }) => {
+    rewards.forEach(reward => {
+      if (!mergedByChainByUserByProgram[reward.chainId])
+        mergedByChainByUserByProgram[reward.chainId] = {};
+
+      if (!mergedByChainByUserByProgram[reward.chainId][reward.account])
+        mergedByChainByUserByProgram[reward.chainId][reward.account] = {
+          srcItems: [],
+          totalAmount: new BigNumber(0),
+        };
+
+      mergedByChainByUserByProgram[reward.chainId][
+        reward.account
+      ].srcItems.push({
+        programName,
+        item: reward,
+      });
+
+      mergedByChainByUserByProgram[reward.chainId][reward.account].totalAmount =
+        mergedByChainByUserByProgram[reward.chainId][
+          reward.account
+        ].totalAmount.plus(reward.amount);
+    });
+  });
+
+  const result: AddressRewardsWithAmountsByProgramVariation[] = [];
+
+  Object.entries(mergedByChainByUserByProgram).forEach(
+    ([chainId, usersData]) => {
+      Object.entries(usersData).forEach(([user, { srcItems, totalAmount }]) => {
+        const amountsByProgram: { [program: string]: string } = {};
+
+        let breakDownGRP: AddressRewardsGRP['breakDownGRP'] | null = null;
+        srcItems.forEach(srcItem => {
+          amountsByProgram[srcItem.programName] = srcItem.item.amount.toFixed();
+
+          const itm = srcItem.item;
+          if (isGRPItem(itm)) {
+            breakDownGRP = itm.breakDownGRP;
+          }
+        });
+
+        input.forEach(({ programName }) => {
+          if (!amountsByProgram[programName]) {
+            amountsByProgram[programName] = '0';
+          }
+        });
+
+        result.push({
+          account: user,
+          chainId: +chainId,
+          amount: totalAmount,
+          amountsByProgram,
+          debugInfo: srcItems.map(({ item }) => item.debugInfo).filter(Boolean),
+          breakDownGRP: breakDownGRP || {},
+        });
+      });
     },
-  }));
-  return [];
+  );
+
+  // console.log(result);
+  // TODO: cleanup this
+  require('fs').writeFileSync(
+    'tmp.json',
+    JSON.stringify(result, null, 2),
+    'utf-8',
+  );
+
+  // debugger;
+  return result;
 }
 
 // accepts list of distribution entries

@@ -10,9 +10,16 @@ export type ProgramAgnosticAddressRewards = {
   account: string;
   amount: BigNumber;
   chainId: number;
+  debugInfo?: any;
 };
 
-type AddressRewardsGRP = ProgramAgnosticAddressRewards & {
+export function isGRPItem(
+  input: ProgramAgnosticAddressRewards,
+): input is AddressRewardsGRP {
+  return (input as AddressRewardsGRP).breakDownGRP !== undefined;
+}
+
+export type AddressRewardsGRP = ProgramAgnosticAddressRewards & {
   breakDownGRP: { [GRPChainId: number]: BigNumber };
 };
 

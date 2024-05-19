@@ -58,4 +58,8 @@ export class GasRefundParticipation extends Model<GasRefundParticipantData> {
   @AllowNull(true)
   @Column(DataType.DECIMAL)
   amount: string;
+
+  @AllowNull(true)
+  @Column({ type: DataType.JSONB })
+  debugInfo: any;
 }
