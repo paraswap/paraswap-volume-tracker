@@ -37,6 +37,7 @@ export async function storeDistributionDataInDB(
           amount,
           GRPChainBreakDown,
           amountsByProgram,
+          debugInfo,
         } = leaf;
         assert(
           account == account.toLowerCase(),
@@ -51,6 +52,7 @@ export async function storeDistributionDataInDB(
           amount,
           GRPChainBreakDown,
           amountsByProgram,
+          debugInfo,
         };
       },
     );

@@ -19,6 +19,7 @@ export type RewardMerkleProof = {
   epoch: number;
   GRPChainBreakDown: { [chainId: number]: string } | null; // will be null if address is not eligible for GRP (could be if they are still eligible for Aura for example)
   amountsByProgram: AmountsByProgram;
+  debugInfo?: any;
 };
 
 export type RewardMerkleTree = {
@@ -52,7 +53,8 @@ export type AddressRewards = {
 export type AddressRewardsMappingWithMaybeGRP = {
   [account: string]: {
     amountsByProgram: AmountsByProgram;
-    byChain: { [grpChainId: number]: BigNumber } | null;
+    byChain: { [grpChainId: number]: BigNumber } | null; // only exist in GRP-inclusive items
+    debugInfo?: any;
   };
 };
 

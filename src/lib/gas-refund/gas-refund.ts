@@ -118,6 +118,7 @@ export interface GasRefundParticipantData {
   isCompleted: boolean;
   GRPChainBreakDown: GRPChainBreakDown<string> | null;
   amountsByProgram: AmountsByProgram;
+  debugInfo?: any;
 }
 
 export enum TransactionStatus {
