@@ -19,9 +19,21 @@ import { TokenItem, getTokenHolders } from './covalent';
 
 const config: Record<number, string> = {
   // @TODO: update this config
-  47: new BigNumber(1e18).multipliedBy(1000_000).toFixed(),
+  // 47: new BigNumber(1e18).multipliedBy(1000_000).toFixed(),
+  47: [
+    '40192039080861009090485',
+    '98303121571430634340377',
+    '323916692371019838183554',
+    '887432256209381684726927',
+    '284291987025675888319487',
+    '25346262768415038383677',
+    '342732427701091938796041',
+    '80296630684899870281772',
+  ]
+    .reduce((acc, curr) => acc.plus(curr), new BigNumber(0))
+    .toFixed(),
 };
-
+// debugger;
 const AURA_REWARDS_START_EPOCH_OLD_STYLE = Math.min(
   ...Object.keys(config).map(Number),
 );
@@ -55,7 +67,7 @@ async function fetchTotalSupplySePSP2OnTheChain(
     // from covalent
     // 10: 2248200733537860836142862
     // 1: 36493144844863467534634286
-    debugger;
+    // debugger;
     return result;
   } catch (e) {
     debugger;
@@ -255,7 +267,7 @@ const fetchPastEpochData = pMemoize(_fetchEpochData, {
 
 // is used during when executing distribution script.
 // is intended to compute user rewards for the current epoch without remainder
-export async function computeUserRewardWei(
+async function computeUserRewardWei(
   user: string,
   epochOldStyle: number,
   counter: RewardsDistributionCounter,
@@ -303,13 +315,78 @@ export async function computeUserRewardWei(
 }
 
 export async function composeAuraRewards(
-  epoch: number,
+  epochOldStyle: number,
 ): Promise<ProgramAgnosticAddressRewards[]> {
-  // TODO: implement this function - refer to composeWithAmountsByProgram comments in there
-  // const { sePSP2BalancesByUserByChain, totalSupplySePSP2 } =
-  //   await fetchPastEpochData(epoch - GasRefundV2EpochFlip);
+  const { sePSP2BalancesByUserByChain, totalSupplySePSP2 } =
+    await fetchPastEpochData(epochOldStyle - GasRefundV2EpochFlip);
 
-  debugger;
+  // init containers for rewards items
+  const itemsByNetwork: Record<string, ProgramAgnosticAddressRewards[]> =
+    STAKING_CHAIN_IDS.reduce(
+      (acc, chainId) => ({
+        ...acc,
+        [chainId]: [],
+      }),
+      {},
+    );
+
+  // init counter
+  const auraRewardDistributionCounter = constructRewardsDistributionCounter();
+
+  await Promise.all(
+    Object.entries(sePSP2BalancesByUserByChain.balancesByAccount).map(
+      async ([account, balances]) => {
+        const totalUserRewardWei = await computeUserRewardWei(
+          account,
+          epochOldStyle,
+          auraRewardDistributionCounter,
+        );
+
+        let rewardsRemainder = new BigNumber(totalUserRewardWei);
+        const byNetworkEntries = Object.entries(balances.byNetwork);
+        for (const [idx, [chainId, balance]] of byNetworkEntries.entries()) {
+          const isLastItem = idx === byNetworkEntries.length - 1;
+
+          // if it's last item -- allocate full remainder, to make sure it's 1:1
+          const amount = isLastItem
+            ? rewardsRemainder
+            : new BigNumber(
+                new BigNumber(totalUserRewardWei)
+                  .multipliedBy(balance)
+                  .dividedBy(balances.combined)
+
+                  .toFixed(0),
+              );
+
+          if (amount.isZero()) continue;
+
+          itemsByNetwork[chainId].push({
+            account,
+            amount,
+            chainId: Number(chainId),
+            debugInfo: {
+              chainId,
+              totalUserRewardWei,
+              chainSePSP2Balance: balance,
+              chainReward: amount.toFixed(0),
+              combinedTotalSupplySePSP2: totalSupplySePSP2,
+            },
+          });
+
+          rewardsRemainder = rewardsRemainder.minus(amount);
+        }
+        // console.log('totalUserRewardWei', totalUserRewardWei);
+        // console.log('balances', balances);
+        // debugger;
+      },
+    ),
+  );
+
+  const result = Object.values(itemsByNetwork).flat();
+
+  // debugger;
+
+  return result;
 
   // // split optimism and non-optimism refunds
   // const { optimismRefunds, nonOptimismRefunds } = data.reduce<{
