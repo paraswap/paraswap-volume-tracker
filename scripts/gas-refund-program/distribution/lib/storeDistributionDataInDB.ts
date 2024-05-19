@@ -17,6 +17,17 @@ export async function storeDistributionDataInDB(
   } = merkleTree;
 
   await database.sequelize?.transaction(async t => {
+    // TODO: revisit
+    await database.sequelize.query(
+      `
+  DELETE FROM "GasRefundDistributions" WHERE epoch = ${epoch} and "chainId"=${chainId};
+  DELETE FROM "GasRefundParticipations" WHERE epoch = ${epoch} and "chainId"=${chainId};
+
+  `,
+      {
+        transaction: t,
+      },
+    );
     await GasRefundDistribution.create(
       {
         epoch,
