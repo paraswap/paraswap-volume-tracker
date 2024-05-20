@@ -18,6 +18,10 @@
     "gas-refund:computeDistributionFilesAndPersistIPFS": "patch-package && NODE_ENV=development ts-node scripts/gas-refund-program/distribution/computeDistributionFilesAndPersistIPFS",
     "gas-refund:generate-dune-query": "patch-package && NODE_ENV=development ts-node scripts/gas-refund-program/generate-dune-query",
     "gas-refund:index-dune-transactions": "patch-package && NODE_ENV=development NODE_OPTIONS='--max-old-space-size=8200' ts-node scripts/gas-refund-program/index-dune-transactions",
+    "gas-refund:prepare-database-for-DuneTransactions": "source .env  && psql $ROOT_DB_URI -c \"drop database if exists volume_tracker_dune_transactions_epoch_17_aka_47\" && psql $ROOT_DB_URI -c \"create database volume_tracker_dune_transactions_epoch_17_aka_47\"",
+    "gas-refund:index-dune-transactions-epoch-17": "source .env && cat ./.vscode/txses-archive/dune-response-17.json | DATABASE_NAME=volume_tracker_dune_transactions_epoch_17_aka_47  DATABASE_URL=$DUNE_TRANSACTIONS_DATABASE_URL yarn gas-refund:index-dune-transactions",
+    "gas-refund:dev:dune:compute-gas-refund-save-db": "source .env && psql $DATABASE_URL -c 'drop table \"DuneTransactions\"'; yarn _copy-indexed-dune-transactions; yarn gas-refund:dev:compute-gas-refund-save-db",
+    "_copy-indexed-dune-transactions": "source .env && /usr/lib/postgresql/16/bin/pg_dump -t '\"DuneTransactions\"' $DUNE_TRANSACTIONS_DATABASE_URL | psql $DATABASE_URL",
     "test": "jest"
   },
   "husky": {
