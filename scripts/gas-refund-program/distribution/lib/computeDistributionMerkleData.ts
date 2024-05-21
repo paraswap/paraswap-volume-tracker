@@ -354,7 +354,7 @@ export async function computeDistributionMerkleData(
     acc[curr.chainId][curr.account] = {
       byChain: 'breakDownGRP' in curr ? curr.breakDownGRP : null,
       amountsByProgram: curr.amountsByProgram,
-      debugInfo: curr.debugInfo,
+      // debugInfo: curr.debugInfo,
     };
 
     return acc;
@@ -375,8 +375,8 @@ export async function computeDistributionMerkleData(
         l.GRPChainBreakDown = stringifyGRPChainBreakDown(GRPChainBreakDown);
         l.amountsByProgram =
           userGRPChainsBreakDowns[+chainId][l.address].amountsByProgram;
-        l.debugInfo = userGRPChainsBreakDowns[+chainId][l.address].debugInfo;
       }
+      l.debugInfo = userGRPChainsBreakDowns[+chainId][l.address].debugInfo;
     });
   });
   return merkleTreeData;
