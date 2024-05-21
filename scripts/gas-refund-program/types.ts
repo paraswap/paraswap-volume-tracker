@@ -1,5 +1,3 @@
-import BigNumber from 'bignumber.js';
-
 export type HistoricalPrice = { [timestamp: string]: number };
 
 export type StakedPSPByAddress = {

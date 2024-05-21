@@ -1,4 +1,5 @@
 import type BigNumber from 'bignumber.js';
+import { AmountsByProgram } from '../../../../src/types';
 
 export type Claimable = {
   address: string;
@@ -11,21 +12,23 @@ export type MerkleRoot = {
   epoch: number;
 };
 
-export type GasRefundMerkleProof = {
+export type RewardMerkleProof = {
   proof: string[];
   address: string;
   amount: string;
   epoch: number;
-  GRPChainBreakDown: { [chainId: number]: string };
+  GRPChainBreakDown: { [chainId: number]: string } | null; // will be null if address is not eligible for GRP (could be if they are still eligible for Aura for example)
+  amountsByProgram: AmountsByProgram;
+  debugInfo?: any;
 };
 
-export type GasRefundMerkleTree = {
+export type RewardMerkleTree = {
   root: MerkleRoot;
-  merkleProofs: GasRefundMerkleProof[];
+  merkleProofs: RewardMerkleProof[];
 };
 
 export type MerkleTreeAndChain = {
-  merkleTree: GasRefundMerkleTree;
+  merkleTree: RewardMerkleTree;
   chainId: string;
 };
 
@@ -47,9 +50,11 @@ export type AddressRewards = {
   breakDownGRP: { [GRPChainId: number]: BigNumber };
 };
 
-export type AddressRewardsMapping = {
+export type AddressRewardsMappingWithMaybeGRP = {
   [account: string]: {
-    [grpChainId: number]: BigNumber;
+    amountsByProgram: AmountsByProgram;
+    byChain: { [grpChainId: number]: BigNumber } | null; // only exist in GRP-inclusive items
+    debugInfo?: any;
   };
 };
 
