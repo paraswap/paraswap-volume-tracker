@@ -154,6 +154,7 @@ export class SwapsTracker {
         number_lt: toBlock,
       };
 
+      console.log('indexSwaps', this.subgraphURL, variables);
       const {
         data: { data },
       } = await Utils._post(

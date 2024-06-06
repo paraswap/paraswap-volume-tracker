@@ -129,6 +129,7 @@ export async function getSuccessfulSwaps({
         : {},
     );
 
+    console.log('fetcSwaps', subgraphURL, variables);
     const { data } = await thegraphClient.post<SwapsGQLRespose>(subgraphURL, {
       query: regorgBlockHashes ? SwapsQueryBlockHash : SwapsQuery,
       variables,
