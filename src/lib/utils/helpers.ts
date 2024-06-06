@@ -103,6 +103,11 @@ export async function fetchBlocksTimestamps({
       blocks: blockNumberSliced,
     };
 
+    console.log(
+      'fetchBlocksTimestamps',
+      subgraphURL,
+      JSON.stringify(variables),
+    );
     const {
       data: { data },
     } = await thegraphClient.post<{
