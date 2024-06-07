@@ -66,11 +66,6 @@ export class BlockInfo {
         number_lt: lastFetchedBlock + 100,
       };
       try {
-        console.log(
-          'updateBlockInfo',
-          this.subgraphURL,
-          JSON.stringify(variables),
-        );
         const {
           data: { data },
         } = await Utils._post(
@@ -104,11 +99,6 @@ export class BlockInfo {
       block,
     };
     try {
-      console.log(
-        'getBlockTimeStamp',
-        this.subgraphURL,
-        JSON.stringify(variables),
-      );
       const {
         data: { data },
       } = await thegraphClient.post(
@@ -138,11 +128,6 @@ export class BlockInfo {
       time_gte: time,
     };
     try {
-      console.log(
-        'getBlockAfterTimeStamp',
-        this.subgraphURL,
-        JSON.stringify(variables),
-      );
       const {
         data: { data },
       } = await Utils._post(
