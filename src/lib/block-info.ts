@@ -17,7 +17,7 @@ export const SUBGRAPH_URL: { [network: number]: string } = {
     '9A6bkprqEG2XsZUYJ5B2XXp6ymz9fNcn4tVPxMWDztYC',
   ),
   [CHAIN_ID_OPTIMISM]: createSubgraphURL(
-    '9A6bkprqEG2XsZUYJ5B2XXp6ymz9fNcn4tVPxMWDztYC', // TODO: replace with actual one after migration
+    'Dmht4UnVSfpuLcVr8i6TkNe93BSKWRD4iu2ZFY1Da4jj',
   ),
   [CHAIN_ID_BINANCE]: '', // not used (check GRP_V2_SUPPORTED_CHAINS_STAKING)
   [CHAIN_ID_GOERLI]: '', // not used (check GRP_V2_SUPPORTED_CHAINS_STAKING)
