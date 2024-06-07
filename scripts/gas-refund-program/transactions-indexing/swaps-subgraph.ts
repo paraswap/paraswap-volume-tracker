@@ -16,6 +16,7 @@ import {
   QueryPaginatedDataParams,
 } from '../../../src/lib/utils/helpers';
 import { thegraphClient } from '../../../src/lib/utils/data-providers-clients';
+import { createSubgraphURL } from '../../../src/lib/utils/subgraphs';
 
 const REORGS_BLOCKHASH_BY_CHAIN_ID: Record<string, string[]> = {
   [CHAIN_ID_POLYGON]: [
@@ -81,18 +82,24 @@ query ($number_gte: BigInt, $number_lt: BigInt, $blockHashes: [Bytes!], $first: 
 }
 `;
 const SubgraphURLs: { [network: number]: string } = {
-  [CHAIN_ID_MAINNET]:
-    'https://api.thegraph.com/subgraphs/name/paraswap/paraswap-subgraph',
-  [CHAIN_ID_OPTIMISM]:
-    'https://api.thegraph.com/subgraphs/name/paraswap/paraswap-subgraph-optimism',
-  [CHAIN_ID_AVALANCHE]:
-    'https://api.thegraph.com/subgraphs/name/paraswap/paraswap-subgraph-avalanche',
-  [CHAIN_ID_BINANCE]:
-    'https://api.thegraph.com/subgraphs/name/paraswap/paraswap-subgraph-bsc',
-  [CHAIN_ID_POLYGON]:
-    'https://api.thegraph.com/subgraphs/name/paraswap/paraswap-subgraph-polygon',
-  [CHAIN_ID_FANTOM]:
-    'https://api.thegraph.com/subgraphs/name/paraswap/paraswap-subgraph-fantom',
+  [CHAIN_ID_MAINNET]: createSubgraphURL(
+    '8k74P7fPtsB5EZu53iDGQUMHtWuAH4YCKwBawySvkhSa',
+  ),
+  [CHAIN_ID_OPTIMISM]: createSubgraphURL(
+    'CxWHhhC2gaaFSgVPqACipZQMQesWUxWc1fmESNCjNkf8',
+  ), // covalent used instead (check transaction-resolver.ts:110)
+  [CHAIN_ID_AVALANCHE]: createSubgraphURL(
+    'DMJXB2sBBXD66Lyk3dBEpktQwHX9Vu2hirDCKmLgPWQ8',
+  ), // not used (not in the GRP_SUPPORTED_CHAINS list)
+  [CHAIN_ID_BINANCE]: createSubgraphURL(
+    '2aWZK7r2mhBjwxs5yEsuJVEnhmnoppHm7RufzqQKLqQf',
+  ),
+  [CHAIN_ID_POLYGON]: createSubgraphURL(
+    'D72KzovXDszkzbkaekhAGY3j3nA2GHbusuikk7QsDX8G',
+  ),
+  [CHAIN_ID_FANTOM]: createSubgraphURL(
+    '89HymAx5uhrkJ4KuZFdZGJsMQFcbUZ6d3xiXoeknmnak',
+  ),
 };
 
 interface GetSuccessSwapsInput {
@@ -110,6 +117,9 @@ export async function getSuccessfulSwaps({
   epoch,
 }: GetSuccessSwapsInput): Promise<SwapData[]> {
   const subgraphURL = SubgraphURLs[chainId];
+  if (!subgraphURL) {
+    throw new Error(`Subgraph URL is not available for network ${chainId}`);
+  }
 
   const regorgBlockHashes = REORGS_BLOCKHASH_BY_CHAIN_ID[chainId];
 

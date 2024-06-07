@@ -1,7 +1,6 @@
 import BigNumber from 'bignumber.js';
 import { Event } from 'ethers';
 import * as _ from 'lodash';
-import { CHAIN_ID_MAINNET } from '../constants';
 import { SUBGRAPH_URL } from '../block-info';
 import { thegraphClient } from './data-providers-clients';
 import { assert } from 'console';
@@ -91,6 +90,9 @@ export async function fetchBlocksTimestamps({
   const execute = async (
     blockNumberSliced: number[],
   ): Promise<[{ number: string; timestamp: string }]> => {
+    if (!SUBGRAPH_URL[chainId]) {
+      throw new Error(`Subgraph URL is not available for network ${chainId}`);
+    }
     const subgraphURL = SUBGRAPH_URL[chainId];
     const query = `query ($sliceLength: Int, $blocks: [BigInt!]!) {
       blocks(first: $sliceLength, where: {number_in: $blocks}) {
