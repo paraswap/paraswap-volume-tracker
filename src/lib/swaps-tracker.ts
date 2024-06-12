@@ -14,9 +14,8 @@ import {
 } from './constants';
 import { PriceApi } from './price-api';
 import { BlockInfo } from './block-info';
-import * as ZeroXV2Abi from './abi/zerox.v2.abi.json';
-import * as ZeroXV4Abi from './abi/zerox.v4.abi.json';
 import { Utils } from './utils';
+import { createSubgraphURL } from './utils/subgraphs';
 
 const logger = global.LOGGER();
 
@@ -54,17 +53,23 @@ const defaultIndexRefreshDelay = 5 * 60 * 1000;
 
 const BN_0 = new BigNumber('0');
 
+// not used
 const SubgraphURLs: { [network: number]: string } = {
-  [CHAIN_ID_MAINNET]:
-    'https://api.thegraph.com/subgraphs/name/paraswap/paraswap-subgraph',
-  [CHAIN_ID_AVALANCHE]:
-    'https://api.thegraph.com/subgraphs/name/paraswap/paraswap-subgraph-avalanche',
-  [CHAIN_ID_BINANCE]:
-    'https://api.thegraph.com/subgraphs/name/paraswap/paraswap-subgraph-bsc',
-  [CHAIN_ID_POLYGON]:
-    'https://api.thegraph.com/subgraphs/name/paraswap/paraswap-subgraph-polygon',
-  [CHAIN_ID_FANTOM]:
-    'https://api.thegraph.com/subgraphs/name/paraswap/paraswap-subgraph-fantom',
+  [CHAIN_ID_MAINNET]: createSubgraphURL(
+    '8k74P7fPtsB5EZu53iDGQUMHtWuAH4YCKwBawySvkhSa',
+  ),
+  [CHAIN_ID_AVALANCHE]: createSubgraphURL(
+    'DMJXB2sBBXD66Lyk3dBEpktQwHX9Vu2hirDCKmLgPWQ8',
+  ),
+  [CHAIN_ID_BINANCE]: createSubgraphURL(
+    '2aWZK7r2mhBjwxs5yEsuJVEnhmnoppHm7RufzqQKLqQf',
+  ),
+  [CHAIN_ID_POLYGON]: createSubgraphURL(
+    'D72KzovXDszkzbkaekhAGY3j3nA2GHbusuikk7QsDX8G',
+  ),
+  [CHAIN_ID_FANTOM]: createSubgraphURL(
+    '89HymAx5uhrkJ4KuZFdZGJsMQFcbUZ6d3xiXoeknmnak',
+  ),
 };
 
 const InitTime: { [network: number]: number } = {
