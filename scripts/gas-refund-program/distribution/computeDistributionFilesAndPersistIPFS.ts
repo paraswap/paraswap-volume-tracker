@@ -12,6 +12,21 @@ import { persistDirectoryToPinata } from './utils/pinata';
 import { GasRefundGenesisEpoch } from '../../../src/lib/gas-refund/gas-refund';
 import { computeDistributionSimulation } from './lib/computeDistributionSimulation';
 
+assert(
+  process.env.DISTRIBUTED_EPOCH,
+  'DISTRIBUTED_EPOCH env variable is required',
+);
+assert(process.env.TENDERLY_TOKEN, 'TENDERLY_TOKEN env variable is required');
+assert(
+  process.env.TENDERLY_PROJECT,
+  'TENDERLY_PROJECT env variable is required',
+);
+assert(process.env.PINATA_API_KEY, 'PINATA_API_KEY env variable is required');
+assert(
+  process.env.PINATE_API_SECRET,
+  'PINATE_API_SECRET env variable is required',
+);
+
 const constructBasePath = (epoch: number) =>
   path.join(__dirname, `data/grp-distribution-epoch-${epoch}`);
 

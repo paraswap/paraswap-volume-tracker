@@ -120,7 +120,7 @@ interface ErrorResponse {
   error_code: number; // e.g. 507
 }
 
-interface TokenItem {
+export interface TokenItem {
   contract_decimals: number;
   contract_name: string;
   contract_ticker_symbol: string;
@@ -209,7 +209,7 @@ export async function getBulkTimeBucketTxsWithinInterval({
 }: GetBulkTimeBucketTxsWithinInterval): Promise<CovalentTransactionV3[]> {
   const timeBuckets: number[] = Array.from(
     {
-      length: Math.ceil((endTimestamp - startTimestamp) / bucketSizeInSec) + 4, // +1h buffer
+      length: Math.ceil((endTimestamp - startTimestamp) / bucketSizeInSec) + 1, // +15min buffer
     },
     (_, index) =>
       Math.floor((startTimestamp + index * bucketSizeInSec) / bucketSizeInSec),

@@ -16,10 +16,133 @@ import { StakeV2Resolver } from '../../staking/2.0/StakeV2Resolver';
 import {
   AddressChainRewardsMapping,
   AddressRewards,
-  AddressRewardsMapping,
+  AddressRewardsMappingWithMaybeGRP,
   ChainRewardsMapping,
   MerkleTreeAndChain,
 } from './types';
+import {
+  ProgramAgnosticAddressRewards,
+  AddressRewardsWithAmountsByProgramVariation,
+  isGRPItem,
+  AddressRewardsGRP,
+} from '../../../../src/types';
+import { composeAuraRewards } from '../../../../src/lib/utils/aura-rewards';
+
+function combinePrograms(
+  input: { programName: string; rewards: ProgramAgnosticAddressRewards[] }[],
+): AddressRewardsWithAmountsByProgramVariation[] {
+  // TODO
+  // return input[0].rewards.map(reward => ({
+  //   ...reward,
+  //   amountsByProgram: {
+  //     [input[0].programName]: reward.amount.toFixed(),
+  //   },
+  // }));
+  // return [];
+
+  const mergedByChainByUserByProgram: {
+    [chainId: number]: {
+      [user: string]: {
+        srcItems: {
+          programName: string;
+          item: ProgramAgnosticAddressRewards;
+        }[];
+        totalAmount: BigNumber;
+      };
+    };
+  } = {};
+
+  input.forEach(({ programName, rewards }) => {
+    rewards.forEach(reward => {
+      if (!mergedByChainByUserByProgram[reward.chainId])
+        mergedByChainByUserByProgram[reward.chainId] = {};
+
+      if (!mergedByChainByUserByProgram[reward.chainId][reward.account])
+        mergedByChainByUserByProgram[reward.chainId][reward.account] = {
+          srcItems: [],
+          totalAmount: new BigNumber(0),
+        };
+
+      mergedByChainByUserByProgram[reward.chainId][
+        reward.account
+      ].srcItems.push({
+        programName,
+        item: reward,
+      });
+
+      mergedByChainByUserByProgram[reward.chainId][reward.account].totalAmount =
+        mergedByChainByUserByProgram[reward.chainId][
+          reward.account
+        ].totalAmount.plus(reward.amount);
+    });
+  });
+
+  const result: AddressRewardsWithAmountsByProgramVariation[] = [];
+
+  Object.entries(mergedByChainByUserByProgram).forEach(
+    ([chainId, usersData]) => {
+      Object.entries(usersData).forEach(([user, { srcItems, totalAmount }]) => {
+        const amountsByProgram: { [program: string]: string } = {};
+
+        let breakDownGRP: AddressRewardsGRP['breakDownGRP'] | null = null;
+        srcItems.forEach(srcItem => {
+          amountsByProgram[srcItem.programName] = srcItem.item.amount.toFixed();
+
+          const itm = srcItem.item;
+          if (isGRPItem(itm)) {
+            breakDownGRP = itm.breakDownGRP;
+          }
+        });
+
+        input.forEach(({ programName }) => {
+          if (!amountsByProgram[programName]) {
+            amountsByProgram[programName] = '0';
+          }
+        });
+
+        result.push({
+          account: user,
+          chainId: +chainId,
+          amount: totalAmount,
+          amountsByProgram,
+          debugInfo: srcItems.map(({ item }) => item.debugInfo).filter(Boolean),
+          breakDownGRP: breakDownGRP || {},
+        });
+      });
+    },
+  );
+
+  // console.log(result);
+  // TODO: cleanup this
+  require('fs').writeFileSync(
+    'tmp.json',
+    JSON.stringify(result, null, 2),
+    'utf-8',
+  );
+
+  // debugger;
+  return result;
+}
+
+// accepts list of distribution entries
+// returns [extended] list of distribution entries, the items of which are extended with "amount by program" and the amount adjusted respectively
+export async function composeWithAmountsByProgram(
+  epoch: number,
+  originalGasRefundProgramItems: ProgramAgnosticAddressRewards[],
+): Promise<AddressRewardsWithAmountsByProgramVariation[]> {
+  // 1. compute AddressRewards[] rows for Aura Program
+  // 2. combined AddressRewardsWithAmountsByProgram[] = Aura + GasRefund
+  return combinePrograms([
+    {
+      programName: 'paraswapGasRefund',
+      rewards: originalGasRefundProgramItems,
+    },
+    {
+      programName: 'auraRewards',
+      rewards: await composeAuraRewards(epoch), // TODO: compute Aura rewards
+    },
+  ]);
+}
 
 function asserted<T>(val: T) {
   assert(val !== null && val !== undefined, 'val should not be null or undef');
@@ -220,16 +343,19 @@ export async function computeDistributionMerkleData(
         !entry.amount.isNaN(),
     );
 
-  const allChainsRefunds = composeRefundWithPIP38Refunds(
-    epoch,
-    _allChainsRefunds,
-  );
+  const withPIP38 = composeRefundWithPIP38Refunds(epoch, _allChainsRefunds);
+
+  const allChainsRefunds = await composeWithAmountsByProgram(epoch, withPIP38);
 
   const userGRPChainsBreakDowns = allChainsRefunds.reduce<{
-    [stakeChainId: number]: AddressRewardsMapping;
+    [stakeChainId: number]: AddressRewardsMappingWithMaybeGRP;
   }>((acc, curr) => {
     if (!acc[curr.chainId]) acc[curr.chainId] = {};
-    acc[curr.chainId][curr.account] = curr.breakDownGRP;
+    acc[curr.chainId][curr.account] = {
+      byChain: 'breakDownGRP' in curr ? curr.breakDownGRP : null,
+      amountsByProgram: curr.amountsByProgram,
+      // debugInfo: curr.debugInfo,
+    };
 
     return acc;
   }, {});
@@ -243,12 +369,15 @@ export async function computeDistributionMerkleData(
 
   merkleTreeData.forEach(({ chainId, merkleTree }) => {
     merkleTree.merkleProofs.forEach(l => {
-      const GRPChainBreakDown = userGRPChainsBreakDowns[+chainId][l.address];
+      const GRPChainBreakDown =
+        userGRPChainsBreakDowns[+chainId][l.address].byChain;
       if (GRPChainBreakDown) {
         l.GRPChainBreakDown = stringifyGRPChainBreakDown(GRPChainBreakDown);
+        l.amountsByProgram =
+          userGRPChainsBreakDowns[+chainId][l.address].amountsByProgram;
       }
+      l.debugInfo = userGRPChainsBreakDowns[+chainId][l.address].debugInfo;
     });
   });
-
   return merkleTreeData;
 }

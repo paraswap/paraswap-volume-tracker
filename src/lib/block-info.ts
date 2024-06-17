@@ -1,6 +1,5 @@
 import {
   CHAIN_ID_MAINNET,
-  CHAIN_ID_ROPSTEN,
   CHAIN_ID_BINANCE,
   CHAIN_ID_POLYGON,
   CHAIN_ID_FANTOM,
@@ -9,24 +8,21 @@ import {
 } from './constants';
 import { Utils } from './utils';
 import { thegraphClient } from './utils/data-providers-clients';
+import { createSubgraphURL } from './utils/subgraphs';
 
 const logger = global.LOGGER();
 
 export const SUBGRAPH_URL: { [network: number]: string } = {
-  [CHAIN_ID_MAINNET]:
-    'https://api.thegraph.com/subgraphs/name/blocklytics/ethereum-blocks',
-  [CHAIN_ID_OPTIMISM]:
-    'https://api.thegraph.com/subgraphs/name/lyra-finance/optimism-mainnet-blocks',
-  [CHAIN_ID_ROPSTEN]:
-    'https://api.thegraph.com/subgraphs/name/blocklytics/ropsten-blocks',
-  [CHAIN_ID_BINANCE]:
-    'https://api.thegraph.com/subgraphs/name/blocklytics/ropsten-blocks',
-  [CHAIN_ID_GOERLI]:
-    'https://api.thegraph.com/subgraphs/name/blocklytics/goerli-blocks',
-  [CHAIN_ID_POLYGON]:
-    'https://api.thegraph.com/subgraphs/name/matthewlilley/polygon-blocks',
-  [CHAIN_ID_FANTOM]:
-    'https://api.thegraph.com/subgraphs/name/ducquangkstn/fantom-blocks',
+  [CHAIN_ID_MAINNET]: createSubgraphURL(
+    '9A6bkprqEG2XsZUYJ5B2XXp6ymz9fNcn4tVPxMWDztYC',
+  ),
+  [CHAIN_ID_OPTIMISM]: createSubgraphURL(
+    'Dmht4UnVSfpuLcVr8i6TkNe93BSKWRD4iu2ZFY1Da4jj',
+  ),
+  [CHAIN_ID_BINANCE]: '', // not used (check GRP_V2_SUPPORTED_CHAINS_STAKING)
+  [CHAIN_ID_GOERLI]: '', // not used (check GRP_V2_SUPPORTED_CHAINS_STAKING)
+  [CHAIN_ID_POLYGON]: '', // not used (check GRP_V2_SUPPORTED_CHAINS_STAKING)
+  [CHAIN_ID_FANTOM]: '', // not used (check GRP_V2_SUPPORTED_CHAINS_STAKING)
   // 43114: TODO: deploy blocks in avalanche
 };
 const SUBGRAPH_TIMEOUT = 10000;
@@ -40,6 +36,9 @@ export class BlockInfo {
 
   static getInstance(network: number): BlockInfo {
     if (!this.instances[network]) {
+      if (!SUBGRAPH_URL[network]) {
+        throw new Error(`Subgraph URL is not available for network ${network}`);
+      }
       this.instances[network] = new BlockInfo(SUBGRAPH_URL[network]);
     }
     return this.instances[network];

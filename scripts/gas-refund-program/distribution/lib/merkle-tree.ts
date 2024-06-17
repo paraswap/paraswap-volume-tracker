@@ -1,9 +1,10 @@
-import { Claimable, GasRefundMerkleProof } from './types';
+import { Claimable, RewardMerkleProof } from './types';
 import { utils, logger } from 'ethers';
 import { MerkleTree } from 'merkletreejs';
 import { GasRefundTransaction } from '../../../../src/models/GasRefundTransaction';
 import BigNumber from 'bignumber.js';
 import { MerkleTreeAndChain } from './types';
+import { assert } from 'ts-essentials';
 
 export type MinGasRefundTransaction = Pick<
   GasRefundTransaction,
@@ -29,7 +30,11 @@ export async function computeMerkleData({
     }[];
   }>((acc, curr) => {
     if (!acc[curr.chainId]) acc[curr.chainId] = [];
-    acc[curr.chainId].push(curr);
+    assert(
+      curr.amount.isGreaterThanOrEqualTo(0),
+      `Negative amount for ${curr.account} on chain ${curr.chainId}`,
+    );
+    if (!curr.amount.isZero()) acc[curr.chainId].push(curr);
 
     return acc;
   }, {});
@@ -82,7 +87,7 @@ function computeMerkleDataForChain({
 
   const merkleRoot = merkleTree.getHexRoot();
 
-  const merkleLeaves: GasRefundMerkleProof[] = allLeaves.map(leaf => {
+  const merkleLeaves: RewardMerkleProof[] = allLeaves.map(leaf => {
     const { address, amount } = hashedClaimabled[leaf];
     const proofs = merkleTree.getHexProof(leaf);
     return {
@@ -91,6 +96,7 @@ function computeMerkleDataForChain({
       epoch,
       proof: proofs,
       GRPChainBreakDown: {},
+      amountsByProgram: {},
     };
   });
 
