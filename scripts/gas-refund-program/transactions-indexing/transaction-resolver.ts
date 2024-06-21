@@ -29,13 +29,12 @@ import {
   SAFETY_MODULE_ADDRESS,
   AUGUSTUS_V5_ADDRESS,
   CHAIN_ID_OPTIMISM,
-  AugustusV5Address,
-  CHAIN_ID_FANTOM,
 } from '../../../src/lib/constants';
 import { getMigrationsTxs } from '../staking/2.0/migrations';
 import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/utils';
 import { grp2ConfigByChain } from '../../../src/lib/gas-refund/config';
 import { assert } from 'ts-essentials';
+import { Provider } from '../../../src/lib/provider';
 
 type GetAllTXsInput = {
   startTimestamp: number;
@@ -173,46 +172,18 @@ export const getSwapTXs = async ({
     return swapperStake.combined.isGreaterThanOrEqualTo(getMinStake(epoch));
   });
 
-  const allTxsWithGas = await covalentGetTXsForContractV3({
-    startTimestamp,
-    endTimestamp,
-    chainId,
-    contract: AugustusV5Address[chainId],
-  });
-
-  const txHashToGas = allTxsWithGas.reduce<Record<string, string>>(
-    (acc, curr) => {
-      acc[curr.txHash.toLowerCase()] = curr.txGasUsed;
-      return acc;
-    },
-    {},
-  );
-
-  const _getTransactionGasUsedSync = ({
-    chainId,
-    txHash,
-  }: {
-    chainId: number;
-    txHash: string;
-  }) => {
-    const txGasUsed = txHashToGas[txHash.toLowerCase()];
-
-    assert(
-      txGasUsed,
-      `gas used should not be zero for ${txHash} on chainId=${chainId}`,
-    );
-
-    return txGasUsed;
-  };
-
-  // augment with gas used and the pertaining contract the tx occured on
-  const swapsWithGasUsedNormalised: GasRefundTransaction[] =
+  // reminder: as our subgraphs were not updated since gasUsd not gasUsed the graph issue has been fixed (https://github.com/graphprotocol/graph-node/issues/2619) we need to fetch gasUsed separately
+  const swapsWithGasUsedNormalised: GasRefundTransaction[] = await Promise.all(
     swapsOfQualifyingStakers.map(
-      ({ txHash, txOrigin, txGasPrice, timestamp, blockNumber }) => {
-        const txGasUsed = _getTransactionGasUsedSync({
-          chainId,
-          txHash,
-        });
+      async ({ txHash, txOrigin, txGasPrice, timestamp, blockNumber }) => {
+        const provider = Provider.getJsonRpcProvider(chainId);
+        const tx = await provider.getTransactionReceipt(txHash);
+        const txGasUsed = tx.gasUsed.toNumber();
+
+        assert(
+          txGasUsed,
+          `gas used should not be zero for ${txHash} on chainId=${chainId}`,
+        );
 
         return {
           txHash,
@@ -224,7 +195,8 @@ export const getSwapTXs = async ({
           contract: AUGUSTUS_V5_ADDRESS,
         };
       },
-    );
+    ),
+  );
   return swapsWithGasUsedNormalised;
 };
 
