@@ -12,7 +12,6 @@
  */
 import { SPSPAddresses } from '../../../src/lib/staking/spsp-helper';
 import { covalentGetTXsForContractV3 } from './txs-covalent';
-import { getTransactionGasUsed } from '../../../src/lib/utils/covalent';
 import StakesTracker from '../staking/stakes-tracker';
 import { getSuccessfulSwaps } from './swaps-subgraph';
 import { GasRefundTransaction } from '../types';
@@ -34,7 +33,7 @@ import { getMigrationsTxs } from '../staking/2.0/migrations';
 import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/utils';
 import { grp2ConfigByChain } from '../../../src/lib/gas-refund/config';
 import { assert } from 'ts-essentials';
-import { Provider } from '../../../src/lib/provider';
+import { fetchTxGasUsed } from './utils';
 
 type GetAllTXsInput = {
   startTimestamp: number;
@@ -176,9 +175,7 @@ export const getSwapTXs = async ({
   const swapsWithGasUsedNormalised: GasRefundTransaction[] = await Promise.all(
     swapsOfQualifyingStakers.map(
       async ({ txHash, txOrigin, txGasPrice, timestamp, blockNumber }) => {
-        const provider = Provider.getJsonRpcProvider(chainId);
-        const tx = await provider.getTransactionReceipt(txHash);
-        const txGasUsed = tx.gasUsed.toNumber();
+        const txGasUsed = await fetchTxGasUsed(chainId, txHash);
 
         assert(
           txGasUsed,
