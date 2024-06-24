@@ -4,7 +4,7 @@ import {
   sePSPMigrations,
   SePSPMigrationsData,
 } from '../../../../src/models/sePSPMigrations';
-import { GasRefundTransaction } from '../../types';
+import { CovalentGasRefundTransaction } from '../../types';
 
 import ERC20StateTracker, { Transfer } from './ERC20StateTracker';
 import { GRP_V2_SUPPORTED_CHAINS_STAKING } from '../../../../src/lib/gas-refund/gas-refund';
@@ -42,7 +42,7 @@ export async function getMigrationsTxs({
   chainId: _chaindId,
   startTimestamp,
   endTimestamp,
-}: GetMigrationsTXsInput): Promise<GasRefundTransaction[]> {
+}: GetMigrationsTXsInput): Promise<CovalentGasRefundTransaction[]> {
   if (!GRP_V2_SUPPORTED_CHAINS_STAKING.has(_chaindId)) return [];
   if (epoch > grp2GlobalConfig.lastEpochForSePSP2MigrationRefund) return []; // 100% refund is only valid first two epochs
 
@@ -77,7 +77,7 @@ export async function getMigrationsTxs({
     },
   });
 
-  const migrationsTxs: GasRefundTransaction[] = await Promise.all(
+  const migrationsTxs: CovalentGasRefundTransaction[] = await Promise.all(
     allMigrationsEpoch.map(async v => {
       const { account, chainId, blockNumber, txHash } = v;
 

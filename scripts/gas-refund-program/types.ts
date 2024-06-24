@@ -54,7 +54,7 @@ export interface SubGraphSwap {
   timestamp: string;
 }
 
-export interface GasRefundTransaction
+export interface CovalentGasRefundTransaction
   extends Omit<CovalentTransaction, 'blockNumber'> {
   blockNumber: string;
   contract: string;
