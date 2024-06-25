@@ -1,11 +1,26 @@
 import { assert } from 'ts-essentials';
-import { CovalentGasRefundTransaction } from '../../scripts/gas-refund-program/types';
+import { ExtendedCovalentGasRefundTransaction } from '../../scripts/gas-refund-program/types';
 import axios from 'axios';
+import { CHAIN_ID_OPTIMISM } from './constants';
+import { fetchTxGasUsed } from '../../scripts/gas-refund-program/transactions-indexing/utils';
+import BigNumber from 'bignumber.js';
 
 const PARASWAP_V6_STAKERS_TRANSACTIONS_URL_TEMPLATE =
   process.env.PARASWAP_V6_STAKERS_TRANSACTIONS_URL_TEMPLATE;
 
-function generateObjectsFromData(data: any): object[] {
+type ParaswapTransactionData = {
+  chainid: number; // 137,
+  initiator: string; // '0xad1a74a31b00ed0403bb7d8b11130e30ae15853c',
+  augustusversion: string; //'6.2',
+  augustusaddress: string; // '0x6a000f20005980200259b80c5102003040001068',
+  entrytimestamp: string; //'2024-06-24T10:36:52Z',
+  txgasused: number; // 403796,
+  txgasprice: number; // 118000000000,
+  blocknumber: number; // 58545814,
+  blockhash: string; // '0xb1fdf818d10b1b2d97d82ff421972b03e1e04ceafaa5237c8373e705531e4617',
+  txhash: string; //'0xca4c03b4e1fc17553706f9b91a3dd7eaa20202927e3ef77aa31dfdfc04ca4b16'
+};
+function generateObjectsFromData(data: any): ParaswapTransactionData[] {
   // Dynamically extract column names from the 'cols' array
   const columnNames = data.cols.map((col: any) => col.name);
 
@@ -21,32 +36,14 @@ function generateObjectsFromData(data: any): object[] {
     return obj;
   });
 }
+const logger = global.LOGGER('paraswap-v6-stakers-transactions');
 
-// Example usage
-// Assuming 'data' is an object that contains both 'cols' and 'rows' arrays
-// const processedData = generateObjectsFromData(data.data);
-
-//   logged example at the time of writting
-//   [
-//     {
-//       chainid: 137,
-//       initiator: '0xad1a74a31b00ed0403bb7d8b11130e30ae15853c',
-//       augustusversion: '6.2',
-//       augustusaddress: '0x6a000f20005980200259b80c5102003040001068',
-//       entrytimestamp: '2024-06-24T10:36:52Z',
-//       txgasused: 403796,
-//       txgasprice: 118000000000,
-//       blocknumber: 58545814,
-//       blockhash: '0xb1fdf818d10b1b2d97d82ff421972b03e1e04ceafaa5237c8373e705531e4617',
-//       txhash: '0xca4c03b4e1fc17553706f9b91a3dd7eaa20202927e3ef77aa31dfdfc04ca4b16'
-//     },
-// console.log(processedData);
 
 export async function fetchParaswapV6StakersTransactions(arg0: {
   epoch: number;
   chainId: number;
   address: string;
-}): Promise<CovalentGasRefundTransaction[]> {
+}): Promise<ExtendedCovalentGasRefundTransaction[]> {
   assert(
     PARASWAP_V6_STAKERS_TRANSACTIONS_URL_TEMPLATE,
     'PARASWAP_V6_STAKERS_TRANSACTIONS_URL_TEMPLATE should be defined',
@@ -59,12 +56,42 @@ export async function fetchParaswapV6StakersTransactions(arg0: {
     .replace('{{contractAddressLowerCase}}', arg0.address);
   const data = await axios.get(url);
 
-  console.log('allStakersTransactionsDuringEpoch url', url);
+  logger.info('paraswap v6 stakers txs: url: ', url);
   const formattedAsObjects = generateObjectsFromData(data.data.data);
-  console.log('allStakersTransactionsDuringEpoch', formattedAsObjects.length);
-  if (formattedAsObjects.length > 0) {
-    // debugger;
-  }
-  // @TODO: transform to CovalentGasRefundTransaction[]
-  return formattedAsObjects as any[];
+  logger.info('paraswap v6 stakers txs: amount fetched:', formattedAsObjects.length);
+
+  const items = await Promise.all(
+    formattedAsObjects.map<Promise<ExtendedCovalentGasRefundTransaction>>(
+      async item => {
+        let gasSpentInChainCurrencyWei: string | undefined = undefined;
+
+        if (arg0.chainId === CHAIN_ID_OPTIMISM) {
+          const { gasUsed, l1FeeWei } = await fetchTxGasUsed(
+            arg0.chainId,
+            item.txhash,
+          );
+          assert(l1FeeWei, 'l1FeeWei should be defined on optimism');
+          gasSpentInChainCurrencyWei = new BigNumber(gasUsed)
+            .multipliedBy(item.txgasprice.toString())
+            .plus(l1FeeWei)
+            .toFixed(0);
+        }
+
+        const timestamp = Math.floor(
+          new Date(item.entrytimestamp).getTime() / 1000,
+        ).toString();
+        return {
+          txHash: item.txhash,
+          txOrigin: item.initiator,
+          txGasPrice: item.txgasprice.toString(),
+          blockNumber: item.blocknumber.toString(),
+          timestamp,
+          txGasUsed: item.txgasused.toString(),
+          gasSpentInChainCurrencyWei,
+          contract: item.augustusaddress,
+        };
+      },
+    ),
+  );
+  return items;
 }
