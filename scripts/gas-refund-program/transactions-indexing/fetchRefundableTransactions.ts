@@ -172,7 +172,7 @@ export async function fetchRefundableTransactions({
     }
     return refundableTransactions;
   }
-  
+
   return (
     await Promise.all([
       ...allButV6ContractAddresses.map(async contractAddress => {
@@ -235,12 +235,17 @@ export async function fetchRefundableTransactions({
       ...Array.from(AUGUSTUS_SWAPPERS_V6_OMNICHAIN).map(
         async contractAddress => {
           const epochNewStyle = epoch - GasRefundV2EpochFlip;
+
+          const lastTimestampProcessed =
+            lastTimestampTxByContract[contractAddress];
+
           const allStakersTransactionsDuringEpoch =
             await fetchParaswapV6StakersTransactions({
               epoch: epochNewStyle,
+              timestampGreaterThan: lastTimestampProcessed,
               chainId,
               address: contractAddress,
-            });         
+            });
 
           return await filterFormatAndStoreRefundableTransactions(
             allStakersTransactionsDuringEpoch,

@@ -38,11 +38,11 @@ function generateObjectsFromData(data: any): ParaswapTransactionData[] {
 }
 const logger = global.LOGGER('paraswap-v6-stakers-transactions');
 
-
 export async function fetchParaswapV6StakersTransactions(arg0: {
   epoch: number;
   chainId: number;
   address: string;
+  timestampGreaterThan?: number;
 }): Promise<ExtendedCovalentGasRefundTransaction[]> {
   assert(
     PARASWAP_V6_STAKERS_TRANSACTIONS_URL_TEMPLATE,
@@ -53,12 +53,20 @@ export async function fetchParaswapV6StakersTransactions(arg0: {
     arg0.epoch.toString(),
   )
     .replace('{{chainId}}', arg0.chainId.toString())
-    .replace('{{contractAddressLowerCase}}', arg0.address);
+    .replace('{{contractAddressLowerCase}}', arg0.address)
+    .replace(
+      '{{timestampGreaterThan}}',
+      arg0.timestampGreaterThan ? `"${arg0.timestampGreaterThan}"` : 'null',
+    );
+
   const data = await axios.get(url);
 
   logger.info('paraswap v6 stakers txs: url: ', url);
   const formattedAsObjects = generateObjectsFromData(data.data.data);
-  logger.info('paraswap v6 stakers txs: amount fetched:', formattedAsObjects.length);
+  logger.info(
+    'paraswap v6 stakers txs: amount fetched:',
+    formattedAsObjects.length,
+  );
 
   const items = await Promise.all(
     formattedAsObjects.map<Promise<ExtendedCovalentGasRefundTransaction>>(
