@@ -14,7 +14,6 @@ import { SPSPAddresses } from '../../../src/lib/staking/spsp-helper';
 import { covalentGetTXsForContractV3 } from './txs-covalent';
 import StakesTracker from '../staking/stakes-tracker';
 import { getSuccessfulSwaps } from './swaps-subgraph';
-import { ExtendedCovalentGasRefundTransaction } from '../types';
 import {
   GasRefundConsiderContractTXsStartEpoch,
   GasRefundV2EpochFlip,
@@ -34,6 +33,7 @@ import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/utils';
 import { grp2ConfigByChain } from '../../../src/lib/gas-refund/config';
 import { assert } from 'ts-essentials';
 import { fetchTxGasUsed } from '../../../src/lib/fetch-tx-gas-used';
+import { ExtendedCovalentGasRefundTransaction } from '../../../src/types-from-scripts';
 
 type GetAllTXsInput = {
   startTimestamp: number;
