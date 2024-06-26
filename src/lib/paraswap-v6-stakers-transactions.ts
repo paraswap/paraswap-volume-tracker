@@ -1,9 +1,9 @@
 import { assert } from 'ts-essentials';
-import { ExtendedCovalentGasRefundTransaction } from '../../scripts/gas-refund-program/types';
+import type { ExtendedCovalentGasRefundTransaction } from '../../scripts/gas-refund-program/types';
 import axios from 'axios';
 import { CHAIN_ID_OPTIMISM } from './constants';
-import { fetchTxGasUsed } from '../../scripts/gas-refund-program/transactions-indexing/utils';
 import BigNumber from 'bignumber.js';
+import { fetchTxGasUsed } from './fetch-tx-gas-used';
 
 const PARASWAP_V6_STAKERS_TRANSACTIONS_URL_TEMPLATE =
   process.env.PARASWAP_V6_STAKERS_TRANSACTIONS_URL_TEMPLATE;
