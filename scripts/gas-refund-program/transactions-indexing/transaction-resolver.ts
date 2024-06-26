@@ -33,7 +33,7 @@ import { getMigrationsTxs } from '../staking/2.0/migrations';
 import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/utils';
 import { grp2ConfigByChain } from '../../../src/lib/gas-refund/config';
 import { assert } from 'ts-essentials';
-import { fetchTxGasUsed } from './utils';
+import { fetchTxGasUsed } from '../../../src/lib/fetch-tx-gas-used';
 
 type GetAllTXsInput = {
   startTimestamp: number;
@@ -49,11 +49,11 @@ const StakingV1ContractAddressByChain: Record<number, string[]> = {
 };
 
 const contractAddressesByChain: Record<number, string[]> = {
-  [CHAIN_ID_MAINNET]: [    
+  [CHAIN_ID_MAINNET]: [
     MIGRATION_SEPSP2_100_PERCENT_KEY,
     grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP1,
     grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP2,
-    grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP1ToSePSP2Migrator,        
+    grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP1ToSePSP2Migrator,
     AUGUSTUS_V5_ADDRESS,
   ],
   [CHAIN_ID_GOERLI]: [
@@ -168,28 +168,29 @@ export const getSwapTXs = async ({
   });
 
   // reminder: as our subgraphs were not updated since gasUsd not gasUsed the graph issue has been fixed (https://github.com/graphprotocol/graph-node/issues/2619) we need to fetch gasUsed separately
-  const swapsWithGasUsedNormalised: ExtendedCovalentGasRefundTransaction[] = await Promise.all(
-    swapsOfQualifyingStakers.map(
-      async ({ txHash, txOrigin, txGasPrice, timestamp, blockNumber }) => {
-        const {gasUsed: txGasUsed} = await fetchTxGasUsed(chainId, txHash);
+  const swapsWithGasUsedNormalised: ExtendedCovalentGasRefundTransaction[] =
+    await Promise.all(
+      swapsOfQualifyingStakers.map(
+        async ({ txHash, txOrigin, txGasPrice, timestamp, blockNumber }) => {
+          const { gasUsed: txGasUsed } = await fetchTxGasUsed(chainId, txHash);
 
-        assert(
-          txGasUsed,
-          `gas used should not be zero for ${txHash} on chainId=${chainId}`,
-        );
+          assert(
+            txGasUsed,
+            `gas used should not be zero for ${txHash} on chainId=${chainId}`,
+          );
 
-        return {
-          txHash,
-          txOrigin,
-          txGasPrice,
-          timestamp,
-          blockNumber,
-          txGasUsed: txGasUsed.toString(),
-          contract: AUGUSTUS_V5_ADDRESS,
-        };
-      },
-    ),
-  );
+          return {
+            txHash,
+            txOrigin,
+            txGasPrice,
+            timestamp,
+            blockNumber,
+            txGasUsed: txGasUsed.toString(),
+            contract: AUGUSTUS_V5_ADDRESS,
+          };
+        },
+      ),
+    );
   return swapsWithGasUsedNormalised;
 };
 
