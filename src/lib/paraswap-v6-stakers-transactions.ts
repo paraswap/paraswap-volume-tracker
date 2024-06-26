@@ -56,7 +56,7 @@ export async function fetchParaswapV6StakersTransactions(arg0: {
     .replace('{{contractAddressLowerCase}}', arg0.address)
     .replace(
       '{{timestampGreaterThan}}',
-      arg0.timestampGreaterThan ? `"${arg0.timestampGreaterThan}"` : 'null',
+      arg0.timestampGreaterThan ? `["${arg0.timestampGreaterThan}"]` : 'null',
     );
 
   const data = await axios.get(url);
