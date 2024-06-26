@@ -93,7 +93,17 @@ export const NATIVE_TOKEN_ADDRESS =
 export const SAFETY_MODULE_ADDRESS =
   '0xc8dc2ec5f5e02be8b37a8444a1931f02374a17ab'.toLowerCase();
 
+//All these must be lower-cased!
 export const AUGUSTUS_V5_ADDRESS = '0xdef171fe48cf0115b1d80b88dc8eab59176fee57';
+export const AUGUSTUS_V6_0_ADDRESS = '0x00000000fdac7708d0d360bddc1bc7d097f47439'; 
+export const AUGUSTUS_V6_1_ADDRESS = '0x000db803a70511e09da650d4c0506d0000100000';
+export const AUGUSTUS_V6_2_ADDRESS = '0x6a000f20005980200259b80c5102003040001068';
+
+export const AUGUSTUS_SWAPPERS_V6_OMNICHAIN = new Set([
+  AUGUSTUS_V6_0_ADDRESS,
+  AUGUSTUS_V6_1_ADDRESS,
+  AUGUSTUS_V6_2_ADDRESS
+])
 
 export const BalancerVaultAddress =
   '0xba12222222228d8ba445958a75a0704d566bf2c8';

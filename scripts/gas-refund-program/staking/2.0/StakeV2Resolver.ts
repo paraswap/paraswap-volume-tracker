@@ -73,13 +73,11 @@ export class StakeV2Resolver extends AbstractStateTracker {
   }
 
   async loadWithinInterval(epochStartTimestamp: number, endTimestamp: number) {
-    const startTimestamp =
-      grp2CConfigParticularities[this.chainId].stakingStartCalcTimestamp && // set staking start time higher if staking contracts have been deployed after epoch start
-      epochStartTimestamp <
-        grp2CConfigParticularities[this.chainId].stakingStartCalcTimestamp!
-        ? grp2CConfigParticularities[this.chainId].stakingStartCalcTimestamp!
-        : epochStartTimestamp;
 
+    // set staking start time higher if staking contracts have been deployed after epoch start
+    const deploymentTimestamp = grp2CConfigParticularities[this.chainId].stakingStartCalcTimestamp;
+    const startTimestamp = Math.max(epochStartTimestamp, deploymentTimestamp || 0)
+    
     await this.resolveBlockBoundary({ startTimestamp, endTimestamp });
 
     const boundary = this.getBlockTimeBoundary();

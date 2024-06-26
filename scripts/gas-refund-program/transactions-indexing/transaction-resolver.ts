@@ -14,7 +14,7 @@ import { SPSPAddresses } from '../../../src/lib/staking/spsp-helper';
 import { covalentGetTXsForContractV3 } from './txs-covalent';
 import StakesTracker from '../staking/stakes-tracker';
 import { getSuccessfulSwaps } from './swaps-subgraph';
-import { GasRefundTransaction } from '../types';
+import { ExtendedCovalentGasRefundTransaction } from '../types';
 import {
   GasRefundConsiderContractTXsStartEpoch,
   GasRefundV2EpochFlip,
@@ -49,15 +49,11 @@ const StakingV1ContractAddressByChain: Record<number, string[]> = {
 };
 
 const contractAddressesByChain: Record<number, string[]> = {
-  [CHAIN_ID_MAINNET]: [
-    ...(isMainnetStaking
-      ? [
-          MIGRATION_SEPSP2_100_PERCENT_KEY,
-          grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP1,
-          grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP2,
-          grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP1ToSePSP2Migrator,
-        ]
-      : []),
+  [CHAIN_ID_MAINNET]: [    
+    MIGRATION_SEPSP2_100_PERCENT_KEY,
+    grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP1,
+    grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP2,
+    grp2ConfigByChain[CHAIN_ID_MAINNET]?.sePSP1ToSePSP2Migrator,        
     AUGUSTUS_V5_ADDRESS,
   ],
   [CHAIN_ID_GOERLI]: [
@@ -103,7 +99,7 @@ export const getAllTXs = async ({
   endTimestamp,
   epochEndTimestamp,
   contractAddress,
-}: GetAllTXsInput): Promise<GasRefundTransaction[]> => {
+}: GetAllTXsInput): Promise<ExtendedCovalentGasRefundTransaction[]> => {
   // fetch swaps and contract (staking pools, safety module) txs
   if (contractAddress === AUGUSTUS_V5_ADDRESS && chainId !== CHAIN_ID_OPTIMISM)
     return getSwapTXs({
@@ -150,7 +146,7 @@ export const getSwapTXs = async ({
   startTimestamp,
   endTimestamp,
   epochEndTimestamp,
-}: GetSwapTXsInput): Promise<GasRefundTransaction[]> => {
+}: GetSwapTXsInput): Promise<ExtendedCovalentGasRefundTransaction[]> => {
   // get swaps from the graph
   const swaps = await getSuccessfulSwaps({
     startTimestamp,
@@ -172,10 +168,10 @@ export const getSwapTXs = async ({
   });
 
   // reminder: as our subgraphs were not updated since gasUsd not gasUsed the graph issue has been fixed (https://github.com/graphprotocol/graph-node/issues/2619) we need to fetch gasUsed separately
-  const swapsWithGasUsedNormalised: GasRefundTransaction[] = await Promise.all(
+  const swapsWithGasUsedNormalised: ExtendedCovalentGasRefundTransaction[] = await Promise.all(
     swapsOfQualifyingStakers.map(
       async ({ txHash, txOrigin, txGasPrice, timestamp, blockNumber }) => {
-        const txGasUsed = await fetchTxGasUsed(chainId, txHash);
+        const {gasUsed: txGasUsed} = await fetchTxGasUsed(chainId, txHash);
 
         assert(
           txGasUsed,
@@ -215,7 +211,7 @@ export const getTransactionForContract = async ({
   endTimestamp,
   chainId,
   contractAddress,
-}: GetContractsTXsInput): Promise<GasRefundTransaction[]> => {
+}: GetContractsTXsInput): Promise<ExtendedCovalentGasRefundTransaction[]> => {
   // fail fast if this is a deadend
   if (epoch < GasRefundConsiderContractTXsStartEpoch) {
     return [];
@@ -226,7 +222,7 @@ export const getTransactionForContract = async ({
     endTimestamp,
     chainId,
     contract: contractAddress,
-  })) as unknown as GasRefundTransaction[];
+  })) as unknown as ExtendedCovalentGasRefundTransaction[];
 
   return txsFromAllContracts;
 };
