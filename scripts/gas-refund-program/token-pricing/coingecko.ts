@@ -5,10 +5,10 @@ import {
   CHAIN_ID_OPTIMISM,
   CHAIN_ID_POLYGON,
 } from '../../../src/lib/constants';
-import { HistoricalPrice } from '../types';
 import { constructHttpClient } from '../../../src/lib/utils/http-client';
 import { startOfDayMilliSec } from '../../../src/lib/utils/helpers';
 import { assert } from 'ts-essentials';
+import { HistoricalPrice } from '../../../src/types-from-scripts';
 
 export const coingeckoClient = constructHttpClient({
   axiosConfig: {

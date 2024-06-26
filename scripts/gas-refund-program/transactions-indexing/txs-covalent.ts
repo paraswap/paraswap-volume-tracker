@@ -4,12 +4,12 @@ import {
   getBulkTimeBucketTxsWithinInterval,
 } from '../../../src/lib/utils/covalent';
 import { covalentClient } from '../../../src/lib/utils/data-providers-clients';
-import {
-  CovalentAPI,
-  CovalentTransaction,
-  ExtendedCovalentGasRefundTransaction,
-} from '../types';
 import { CHAIN_ID_OPTIMISM } from '../../../src/lib/constants';
+import {
+  CovalentTransaction,
+  CovalentAPI,
+  ExtendedCovalentGasRefundTransaction,
+} from '../../../src/types-from-scripts';
 
 interface GetContractTXsByNetworkInput {
   chainId: number;
@@ -109,7 +109,9 @@ export const covalentGetTXsForContractV3 = async ({
   endTimestamp,
   chainId,
   contract,
-}: GetContractTXsByNetworkInput): Promise<ExtendedCovalentGasRefundTransaction[]> => {
+}: GetContractTXsByNetworkInput): Promise<
+  ExtendedCovalentGasRefundTransaction[]
+> => {
   assert(
     contract.toLowerCase() === contract,
     'contract address should be lower cased',

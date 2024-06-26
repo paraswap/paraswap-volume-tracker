@@ -24,7 +24,7 @@ import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/utils';
 import { isTruthy } from '../../../src/lib/utils';
 import { AUGUSTUS_SWAPPERS_V6_OMNICHAIN } from '../../../src/lib/constants';
 import { fetchParaswapV6StakersTransactions } from '../../../src/lib/paraswap-v6-stakers-transactions';
-import { ExtendedCovalentGasRefundTransaction } from '../types';
+import { ExtendedCovalentGasRefundTransaction } from '../../../src/types-from-scripts';
 
 // empirically set to maximise on processing time without penalising memory and fetching constraigns
 const SLICE_DURATION = 4 * ONE_HOUR_SEC;

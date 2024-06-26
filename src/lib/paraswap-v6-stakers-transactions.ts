@@ -1,5 +1,5 @@
 import { assert } from 'ts-essentials';
-import type { ExtendedCovalentGasRefundTransaction } from '../../scripts/gas-refund-program/types';
+import { ExtendedCovalentGasRefundTransaction } from '../types-from-scripts';
 import axios from 'axios';
 import { CHAIN_ID_OPTIMISM } from './constants';
 import BigNumber from 'bignumber.js';
