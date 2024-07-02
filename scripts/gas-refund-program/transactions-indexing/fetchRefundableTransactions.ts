@@ -155,62 +155,55 @@ export async function fetchRefundableTransactions({
         })
         .filter(isTruthy);
 
-    if (refundableTransactions.length > 0) {
-      // TODO
-      // logger.info(
-      //   `updating ${refundableTransactions.length} transactions for chainId=${chainId} epoch=${epoch} _startTimestampSlice=${_startTimestampSlice} _endTimestampSlice=${_endTimestampSlice}`,
-      // );
-      await writeTransactions(refundableTransactions);
-
-      const stakeScoreEntries = refundableTransactions
-        .map(({ stakeScore, ...transaction }) =>
-          composeGasRefundTransactionStakeSnapshots(transaction, stakeScore),
-        )
-        .flat();
-
-      await writeStakeScoreSnapshots(stakeScoreEntries);
-    }
     return refundableTransactions;
   }
 
-  return (
-    await Promise.all([
-      ...allButV6ContractAddresses.map(async contractAddress => {
-        assert(contractAddress, 'contractAddress should be defined');
-        const lastTimestampProcessed =
-          lastTimestampTxByContract[contractAddress] || 0;
+  const allTxsV5AndV6Merged = await Promise.all([
+    ...allButV6ContractAddresses.map(async contractAddress => {
+      assert(contractAddress, 'contractAddress should be defined');
+      const lastTimestampProcessed =
+        lastTimestampTxByContract[contractAddress] || 0;
 
-        const _startTimestamp = Math.max(
-          startTimestamp,
-          lastTimestampProcessed + 1,
+      const _startTimestamp = Math.max(
+        startTimestamp,
+        lastTimestampProcessed + 1,
+      );
+
+      // Step 1: Create an array of time slices
+      const timeSlices = [];
+      for (
+        let _startTimestampSlice = _startTimestamp;
+        _startTimestampSlice < endTimestamp;
+        _startTimestampSlice += SLICE_DURATION
+      ) {
+        const _endTimestampSlice = Math.min(
+          _startTimestampSlice + SLICE_DURATION,
+          endTimestamp,
         );
+        timeSlices.push({
+          start: _startTimestampSlice,
+          end: _endTimestampSlice,
+        });
+      }
 
-        const slicedBatches: GasRefundTransactionDataWithStakeScore[][] = [];
-        for (
-          let _startTimestampSlice = _startTimestamp;
-          _startTimestampSlice < endTimestamp;
-          _startTimestampSlice += SLICE_DURATION
-        ) {
-          const _endTimestampSlice = Math.min(
-            _startTimestampSlice + SLICE_DURATION,
-            endTimestamp,
-          );
-
+      // Step 2: Map each slice to a promise
+      const promises = timeSlices.map(({ start, end }) =>
+        (async () => {
           logger.info(
-            `fetching transactions between ${_startTimestampSlice} and ${_endTimestampSlice} for contract=${contractAddress}...`,
+            `fetching transactions between ${start} and ${end} for contract=${contractAddress}...`,
           );
 
           const transactions = await getAllTXs({
             epoch,
-            startTimestamp: _startTimestampSlice,
-            endTimestamp: _endTimestampSlice,
+            startTimestamp: start,
+            endTimestamp: end,
             chainId,
             epochEndTimestamp: endTimestamp,
             contractAddress,
           });
 
           logger.info(
-            `fetched ${transactions.length} txs between ${_startTimestampSlice} and ${_endTimestampSlice} for contract=${contractAddress}`,
+            `fetched ${transactions.length} txs between ${start} and ${end} for contract=${contractAddress}`,
           );
 
           const refundableTransactions =
@@ -219,40 +212,67 @@ export async function fetchRefundableTransactions({
               (epoch, totalScore) => {
                 const result =
                   contractAddress === MIGRATION_SEPSP2_100_PERCENT_KEY
-                    ? 1 // 100%
+                    ? 1
                     : getRefundPercent(epoch, totalScore);
-
                 return result;
               },
             );
-          if (refundableTransactions.length > 0) {
-            slicedBatches.push(refundableTransactions);
-          }
-        }
-        return slicedBatches.flat();
-      }),
 
-      ...Array.from(AUGUSTUS_SWAPPERS_V6_OMNICHAIN).map(
-        async contractAddress => {
-          const epochNewStyle = epoch - GasRefundV2EpochFlip;
+          return refundableTransactions.length > 0
+            ? refundableTransactions
+            : [];
+        })(),
+      );
 
-          const lastTimestampProcessed =
-            lastTimestampTxByContract[contractAddress];
+      // Step 3: Use Promise.all to execute all promises concurrently
+      const result = await Promise.all(promises);
 
-          const allStakersTransactionsDuringEpoch =
-            await fetchParaswapV6StakersTransactions({
-              epoch: epochNewStyle,
-              timestampGreaterThan: lastTimestampProcessed,
-              chainId,
-              address: contractAddress,
-            });
+      // Step 4: Flatten the result and return
+      return result.flat();
+    }),
 
-          return await filterFormatAndStoreRefundableTransactions(
-            allStakersTransactionsDuringEpoch,
-            (epoch, totalUserScore) => getRefundPercent(epoch, totalUserScore),
-          );
-        },
-      ),
-    ])
-  ).flat();
+    ...Array.from(AUGUSTUS_SWAPPERS_V6_OMNICHAIN).map(async contractAddress => {
+      const epochNewStyle = epoch - GasRefundV2EpochFlip;
+
+      const lastTimestampProcessed = lastTimestampTxByContract[contractAddress];
+
+      const allStakersTransactionsDuringEpoch =
+        await fetchParaswapV6StakersTransactions({
+          epoch: epochNewStyle,
+          timestampGreaterThan: lastTimestampProcessed,
+          chainId,
+          address: contractAddress,
+        });
+
+      return await filterFormatAndStoreRefundableTransactions(
+        allStakersTransactionsDuringEpoch,
+        (epoch, totalUserScore) => getRefundPercent(epoch, totalUserScore),
+      );
+    }),
+  ]);
+
+  const flattened = allTxsV5AndV6Merged.flat();
+  await storeTxs(flattened);
+  return flattened;
+  // ).flat();
+}
+
+async function storeTxs(
+  refundableTransactions: GasRefundTransactionDataWithStakeScore[],
+) {
+  if (refundableTransactions.length > 0) {
+    // TODO
+    // logger.info(
+    //   `updating ${refundableTransactions.length} transactions for chainId=${chainId} epoch=${epoch} _startTimestampSlice=${_startTimestampSlice} _endTimestampSlice=${_endTimestampSlice}`,
+    // );
+    await writeTransactions(refundableTransactions);
+
+    const stakeScoreEntries = refundableTransactions
+      .map(({ stakeScore, ...transaction }) =>
+        composeGasRefundTransactionStakeSnapshots(transaction, stakeScore),
+      )
+      .flat();
+
+    await writeStakeScoreSnapshots(stakeScoreEntries);
+  }
 }
