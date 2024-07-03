@@ -1,6 +1,16 @@
-import { GasRefundTransactionDataWithStakeScore } from '../gas-refund-program/transactions-indexing/types';
-
-const txsToInclude =
+import BigNumber from 'bignumber.js';
+import { fetchRawReceipt } from '../../src/lib/fetch-tx-gas-used';
+import { getRefundPercent } from '../../src/lib/gas-refund/gas-refund';
+import { ExtendedCovalentGasRefundTransaction } from '../../src/types-from-scripts';
+import {
+  GasRefundTransactionDataWithStakeScore,
+  TxProcessorFn,
+} from '../gas-refund-program/transactions-indexing/types';
+import { PatchInput } from './types';
+import { CHAIN_ID_OPTIMISM } from '../../src/lib/constants';
+import { Provider } from '../../src/lib/provider';
+type PatchedTxTuple = [chainId: number, txHash: string];
+const patchTxsToInclude =
   `> 1,"0x87a659702597b6f7f05690543695e6bcefa170fb3656f35f98a9db4593e9cf23"
 > 1,"0x7ed56c0213248beafdab915a13e130a2792f30e90822596e465c6393974c4335"
 > 1,"0x73a77b3f9b3a75ebb45382ca8b69e37ffd8a45aa987c783d7b211e0e2373e456"
@@ -83,16 +93,69 @@ const txsToInclude =
  `
     .trim()
     .split('\n')
-    .map(l => {
+    .map<PatchedTxTuple>(l => {
       const [chainId, tx] = l.replace(/^> /, '').replace(/"/g, '').split(',');
       return [parseInt(chainId, 10), tx.toLowerCase()];
     });
 
 // console.log(txsToInclude);
 
-export function applyEpoch46Patch(
-  flattened: GasRefundTransactionDataWithStakeScore[],
+async function extendPatchTx(
+  tuples: PatchedTxTuple[],
+): Promise<ExtendedCovalentGasRefundTransaction[]> {
+  const rawReceipts = await Promise.all(
+    tuples.map(async ([chainId, txHash]) => {
+      return [
+        chainId,
+        await fetchRawReceipt({
+          txHash,
+          chainId,
+        }),
+      ];
+    }),
+  );
+
+  return Promise.all(
+    rawReceipts.map(async ([chainId, rawReceipt]) => {
+      const gasSpentInChainCurrencyWei = new BigNumber(rawReceipt.gasUsed)
+        .multipliedBy(rawReceipt.effectiveGasPrice)
+        .plus(chainId === CHAIN_ID_OPTIMISM ? rawReceipt.l1Fee : 0)
+        .toFixed();
+
+      const block = await Provider.getJsonRpcProvider(chainId).getBlock(
+        rawReceipt.blockNumber,
+      );
+
+      const result: ExtendedCovalentGasRefundTransaction = {
+        txOrigin: rawReceipt.from.toLowerCase(),
+        txGasPrice: new BigNumber(rawReceipt.effectiveGasPrice).toFixed(),
+        blockNumber: new BigNumber(rawReceipt.blockNumber).toFixed(),
+        timestamp: block.timestamp.toString(),
+        txGasUsed: new BigNumber(rawReceipt.gasUsed).toFixed(),
+        gasSpentInChainCurrencyWei,
+        contract: rawReceipt.to.toLowerCase(),
+        txHash: rawReceipt.transactionHash.toLowerCase(),
+      };
+      return result;
+    }),
+  );
+}
+
+export async function applyEpoch46Patch(
+  patchInput: PatchInput,
 ): Promise<GasRefundTransactionDataWithStakeScore[]> {
-  // check if any txs we're gonna ad already exist? throw exception if so
-  throw new Error('Function not implemented.');
+  const { processRawTxs, txs } = patchInput;
+
+  // TODO: could check if any txs we're gonna ad already exist? throw exception if so
+  const composedRawTxs: ExtendedCovalentGasRefundTransaction[] =
+    await extendPatchTx(
+      patchTxsToInclude.filter(item => item[0] === patchInput.chainId),
+    );
+
+  return txs.concat(
+    await processRawTxs(
+      composedRawTxs,
+      (epoch, totalUserScore) => getRefundPercent(epoch, totalUserScore), // assuming all the txs dealt with are obeying gas normal refund logic (i.e. not MIGRATION tx that is refunfed in full)
+    ),
+  );
 }
