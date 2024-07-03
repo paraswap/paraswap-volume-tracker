@@ -55,10 +55,7 @@ async function generateDuneQuery() {
   const parts = GRP_SUPPORTED_CHAINS.map(chainId => {
     const network = CHAIN_ID_TO_DUNE_NETWORK[chainId];
     const transactionsInvolvingContract = `transactionsInvolvingContract_${network}`;
-    const contracts = [
-      ...conractsByChainId[chainId],
-      '0x00000000FdAC7708D0D360BDDc1bc7d097F47439'.toLowerCase(),
-    ].join(',');
+    const contracts = [...conractsByChainId[chainId]].join(',');
 
     const txTableColumns = `
 from
