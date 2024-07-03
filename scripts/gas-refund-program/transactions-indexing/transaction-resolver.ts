@@ -106,6 +106,7 @@ export const getContractAddresses = ({
   return [
     ...result,
     '0x00000000FdAC7708D0D360BDDc1bc7d097F47439'.toLowerCase(), // augustus 6.0
+    '0x000db803a70511e09da650d4c0506d0000100000'.toLowerCase(), // augustus 6.1
   ];
 };
 
