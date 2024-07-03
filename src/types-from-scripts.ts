@@ -54,8 +54,9 @@ export interface SubGraphSwap {
   timestamp: string;
 }
 
-export interface GasRefundTransaction
+export interface ExtendedCovalentGasRefundTransaction // is what passed to final "filter / compute / store" logic
   extends Omit<CovalentTransaction, 'blockNumber'> {
   blockNumber: string;
   contract: string;
+  gasSpentInChainCurrencyWei?: string;
 }

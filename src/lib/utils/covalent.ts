@@ -82,16 +82,6 @@ export async function getTransaction({
   return tx;
 }
 
-export async function getTransactionGasUsed({
-  chainId,
-  txHash,
-}: TransactionQueryOptions): Promise<number> {
-  const tx = await getTransaction({ chainId, txHash });
-  const gasUsed = tx.gas_spent;
-  assert(gasUsed > 0, 'Expected transaction to non zero gas_spent');
-  return gasUsed;
-}
-
 interface TokensHoldersResponse {
   data: TokensHoldersData;
   error: false;

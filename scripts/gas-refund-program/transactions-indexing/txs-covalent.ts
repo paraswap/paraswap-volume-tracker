@@ -4,13 +4,15 @@ import {
   getBulkTimeBucketTxsWithinInterval,
 } from '../../../src/lib/utils/covalent';
 import { covalentClient } from '../../../src/lib/utils/data-providers-clients';
-import {
-  CovalentAPI,
-  CovalentTransaction,
-  GasRefundTransaction,
-} from '../types';
 import { CHAIN_ID_OPTIMISM } from '../../../src/lib/constants';
 import { DuneTransaction } from '../../../src/models/DuneTransaction';
+import {
+  CovalentTransaction,
+  CovalentAPI,
+  ExtendedCovalentGasRefundTransaction,
+} from '../../../src/types-from-scripts';
+import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
+import { parse } from 'path';
 
 interface GetContractTXsByNetworkInput {
   chainId: number;
@@ -29,7 +31,7 @@ export const covalentGetTXsForContract = async ({
   throw new Error('DEPRECATED');
   const covalentAddressToTransaction = (
     txCov: CovalentAPI.Transaction,
-  ): GasRefundTransaction => ({
+  ): ExtendedCovalentGasRefundTransaction => ({
     txHash: txCov.tx_hash,
     txOrigin: txCov.from_address,
     txGasPrice: txCov.gas_price.toString(),
@@ -110,7 +112,9 @@ export const covalentGetTXsForContractV3 = async ({
   endTimestamp,
   chainId,
   contract,
-}: GetContractTXsByNetworkInput): Promise<GasRefundTransaction[]> => {
+}: GetContractTXsByNetworkInput): Promise<
+  ExtendedCovalentGasRefundTransaction[]
+> => {
   assert(
     contract.toLowerCase() === contract,
     'contract address should be lower cased',
@@ -118,7 +122,7 @@ export const covalentGetTXsForContractV3 = async ({
 
   const covalentAddressToTransaction = (
     txCov: CovalentTransactionV3,
-  ): GasRefundTransaction => {
+  ): ExtendedCovalentGasRefundTransaction => {
     const {
       tx_hash: txHash,
       from_address: txOrigin,
@@ -193,7 +197,9 @@ export const constructCovalentAddressToTransaction = (
   contract: string,
   chainId: number,
 ) => {
-  return (txCov: CovalentTransactionV3): GasRefundTransaction => {
+  return (
+    txCov: CovalentTransactionV3,
+  ): ExtendedCovalentGasRefundTransaction => {
     const {
       tx_hash: txHash,
       from_address: txOrigin,
@@ -217,7 +223,7 @@ export const constructCovalentAddressToTransaction = (
       txGasPrice,
       txGasUsed: txGasUsed.toString(),
       blockNumber: blockNumber.toString(),
-      timestamp,
+      timestamp: timestamp,
       contract,
     };
   };

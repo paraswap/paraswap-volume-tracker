@@ -4,7 +4,6 @@ import {
   sePSPMigrations,
   SePSPMigrationsData,
 } from '../../../../src/models/sePSPMigrations';
-import { GasRefundTransaction } from '../../types';
 
 import ERC20StateTracker, { Transfer } from './ERC20StateTracker';
 import { GRP_V2_SUPPORTED_CHAINS_STAKING } from '../../../../src/lib/gas-refund/gas-refund';
@@ -15,6 +14,7 @@ import {
   grp2GlobalConfig,
 } from '../../../../src/lib/gas-refund/config';
 import { CHAIN_ID_MAINNET } from '../../../../src/lib/constants';
+import { ExtendedCovalentGasRefundTransaction } from '../../../../src/types-from-scripts';
 
 const transform = (
   events: Transfer[],
@@ -42,7 +42,7 @@ export async function getMigrationsTxs({
   chainId: _chaindId,
   startTimestamp,
   endTimestamp,
-}: GetMigrationsTXsInput): Promise<GasRefundTransaction[]> {
+}: GetMigrationsTXsInput): Promise<ExtendedCovalentGasRefundTransaction[]> {
   if (!GRP_V2_SUPPORTED_CHAINS_STAKING.has(_chaindId)) return [];
   if (epoch > grp2GlobalConfig.lastEpochForSePSP2MigrationRefund) return []; // 100% refund is only valid first two epochs
 
@@ -77,35 +77,36 @@ export async function getMigrationsTxs({
     },
   });
 
-  const migrationsTxs: GasRefundTransaction[] = await Promise.all(
-    allMigrationsEpoch.map(async v => {
-      const { account, chainId, blockNumber, txHash } = v;
+  const migrationsTxs: ExtendedCovalentGasRefundTransaction[] =
+    await Promise.all(
+      allMigrationsEpoch.map(async v => {
+        const { account, chainId, blockNumber, txHash } = v;
 
-      const tx = await getTransaction({
-        chainId,
-        txHash,
-      });
+        const tx = await getTransaction({
+          chainId,
+          txHash,
+        });
 
-      const txTimestamp = Math.floor(
-        new Date(tx.block_signed_at).getTime() / 1000,
-      ).toString();
+        const txTimestamp = Math.floor(
+          new Date(tx.block_signed_at).getTime() / 1000,
+        ).toString();
 
-      assert(
-        blockNumber === tx.block_height,
-        'block numbers for tx should match',
-      );
+        assert(
+          blockNumber === tx.block_height,
+          'block numbers for tx should match',
+        );
 
-      return {
-        txHash,
-        txOrigin: account,
-        txGasPrice: tx.gas_price.toString(), // legacy - verify unit
-        blockNumber: blockNumber.toString(), // legacy
-        timestamp: txTimestamp,
-        txGasUsed: tx.gas_spent.toString(), // legacy
-        contract: MIGRATION_SEPSP2_100_PERCENT_KEY,
-      };
-    }),
-  );
+        return {
+          txHash,
+          txOrigin: account,
+          txGasPrice: tx.gas_price.toString(), // legacy - verify unit
+          blockNumber: blockNumber.toString(), // legacy
+          timestamp: txTimestamp,
+          txGasUsed: tx.gas_spent.toString(), // legacy
+          contract: MIGRATION_SEPSP2_100_PERCENT_KEY,
+        };
+      }),
+    );
 
   return migrationsTxs.filter(
     t => +t.timestamp >= startTimestamp && +t.timestamp <= endTimestamp,
