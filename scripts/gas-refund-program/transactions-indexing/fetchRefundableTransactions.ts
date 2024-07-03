@@ -16,22 +16,17 @@ import {
 } from '../../../src/lib/gas-refund/gas-refund';
 import { ONE_HOUR_SEC } from '../../../src/lib/utils/helpers';
 import { PriceResolverFn } from '../token-pricing/psp-chaincurrency-pricing';
-import StakesTracker, {
-  StakedScoreV1,
-  StakedScoreV2,
-} from '../staking/stakes-tracker';
+import StakesTracker from '../staking/stakes-tracker';
 import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/utils';
 import { isTruthy } from '../../../src/lib/utils';
 import { AUGUSTUS_SWAPPERS_V6_OMNICHAIN } from '../../../src/lib/constants';
 import { fetchParaswapV6StakersTransactions } from '../../../src/lib/paraswap-v6-stakers-transactions';
 import { ExtendedCovalentGasRefundTransaction } from '../../../src/types-from-scripts';
+import { GasRefundTransactionDataWithStakeScore } from './types';
+import { applyEpoch46Patch } from '../../per-epoch-patches/epoch-46';
 
 // empirically set to maximise on processing time without penalising memory and fetching constraigns
 const SLICE_DURATION = 4 * ONE_HOUR_SEC;
-
-type GasRefundTransactionDataWithStakeScore = GasRefundTransactionData & {
-  stakeScore: StakedScoreV2 | StakedScoreV1;
-};
 
 export async function fetchRefundableTransactions({
   chainId,
@@ -59,7 +54,7 @@ export async function fetchRefundableTransactions({
 
   const allButV6ContractAddresses = getContractAddresses({ epoch, chainId });
 
-  async function filterFormatAndStoreRefundableTransactions(
+  async function filterAndFormatRefundableTransactions(
     transactions: ExtendedCovalentGasRefundTransaction[],
     computeRefundPercent: (
       epoch: number,
@@ -207,7 +202,7 @@ export async function fetchRefundableTransactions({
           );
 
           const refundableTransactions =
-            await filterFormatAndStoreRefundableTransactions(
+            await filterAndFormatRefundableTransactions(
               transactions,
               (epoch, totalScore) => {
                 const result =
@@ -244,7 +239,7 @@ export async function fetchRefundableTransactions({
           address: contractAddress,
         });
 
-      return await filterFormatAndStoreRefundableTransactions(
+      return await filterAndFormatRefundableTransactions(
         allStakersTransactionsDuringEpoch,
         (epoch, totalUserScore) => getRefundPercent(epoch, totalUserScore),
       );
@@ -252,9 +247,9 @@ export async function fetchRefundableTransactions({
   ]);
 
   const flattened = allTxsV5AndV6Merged.flat();
-  await storeTxs(flattened);
-  return flattened;
-  // ).flat();
+  const withPatches = await addPatches(flattened, epoch);
+  await storeTxs(withPatches);
+  return withPatches;
 }
 
 async function storeTxs(
@@ -275,4 +270,10 @@ async function storeTxs(
 
     await writeStakeScoreSnapshots(stakeScoreEntries);
   }
+}
+async function addPatches(
+  flattened: GasRefundTransactionDataWithStakeScore[],
+  epoch: number,
+): Promise<GasRefundTransactionDataWithStakeScore[]> {
+  return epoch === 46 ? applyEpoch46Patch(flattened) : flattened;
 }
