@@ -232,27 +232,29 @@ export async function fetchRefundableTransactions({
         return slicedBatches.flat();
       }),
 
-      ...Array.from(AUGUSTUS_SWAPPERS_V6_OMNICHAIN).map(
-        async contractAddress => {
-          const epochNewStyle = epoch - GasRefundV2EpochFlip;
+      // in this branch v6 txs are sitting together with v5 in global config
 
-          const lastTimestampProcessed =
-            lastTimestampTxByContract[contractAddress];
+      // ...Array.from(AUGUSTUS_SWAPPERS_V6_OMNICHAIN).map(
+      //   async contractAddress => {
+      //     const epochNewStyle = epoch - GasRefundV2EpochFlip;
 
-          const allStakersTransactionsDuringEpoch =
-            await fetchParaswapV6StakersTransactions({
-              epoch: epochNewStyle,
-              timestampGreaterThan: lastTimestampProcessed,
-              chainId,
-              address: contractAddress,
-            });
+      //     const lastTimestampProcessed =
+      //       lastTimestampTxByContract[contractAddress];
 
-          return await filterFormatAndStoreRefundableTransactions(
-            allStakersTransactionsDuringEpoch,
-            (epoch, totalUserScore) => getRefundPercent(epoch, totalUserScore),
-          );
-        },
-      ),
+      //     const allStakersTransactionsDuringEpoch =
+      //       await fetchParaswapV6StakersTransactions({
+      //         epoch: epochNewStyle,
+      //         timestampGreaterThan: lastTimestampProcessed,
+      //         chainId,
+      //         address: contractAddress,
+      //       });
+
+      //     return await filterFormatAndStoreRefundableTransactions(
+      //       allStakersTransactionsDuringEpoch,
+      //       (epoch, totalUserScore) => getRefundPercent(epoch, totalUserScore),
+      //     );
+      //   },
+      // ),
     ])
   ).flat();
 }
