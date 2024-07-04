@@ -24,6 +24,8 @@ export function computeOverriddenFieldsForL2IfApplicable({
   if (chainId === CHAIN_ID_OPTIMISM) {
     // due to loss of precision in earlier implemented logic, having to reproduce this loss of precision here
     // ref: scripts/gas-refund-program/transactions-indexing/fetchRefundableTransactions.ts
+
+    // TODO: make it per-epoch, so that new epochs don't have this loss of precision
     const txGasPrice = new BigNumber(gasSpentInChainCurrencyWeiPrecise)
       .dividedBy(gasUsedOnTxChain)
 
