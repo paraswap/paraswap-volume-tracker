@@ -1,0 +1,109 @@
+import { getRefundPercent } from '../../src/lib/gas-refund/gas-refund';
+import { ExtendedCovalentGasRefundTransaction } from '../../src/types-from-scripts';
+import { GasRefundTransactionDataWithStakeScore } from '../gas-refund-program/transactions-indexing/types';
+import { PatchInput, PatchedTxTuple } from './types';
+import { extendPatchTx } from './common';
+/**
+ * the purpose of this patch is to add the txs that at the time fo writting are not returned by data-source used by this script, although were included in the GRP 46 epoch program
+ * those are v6.1, v6.2 txs (successful and reverted)
+ */
+const patchTxsToInclude =
+  `> 137,0x976b2b3b04b2f591f37100f6169d582f6d29cddc832dcf063a9262324045b3df
+> 137,0x3e3ea841884efa87f7dd5f178f967c1faa702dbb28321f91c95d0793008a78a5
+> 137,0x275801396a444762bf3911579f4560a59e10690c29e8d71f20a7c4ab5d2677e4
+> 137,0x023637dfaac2c695eab776dc38280738f401aa3df176af7ad4a1497b42f6e587
+> 56,0xf858f0be71a620b69e30ba27f6b7385e3537b3c6844296f424f273e700831d77
+> 1,0xf76cbdbe6602a200e64bcce1b8843b31014995c57e1984bb97616df4de061110
+> 137,0x0d30508b12a9e2f790bceaeeec9d2ea4ddb36f5e44141109f60b4611aa696626
+> 1,0xefbab699903535c6cc5389cd0ed68c9fcabeed3bf44d6a926694bd400fbf7eaa
+> 1,0xf744a1934e2009ca5ef848e88ccc0322127f1c9c46d5329845e3056d4e0e82f4
+> 1,0xc0363430179f303c09201561965eac48a2683956035bf6ced18f45c58b5c432d
+> 1,0x783ea42876a5ea082bea93cf08e6988ccaa118eb8feb0a93b74b81e07ef94edd
+> 1,0x6092ab7c1b38b6855b4ac68ff5507a6614455d7a0bd00c07b2a74f62b5bcabf3
+> 1,0x2ae9782b3c19dcb569214e7f6e0a63598b3a556fc8fd14deb8d7c0a7fb424fe2
+> 1,0x19d16fafac017fe51f3e543e863b0fdf3577157f6300970417e7c75721baa0dd
+> 1,0x119a64370e9fe21f48c056174d31f822330849fac19e27a147840ac2e55cde99
+> 1,0xea49691f15af191a5524e3a372e8c65f13615e8671466986c16ecee9802b65ae
+> 1,0xf9f6f219615ca30ed505e00b48ef5fc57584b3a46e9dd0eada4d67d8afd957ab
+> 1,0xe62982efa90bb8b5066e17e8cca3a8eb2107a47efa876b88d8ea9253e5a6b09d
+> 1,0xdcf4de6d8f69bd000ed9ae42b9e8cd233c22ecb1b42befaab8f4d700b3d3bf06
+> 1,0xd0c745aef1232eb54b117bb7768b2a486e89e0ee148ec24b4c1702618c6cdec1
+> 1,0xa8ba429219229e47fbe9dc27ab7bb5fab97ade8588d8c8aa237cf8def4afa9fe
+> 1,0x414c7d80ff9508a1a845e2630aa971c022e13a0ce6467cdc98ebcc7eccc41c44
+> 10,0x51e0e3e4709f4dfa9d7264ee3ad434447c1d94ce69b75714ea75130ce791dee1
+> 137,0xedbb01a4065bc557075d784ce647d4b1d2807394b3aa93af500c4ad1fcbd300f
+> 137,0xc86954938292c589875c53529390f67da40b6fe626e1ebfb7e4ef02c69c706f5
+> 137,0xbc875097febeb92cbf7461998dcbc8452de6b456e80431b1da13b139ed3d27c8
+> 137,0xb60f16c3c0ec62e5aadc32a16d3925944261ea5660479c0eabb4de4dbe436e86
+> 137,0xabc20b395ca2b6e9e9c3c66aa22493affcca19de469d61fa5e96cb8b462214ad
+> 137,0x64c4bd9d708e5e2e867865e7c64650e158966fa5c74b288dcc86c21ce663de5f
+> 137,0x4fdf034b8ea356ec0b1a968ffcde5a9735885fe45a72e13a741b937588619b43
+> 137,0x4a2fc49cd2117dc30e34ea7c6198bd3f4f6f4cb14ca1aa39da11c14a43acd762
+> 137,0x46408ba5e7e653c745cdf4d07c5f1ec043b326436cf858097e0eea06684067a7
+> 137,0x1ffa1c297916854a745fbcf0e943d8201932daa7625f68ff07f31d19104a7b9d
+> 137,0x1f7bdc69911abe647db1d7a785281b57fed0065e6c3d2b67879f64444f70df91
+> 137,0xfc74f6b6a92b1ce69e664990bac46839ff07d4ce35f39e49f4e3e08df01d839e
+> 137,0xe9f803f3173dd249bda9cdcbd0f6442fcf7b1d29ccb4a7c2b60385b9dd1c1e15
+> 137,0xe80550eab7bd911e9bd700894c6adc9dac04a0a6acd74dfdf134b74e81d8d248
+> 137,0xdff375f3c2dc69ffc69210001532b7e8390a63f7a5dc011b1699a685733a7aea
+> 137,0xaff3cb28eb2c6ea9462a5d1204730eaa40f8a14aa88e520266c799ae3a6fb60b
+> 137,0x4aab73245cefd4fbaca420ca4d087fcd07988ad97ee411d77a6439c38d32c90b
+> 137,0x32c330315ed402041f47ddc346bd039f7a20f7530d9ef47b7bfd728fe47144dd
+> 137,0x3150273d49d0c6f5b387f71ce5ee3489bdbc98719cf6b322d6802848d43a07e2
+> 137,0x0033b4defbdb01cf0ffd4b8f2df7f7001ab82cc5390d606c2ac9840b3483e1e8
+> 137,0x76305246e54849e528ba1132dc6b4553106ed0c0889a87a3250051ee848ee059
+> 137,0xda4d0f962d75d29f3ac4a13c5f3cf7b801cceb3685f58c428f1d60de4db30e8a
+> 137,0xd2fb0ecb6072be720a82b31e3ca80511cf8cc5d2204bd740b31489939a1bea50
+> 137,0xa4bacf3a1a0df95b2ac18888df0f2a6e4f74124cf472d6eccc2612655e430495
+> 1,0x9f06ee38b30590f829a745d631d82d9bbc9fc215b672dc5a84e3c865ff6f80db
+> 137,0x629cfe1bc9db73fe18473b16563753df0f328f0f65cffb6752313581a2ea9b5b
+> 1,0xf5d60925f88b74d412937fd98fb871355f2150fa876ce1c7f6b69aae75ab5ca3
+> 1,0xed45941b06e373695c43bb821bc667eb61907d198068d1841f8ac0b7077e4df4
+> 1,0xe8aeaa8356694b175f01422cfa2b8d5491999ee496ce90452ae5ecb85032b3e0
+> 1,0xe66272e2e5e7c1664896bcab25c3f9f3f4c5a09ccfe90a013e1543dc2755d289
+> 1,0xded77ced117b33b525e8591c0cbb9751e71bf884110163c0fe22f09a511d8d9d
+> 1,0xd50f8f7da82fba1d9c78ef207cc8aa4b5abfc5c20909255baaad97a0a6352392
+> 1,0xce24e6b0b5266fa5b1b0d57f16e99c5cba29f5b772bcc2850a45cf351b4b4617
+> 1,0xc8a330742f6b12b5995f18f357e54b5f8d4979820456f74296bbf773bcc09f5f
+> 1,0x8f95af57f33809877bb207390ecc57169b5baa7a8d4a52bdf7a97c6777c1d629
+> 1,0x886f4f33cda7719fc20c648f9fdcb5d8447ebee8709c0056c0329b9f819e1117
+> 1,0x885739af72339002bc57969a60f2571ae95be650525aadc631ace8976ec7d9c7
+> 1,0x5d6c0f3accb5e70f8b5312fa0bcb1ff5d8111646490d224bbe8f41a958923cdc
+> 1,0x166525a2c9e198261e4d65e2d13cf4fe9bad24144b9b652fc07cda17f276126f
+> 1,0x06d19d4bf60275d9c4fec71c818d688b09fad5791314f21ed3f5900476c6abff
+> 137,0xf6f50147facd7d7ceda2994b44005751587cfa40caeea3976c9e2a6417b8e23f
+> 137,0x86a24280d813424a3b34a426208b6252102a65b5092c25ff9d9ad3f72dffeac8
+> 137,0x2ce9f575e686df1e2e6343082a1d8934b986463f6d86c34ef2d2fe95ba8b4e02
+> 56,0x221bdfdb02af85a580c0ab3e05a0f31f4cbecb4a327241ff4d5ccf7c46d53560
+> 137,0xb39fb60906ae70934302b403f69e219de0a6f1ae295ef0389ee8557ead3b34ea
+> 137,0xa7689fa986d7033fe9543023b55bcf061adaf4571bf9fc80cab6a8df021e35f1
+> 137,0x59f1b288cf6da1f99b37dbe88e7d5f1a456d03fefaf9addc358df4d582ed9569
+> 137,0x25a1ec0df8dcf9f4197162288d2a5bb34d314c3d22b0c5be5ec822a4a93538d0
+> 137,0x238ac7fc341abd64371a51e14925dda0a3f64d47034038de2202e4b7a0ff6847
+ `
+    .trim()
+    .split('\n')
+    .map<PatchedTxTuple>(l => {
+      const [chainId, tx] = l.replace(/^> /, '').replace(/"/g, '').split(',');
+      return [parseInt(chainId, 10), tx.toLowerCase()];
+    });
+
+export async function applyEpoch48Patch(
+  patchInput: PatchInput,
+): Promise<GasRefundTransactionDataWithStakeScore[]> {
+  const { processRawTxs, txs } = patchInput;
+
+  const composedRawTxs: ExtendedCovalentGasRefundTransaction[] =
+    await extendPatchTx(
+      patchTxsToInclude.filter(item => item[0] === patchInput.chainId),
+    );
+
+  // need to ensure these patch txs are included.
+  // could also check if they're already added and skip if so, but it's not necessary at the time of writting
+  return txs.concat(
+    await processRawTxs(
+      composedRawTxs,
+      (epoch, totalUserScore) => getRefundPercent(epoch, totalUserScore), // assuming all the txs dealt with are obeying gas normal refund logic (i.e. not MIGRATION tx that is refunfed in full)
+    ),
+  );
+}

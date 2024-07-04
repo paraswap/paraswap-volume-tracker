@@ -8,7 +8,6 @@ import {
 } from '../persistance/db-persistance';
 import { getAllTXs, getContractAddresses } from './transaction-resolver';
 import {
-  GasRefundTransactionData,
   TransactionStatus,
   GasRefundV2EpochFlip,
   getRefundPercent,
@@ -24,6 +23,7 @@ import { fetchParaswapV6StakersTransactions } from '../../../src/lib/paraswap-v6
 import { ExtendedCovalentGasRefundTransaction } from '../../../src/types-from-scripts';
 import { GasRefundTransactionDataWithStakeScore, TxProcessorFn } from './types';
 import { applyEpoch46Patch } from '../../per-epoch-patches/epoch-46';
+import { applyEpoch48Patch } from '../../per-epoch-patches/epoch-48';
 import { PatchInput } from '../../per-epoch-patches/types';
 
 function constructTransactionsProcessor({
@@ -303,11 +303,19 @@ async function addPatches({
 }: PatchInput & { epoch: number }): Promise<
   GasRefundTransactionDataWithStakeScore[]
 > {
-  return epoch === 46
-    ? applyEpoch46Patch({
-        txs,
-        processRawTxs,
-        chainId,
-      })
-    : txs;
+  if (epoch === 46)
+    return applyEpoch46Patch({
+      txs,
+      processRawTxs,
+      chainId,
+    });
+
+  if (epoch === 48)
+    return applyEpoch48Patch({
+      txs,
+      processRawTxs,
+      chainId,
+    });
+
+  return txs;
 }

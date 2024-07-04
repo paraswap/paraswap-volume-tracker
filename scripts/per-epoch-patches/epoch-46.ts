@@ -1,17 +1,13 @@
-import BigNumber from 'bignumber.js';
-import { fetchRawReceipt } from '../../src/lib/fetch-tx-gas-used';
 import { getRefundPercent } from '../../src/lib/gas-refund/gas-refund';
 import { ExtendedCovalentGasRefundTransaction } from '../../src/types-from-scripts';
 import { GasRefundTransactionDataWithStakeScore } from '../gas-refund-program/transactions-indexing/types';
-import { PatchInput } from './types';
-import { CHAIN_ID_OPTIMISM } from '../../src/lib/constants';
-import { Provider } from '../../src/lib/provider';
-import { computeOverriddenFieldsForL2IfApplicable } from '../../src/lib/utils/l1fee-worakround';
+import { PatchInput, PatchedTxTuple } from './types';
+import { extendPatchTx } from './common';
 /**
  * the purpose of this patch is to add the txs that at the time fo writting are not returned by data-source used by this script, although were included in the GRP 46 epoch program
  * those are v6.0 txs (successful and reverted)
  */
-type PatchedTxTuple = [chainId: number, txHash: string];
+
 const patchTxsToInclude =
   `> 1,"0x87a659702597b6f7f05690543695e6bcefa170fb3656f35f98a9db4593e9cf23"
 > 1,"0x7ed56c0213248beafdab915a13e130a2792f30e90822596e465c6393974c4335"
@@ -119,51 +115,6 @@ const patchTxsToInclude =
       const [chainId, tx] = l.replace(/^> /, '').replace(/"/g, '').split(',');
       return [parseInt(chainId, 10), tx.toLowerCase()];
     });
-
-// console.log(txsToInclude);
-
-async function extendPatchTx(
-  tuples: PatchedTxTuple[],
-): Promise<ExtendedCovalentGasRefundTransaction[]> {
-  const rawReceipts = await Promise.all(
-    tuples.map(async ([chainId, txHash]) => {
-      const receipt = await fetchRawReceipt({
-        txHash,
-        chainId,
-      });
-      return [chainId, receipt];
-    }),
-  );
-
-  return Promise.all(
-    rawReceipts.map(async ([chainId, rawReceipt]) => {
-      const block = await Provider.getJsonRpcProvider(chainId).getBlock(
-        rawReceipt.blockNumber,
-      );
-
-      // TODO: same hack applied in other place. Find a better way to handle
-      const { txGasPrice, gasSpentInChainCurrencyWei } =
-        computeOverriddenFieldsForL2IfApplicable({
-          chainId,
-          gasUsedOnTxChain: rawReceipt.gasUsed,
-          l1FeeIfApplicable: rawReceipt.l1Fee || 0,
-          originalGasPriceFromReceipt: rawReceipt.effectiveGasPrice,
-        }); // virtually scaling gasPrice up for optimism to take into account for L1 tx fees submission (dirty fix, shouldn't cause too much troubles)
-
-      const result: ExtendedCovalentGasRefundTransaction = {
-        txOrigin: rawReceipt.from.toLowerCase(),
-        txGasPrice,
-        blockNumber: new BigNumber(rawReceipt.blockNumber).toFixed(),
-        timestamp: block.timestamp.toString(),
-        txGasUsed: new BigNumber(rawReceipt.gasUsed).toFixed(),
-        gasSpentInChainCurrencyWei,
-        contract: rawReceipt.to.toLowerCase(),
-        txHash: rawReceipt.transactionHash.toLowerCase(),
-      };
-      return result;
-    }),
-  );
-}
 
 export async function applyEpoch46Patch(
   patchInput: PatchInput,
