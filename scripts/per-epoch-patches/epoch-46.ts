@@ -2,13 +2,14 @@ import BigNumber from 'bignumber.js';
 import { fetchRawReceipt } from '../../src/lib/fetch-tx-gas-used';
 import { getRefundPercent } from '../../src/lib/gas-refund/gas-refund';
 import { ExtendedCovalentGasRefundTransaction } from '../../src/types-from-scripts';
-import {
-  GasRefundTransactionDataWithStakeScore,
-  TxProcessorFn,
-} from '../gas-refund-program/transactions-indexing/types';
+import { GasRefundTransactionDataWithStakeScore } from '../gas-refund-program/transactions-indexing/types';
 import { PatchInput } from './types';
 import { CHAIN_ID_OPTIMISM } from '../../src/lib/constants';
 import { Provider } from '../../src/lib/provider';
+/**
+ * the purpose of this patch is to add the txs that at the time fo writting are not returned by data-source used by this script, although were included in the GRP 46 epoch program
+ * those are v6.0 txs (successful and reverted)
+ */
 type PatchedTxTuple = [chainId: number, txHash: string];
 const patchTxsToInclude =
   `> 1,"0x87a659702597b6f7f05690543695e6bcefa170fb3656f35f98a9db4593e9cf23"
@@ -146,12 +147,13 @@ export async function applyEpoch46Patch(
 ): Promise<GasRefundTransactionDataWithStakeScore[]> {
   const { processRawTxs, txs } = patchInput;
 
-  // TODO: could check if any txs we're gonna ad already exist? throw exception if so
   const composedRawTxs: ExtendedCovalentGasRefundTransaction[] =
     await extendPatchTx(
       patchTxsToInclude.filter(item => item[0] === patchInput.chainId),
     );
 
+  // need to ensure these patch txs are included.
+  // could also check if they're already added and skip if so, but it's not necessary at the time of writting
   return txs.concat(
     await processRawTxs(
       composedRawTxs,

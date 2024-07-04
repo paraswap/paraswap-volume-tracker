@@ -129,11 +129,7 @@ export class BlockInfo {
     try {
       const {
         data: { data },
-      } = await Utils._post(
-        this.subgraphURL,
-        { query, variables },
-        SUBGRAPH_TIMEOUT,
-      );
+      } = await thegraphClient.post(this.subgraphURL, { query, variables });
       return parseInt(data.blocks[0].number);
     } catch (e) {
       logger.error('getBlockAfterTimeStamp', e);
