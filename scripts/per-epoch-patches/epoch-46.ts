@@ -6,6 +6,7 @@ import { GasRefundTransactionDataWithStakeScore } from '../gas-refund-program/tr
 import { PatchInput } from './types';
 import { CHAIN_ID_OPTIMISM } from '../../src/lib/constants';
 import { Provider } from '../../src/lib/provider';
+import { computeOverriddenFieldsForL2IfApplicable } from '../../src/lib/utils/l1fee-worakround';
 /**
  * the purpose of this patch is to add the txs that at the time fo writting are not returned by data-source used by this script, although were included in the GRP 46 epoch program
  * those are v6.0 txs (successful and reverted)
@@ -126,30 +127,32 @@ async function extendPatchTx(
 ): Promise<ExtendedCovalentGasRefundTransaction[]> {
   const rawReceipts = await Promise.all(
     tuples.map(async ([chainId, txHash]) => {
-      return [
+      const receipt = await fetchRawReceipt({
+        txHash,
         chainId,
-        await fetchRawReceipt({
-          txHash,
-          chainId,
-        }),
-      ];
+      });
+      return [chainId, receipt];
     }),
   );
 
   return Promise.all(
     rawReceipts.map(async ([chainId, rawReceipt]) => {
-      const gasSpentInChainCurrencyWei = new BigNumber(rawReceipt.gasUsed)
-        .multipliedBy(rawReceipt.effectiveGasPrice)
-        .plus(chainId === CHAIN_ID_OPTIMISM ? rawReceipt.l1Fee : 0)
-        .toFixed();
-
       const block = await Provider.getJsonRpcProvider(chainId).getBlock(
         rawReceipt.blockNumber,
       );
 
+      // TODO: same hack applied in other place. Find a better way to handle
+      const { txGasPrice, gasSpentInChainCurrencyWei } =
+        computeOverriddenFieldsForL2IfApplicable({
+          chainId,
+          gasUsedOnTxChain: rawReceipt.gasUsed,
+          l1FeeIfApplicable: rawReceipt.l1Fee || 0,
+          originalGasPriceFromReceipt: rawReceipt.effectiveGasPrice,
+        }); // virtually scaling gasPrice up for optimism to take into account for L1 tx fees submission (dirty fix, shouldn't cause too much troubles)
+
       const result: ExtendedCovalentGasRefundTransaction = {
         txOrigin: rawReceipt.from.toLowerCase(),
-        txGasPrice: new BigNumber(rawReceipt.effectiveGasPrice).toFixed(),
+        txGasPrice,
         blockNumber: new BigNumber(rawReceipt.blockNumber).toFixed(),
         timestamp: block.timestamp.toString(),
         txGasUsed: new BigNumber(rawReceipt.gasUsed).toFixed(),
