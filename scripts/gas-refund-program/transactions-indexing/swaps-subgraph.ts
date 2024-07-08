@@ -19,6 +19,7 @@ import { thegraphClient } from '../../../src/lib/utils/data-providers-clients';
 import { createSubgraphURL } from '../../../src/lib/utils/subgraphs';
 
 const REORGS_BLOCKHASH_BY_CHAIN_ID: Record<string, string[]> = {
+  // TODO: this extra condition should apply to only specific epoch. Or better get rid of it at all (not sure what epoch this belongs to?), because it makes fetching too sloow
   [CHAIN_ID_POLYGON]: [
     '0x2019b19233191f463805ce55f5aaedb139cff358408da5e3d145c20dab47dab5',
     '0x4c48a4abde9207bcde996f3aa48741114d2eb8a0fea8ccecab9583ee5f6da235',
@@ -139,10 +140,26 @@ export async function getSuccessfulSwaps({
         : {},
     );
 
-    const { data } = await thegraphClient.post<SwapsGQLRespose>(subgraphURL, {
+    const postData = {
       query: regorgBlockHashes ? SwapsQueryBlockHash : SwapsQuery,
       variables,
-    });
+    };
+
+    const result = await thegraphClient.post<SwapsGQLRespose>(
+      subgraphURL,
+      postData,
+    );
+
+    const { data } = result;
+
+    if (!data.data) {
+      throw new Error(
+        'No data in the response chainId: ' +
+          chainId +
+          ' data ' +
+          JSON.stringify(postData),
+      );
+    }
 
     const swaps = data.data.swaps;
 
