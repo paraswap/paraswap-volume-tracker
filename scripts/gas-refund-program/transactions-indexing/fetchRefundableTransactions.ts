@@ -227,7 +227,7 @@ export async function fetchRefundableTransactions({
             (epoch, totalScore) => {
               const result =
                 contractAddress === MIGRATION_SEPSP2_100_PERCENT_KEY
-                  ? 1
+                  ? 1 // 100% for migration tx
                   : getRefundPercent(epoch, totalScore);
               return result;
             },
