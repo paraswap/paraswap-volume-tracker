@@ -4,7 +4,7 @@ import { Provider } from './provider';
 const Bottleneck = require('bottleneck');
 
 const limiter = new Bottleneck({
-  minTime: 20, // 200ms interval between calls (5 calls per second)
+  minTime: process.env.NODE_ENV === 'development' ? 20 : 200, // 200ms interval between calls (5 calls per second)
 });
 
 export async function fetchRawReceipt({
