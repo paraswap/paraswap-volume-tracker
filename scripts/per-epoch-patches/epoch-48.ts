@@ -4,7 +4,7 @@ import { GasRefundTransactionDataWithStakeScore } from '../gas-refund-program/tr
 import { PatchInput, PatchedTxTuple } from './types';
 import { extendPatchTx } from './common';
 /**
- * the purpose of this patch is to add the txs that at the time fo writting are not returned by data-source used by this script, although were included in the GRP 46 epoch program
+ * the purpose of this patch is to add the txs that at the time fo writting are not returned by data-source used by this script, although were included in the GRP 48 epoch program
  * those are v6.1, v6.2 txs (successful and reverted)
  */
 const patchTxsToInclude =
