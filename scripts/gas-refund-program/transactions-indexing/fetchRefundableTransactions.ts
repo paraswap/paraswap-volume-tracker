@@ -25,6 +25,7 @@ import { GasRefundTransactionDataWithStakeScore, TxProcessorFn } from './types';
 import { applyEpoch46Patch } from '../../per-epoch-patches/epoch-46';
 import { applyEpoch48Patch } from '../../per-epoch-patches/epoch-48';
 import { PatchInput } from '../../per-epoch-patches/types';
+import type { Logger } from 'log4js';
 
 function constructTransactionsProcessor({
   chainId,
@@ -272,18 +273,24 @@ export async function fetchRefundableTransactions({
     processRawTxs,
     chainId,
   });
-  await storeTxs(withPatches);
+  await storeTxs({
+    txsWithScores: withPatches,
+    logger,
+  });
   return withPatches;
 }
 
-async function storeTxs(
-  refundableTransactions: GasRefundTransactionDataWithStakeScore[],
-) {
+async function storeTxs({
+  txsWithScores: refundableTransactions,
+  logger,
+}: {
+  txsWithScores: GasRefundTransactionDataWithStakeScore[];
+  logger: Logger;
+}) {
   if (refundableTransactions.length > 0) {
-    // TODO
-    // logger.info(
-    //   `updating ${refundableTransactions.length} transactions for chainId=${chainId} epoch=${epoch} _startTimestampSlice=${_startTimestampSlice} _endTimestampSlice=${_endTimestampSlice}`,
-    // );
+    logger.info(
+      `updating total of ${refundableTransactions.length} for this chan and epoch`,
+    );
     await writeTransactions(refundableTransactions);
 
     const stakeScoreEntries = refundableTransactions
