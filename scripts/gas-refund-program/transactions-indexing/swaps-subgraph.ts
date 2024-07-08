@@ -140,10 +140,26 @@ export async function getSuccessfulSwaps({
         : {},
     );
 
-    const { data } = await thegraphClient.post<SwapsGQLRespose>(subgraphURL, {
+    const postData = {
       query: regorgBlockHashes ? SwapsQueryBlockHash : SwapsQuery,
       variables,
-    });
+    };
+
+    const result = await thegraphClient.post<SwapsGQLRespose>(
+      subgraphURL,
+      postData,
+    );
+
+    const { data } = result;
+
+    if (!data.data) {
+      throw new Error(
+        'No data in the response chainId: ' +
+          chainId +
+          ' data ' +
+          JSON.stringify(postData),
+      );
+    }
 
     const swaps = data.data.swaps;
 
