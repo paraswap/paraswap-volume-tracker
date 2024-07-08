@@ -19,6 +19,7 @@ import { thegraphClient } from '../../../src/lib/utils/data-providers-clients';
 import { createSubgraphURL } from '../../../src/lib/utils/subgraphs';
 
 const REORGS_BLOCKHASH_BY_CHAIN_ID: Record<string, string[]> = {
+  // TODO: this extra condition should apply to only specific epoch. Or better get rid of it at all (not sure what epoch this belongs to?), because it makes fetching too sloow
   [CHAIN_ID_POLYGON]: [
     '0x2019b19233191f463805ce55f5aaedb139cff358408da5e3d145c20dab47dab5',
     '0x4c48a4abde9207bcde996f3aa48741114d2eb8a0fea8ccecab9583ee5f6da235',
