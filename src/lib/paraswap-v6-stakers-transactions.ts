@@ -4,6 +4,7 @@ import axios from 'axios';
 import { CHAIN_ID_OPTIMISM } from './constants';
 import BigNumber from 'bignumber.js';
 import { fetchTxGasUsed } from './fetch-tx-gas-used';
+import { computeOverriddenFieldsForL2IfApplicable } from './utils/l1fee-worakround';
 
 const PARASWAP_V6_STAKERS_TRANSACTIONS_URL_TEMPLATE =
   process.env.PARASWAP_V6_STAKERS_TRANSACTIONS_URL_TEMPLATE;
@@ -71,19 +72,22 @@ export async function fetchParaswapV6StakersTransactions(arg0: {
   const items = await Promise.all(
     formattedAsObjects.map<Promise<ExtendedCovalentGasRefundTransaction>>(
       async item => {
-        let gasSpentInChainCurrencyWei: string | undefined = undefined;
+        const l1FeeIfApplicable =
+          CHAIN_ID_OPTIMISM === arg0.chainId
+            ? (await fetchTxGasUsed(arg0.chainId, item.txhash)).l1FeeWei
+            : '0';
 
-        if (arg0.chainId === CHAIN_ID_OPTIMISM) {
-          const { gasUsed, l1FeeWei } = await fetchTxGasUsed(
-            arg0.chainId,
-            item.txhash,
-          );
-          assert(l1FeeWei, 'l1FeeWei should be defined on optimism');
-          gasSpentInChainCurrencyWei = new BigNumber(gasUsed)
-            .multipliedBy(item.txgasprice.toString())
-            .plus(l1FeeWei)
-            .toFixed(0);
-        }
+        assert(
+          l1FeeIfApplicable !== null,
+          'l1FeeIfApplicable should not be null',
+        );
+        const { txGasPrice, gasSpentInChainCurrencyWei } =
+          computeOverriddenFieldsForL2IfApplicable({
+            chainId: arg0.chainId,
+            gasUsedOnTxChain: item.txgasused,
+            originalGasPriceFromReceipt: item.txgasprice.toString(),
+            l1FeeIfApplicable,
+          });
 
         const timestamp = Math.floor(
           new Date(item.entrytimestamp).getTime() / 1000,
@@ -91,7 +95,7 @@ export async function fetchParaswapV6StakersTransactions(arg0: {
         return {
           txHash: item.txhash,
           txOrigin: item.initiator,
-          txGasPrice: item.txgasprice.toString(),
+          txGasPrice,
           blockNumber: item.blocknumber.toString(),
           timestamp,
           txGasUsed: item.txgasused.toString(),

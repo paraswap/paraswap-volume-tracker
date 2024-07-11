@@ -4,17 +4,16 @@ import { Provider } from './provider';
 const Bottleneck = require('bottleneck');
 
 const limiter = new Bottleneck({
-  minTime: 200, // 200ms interval between calls (5 calls per second)
+  minTime: process.env.NODE_ENV === 'development' ? 20 : 200, // 200ms interval between calls (5 calls per second)
 });
 
-type RpcGasUsedFetcher = (
-  chainId: number,
-  txHash: string,
-) => Promise<{ gasUsed: number; l1FeeWei: null | string }>;
-const _fetchTxGasUsed: RpcGasUsedFetcher = async (
-  chainId: number,
-  txHash: string,
-) => {
+export async function fetchRawReceipt({
+  chainId,
+  txHash,
+}: {
+  chainId: number;
+  txHash: string;
+}) {
   const provider = Provider.getJsonRpcProvider(chainId);
 
   // const tx = await provider.getTransactionReceipt(txHash);
@@ -25,6 +24,18 @@ const _fetchTxGasUsed: RpcGasUsedFetcher = async (
     [txHash],
   );
 
+  return txReceiptRaw;
+}
+
+type RpcGasUsedFetcher = (
+  chainId: number,
+  txHash: string,
+) => Promise<{ gasUsed: number; l1FeeWei: null | string }>;
+const _fetchTxGasUsed: RpcGasUsedFetcher = async (
+  chainId: number,
+  txHash: string,
+) => {
+  const txReceiptRaw = await fetchRawReceipt({ chainId, txHash });
   return {
     gasUsed: new BigNumber(txReceiptRaw.gasUsed).toNumber(), // gas used on the layer of transaction
     l1FeeWei: txReceiptRaw.l1Fee
