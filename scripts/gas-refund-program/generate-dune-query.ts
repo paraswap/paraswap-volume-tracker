@@ -114,7 +114,7 @@ success
      and ${transactionsInvolvingContract}.tx_hash = transactions.hash
      and transactions.block_time >= to_timestamp(${dateFrom}, 'yyyy-mm-dd hh24:mi:ss')
      and block_time <= to_timestamp(${dateTo}, 'yyyy-mm-dd hh24:mi:ss')
-    -- where transactions.success = true     
+     where transactions.success = true     
      )`;
 
     return [networkData, query];
