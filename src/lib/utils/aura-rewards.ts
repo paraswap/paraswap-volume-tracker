@@ -33,6 +33,7 @@ const config: Record<number, string> = {
     .reduce((acc, curr) => acc.plus(curr), new BigNumber(0))
     .toFixed(),
   48: '0', // not distirbuting this time
+  49: '0',
 };
 // debugger;
 const AURA_REWARDS_START_EPOCH_OLD_STYLE = Math.min(
