@@ -246,24 +246,25 @@ export async function fetchRefundableTransactions({
       return result.flat();
     }),
 
-    ...Array.from(AUGUSTUS_SWAPPERS_V6_OMNICHAIN).map(async contractAddress => {
-      const epochNewStyle = epoch - GasRefundV2EpochFlip;
+    // in this branch v6 txs are sitting together with v5 in global config
+    // ...Array.from(AUGUSTUS_SWAPPERS_V6_OMNICHAIN).map(async contractAddress => {
+    //   const epochNewStyle = epoch - GasRefundV2EpochFlip;
 
-      const lastTimestampProcessed = lastTimestampTxByContract[contractAddress];
+    //   const lastTimestampProcessed = lastTimestampTxByContract[contractAddress];
 
-      const allStakersTransactionsDuringEpoch =
-        await fetchParaswapV6StakersTransactions({
-          epoch: epochNewStyle,
-          timestampGreaterThan: lastTimestampProcessed,
-          chainId,
-          address: contractAddress,
-        });
+    //   const allStakersTransactionsDuringEpoch =
+    //     await fetchParaswapV6StakersTransactions({
+    //       epoch: epochNewStyle,
+    //       timestampGreaterThan: lastTimestampProcessed,
+    //       chainId,
+    //       address: contractAddress,
+    //     });
 
-      return await processRawTxs(
-        allStakersTransactionsDuringEpoch,
-        (epoch, totalUserScore) => getRefundPercent(epoch, totalUserScore),
-      );
-    }),
+    //   return await processRawTxs(
+    //     allStakersTransactionsDuringEpoch,
+    //     (epoch, totalUserScore) => getRefundPercent(epoch, totalUserScore),
+    //   );
+    // }),
   ]);
 
   const flattened = allTxsV5AndV6Merged.flat();

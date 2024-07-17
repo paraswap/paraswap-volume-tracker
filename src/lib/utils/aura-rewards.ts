@@ -32,7 +32,8 @@ const config: Record<number, string> = {
   ]
     .reduce((acc, curr) => acc.plus(curr), new BigNumber(0))
     .toFixed(),
-  48: '0',
+  48: '0', // not distirbuting this time
+  49: '0',
 };
 // debugger;
 const AURA_REWARDS_START_EPOCH_OLD_STYLE = Math.min(
@@ -318,6 +319,10 @@ async function computeUserRewardWei(
 export async function composeAuraRewards(
   epochOldStyle: number,
 ): Promise<ProgramAgnosticAddressRewards[]> {
+  if (config[epochOldStyle] === '0') {
+    // not distributing aura rewards this time? return empty array
+    return [];
+  }
   const { sePSP2BalancesByUserByChain, totalSupplySePSP2 } =
     await fetchPastEpochData(epochOldStyle - GasRefundV2EpochFlip);
 
