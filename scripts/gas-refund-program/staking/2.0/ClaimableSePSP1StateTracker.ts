@@ -72,7 +72,7 @@ export class ClaimableSePSP1StateTracker extends AbstractStateTracker {
     this.contract = new Contract(
       MerkleRedeemAddressSePSP1[this.network],
       MerkleRedeemAbi,
-      Provider.getJsonRpcProvider(this.network),
+      Provider.getArchiveJsonRpcProvider(this.network),
     );
   }
 
