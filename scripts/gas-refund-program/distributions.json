@@ -64,5 +64,9 @@
   "49": {
     "1": "https://chocolate-adverse-halibut-386.mypinata.cloud/ipfs/QmcGVqd574fknf9HKxm57pe8a1VDwN6NSLBdNhH7Q3eGRq/merkledata-chain-1-epoch-49.json",
     "10": "https://chocolate-adverse-halibut-386.mypinata.cloud/ipfs/QmcGVqd574fknf9HKxm57pe8a1VDwN6NSLBdNhH7Q3eGRq/merkledata-chain-10-epoch-49.json"
+  },
+  "50": {
+    "1": "https://bronze-many-echidna-431.mypinata.cloud/ipfs/QmRihLbAdSoWM9jU9v1nqrw81YRhA1EgdPVEV93Z9Ka2of/merkledata-chain-1-epoch-50.json",
+    "10": "https://bronze-many-echidna-431.mypinata.cloud/ipfs/QmRihLbAdSoWM9jU9v1nqrw81YRhA1EgdPVEV93Z9Ka2of/merkledata-chain-10-epoch-50.json"
   }
 }
