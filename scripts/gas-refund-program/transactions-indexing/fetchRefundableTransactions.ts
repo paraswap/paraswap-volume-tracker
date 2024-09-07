@@ -71,7 +71,14 @@ function constructTransactionsProcessor({
             `could not retrieve psp/chaincurrency same day rate for swap at ${transaction.timestamp}`,
           );
 
-          const currGasUsedChainCur = gasSpentInChainCurrencyWei
+          const currGasUsedChainCur = transaction.txGasUsedUSD // if USD override is available, most likely it's delta -> adjust spent eth and psp to refund based on that
+            ? new BigNumber(
+                new BigNumber(transaction.txGasUsedUSD)
+                  .multipliedBy(10 ** 18)
+                  .dividedBy(currencyRate.chainPrice)
+                  .toFixed(0),
+              )
+            : gasSpentInChainCurrencyWei
             ? new BigNumber(gasSpentInChainCurrencyWei)
             : new BigNumber(txGasUsed).multipliedBy(
                 transaction.txGasPrice.toString(),
