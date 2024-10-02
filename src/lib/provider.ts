@@ -1,4 +1,7 @@
-import { JsonRpcProvider } from '@ethersproject/providers';
+import {
+  JsonRpcBatchProvider,
+  JsonRpcProvider,
+} from '@ethersproject/providers';
 import { Web3Provider } from './constants';
 import { retryDecorator } from 'ts-retry-promise';
 
