@@ -59,4 +59,5 @@ export interface ExtendedCovalentGasRefundTransaction // is what passed to final
   blockNumber: string;
   contract: string;
   gasSpentInChainCurrencyWei?: string;
+  txGasUsedUSD?: number;
 }
