@@ -51,7 +51,7 @@ function getContractsByChainId() {
 
 // @TODO: probably should use some tempating engine here
 async function generateDuneQuery() {
-  const targetEpoch = 51;
+  const targetEpoch = 52;
   // const currentEpoch = getCurrentEpoch();
   const { startCalcTime, endCalcTime } = await resolveEpochCalcTimeInterval(
     targetEpoch,
@@ -139,8 +139,8 @@ success
   //     0xffffd230115df924d3b805624437f4e47281c3f8
   //     ]) AS t(staker)
   // )
-  const stakers = loadStakersFromFile('all_stakers_by_epoch_20.csv');
-
+  // const stakers = loadStakersFromFile('all_stakers_by_epoch_20.csv');
+  const stakers: string[] = [];
   return `
   
   
