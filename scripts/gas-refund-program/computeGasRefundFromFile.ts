@@ -51,12 +51,15 @@ const calculateEpoch = (date: Date): number => {
 };
 function isMigrationTx() {}
 
+const EPOCH = 52;
 async function startComputingGasRefundAllChains() {
   await Database.connectAndSync('gas-refund-computation');
   loadEpochMetaData();
 
   await Database.sequelize.transaction(async () => {
-    const csvData = await loadCSVAsAssociativeArray('./020-51-sorted.csv');
+    const csvData = await loadCSVAsAssociativeArray(
+      `./0${EPOCH - 31}-${EPOCH}-sorted.csv`,
+    );
     const parsed = csvData.map(row => {
       return {
         psp_token_usd_price: row.psp_token_usd_price,
@@ -223,27 +226,31 @@ async function startComputingGasRefundAllChains() {
     // console.log(withScores);`
     // await fetchRefundableTransactionsAllChains();
     await Database.sequelize.query(`
+
       
-delete from "GasRefundTransactionStakeSnapshots" where  "transactionHash" in (
-      select "hash" from "GasRefundTransactions" where "epoch" = 51
-      );
     
-      delete from "GasRefundTransactions" where "epoch" = 51;
+
+delete from "GasRefundTransactionStakeSnapshots";
+-- where  "transactionHash" in (
+  --    select "hash" from "GasRefundTransactions" where "epoch" = ${EPOCH}
+    --  );
+    
+      delete from "GasRefundTransactions" where "epoch" = ${EPOCH};
   
       `);
 
-    const txsWithScores = withScores
-      .map(item => item.gasRefundTransactionModelDataWithStakeScore)
-      .filter(item => parseFloat(item.refundedAmountUSD) > 0);
-    await storeTxs({
-      txsWithScores,
-      logger,
-    });
+    // const txsWithScores = withScores
+    //   .map(item => item.gasRefundTransactionModelDataWithStakeScore)
+    //   .filter(item => parseFloat(item.refundedAmountUSD) > 0);
+    // await storeTxs({
+    //   txsWithScores,
+    //   logger,
+    // });
 
     // await validateTransactions();
     saveAsCSV(
       withScores.map(item => item.extendedCsvRow),
-      './020-51-sorted-with-scores.csv',
+      `./0${EPOCH - 31}-${EPOCH}-sorted-with-scores.csv`,
     );
   });
 }
