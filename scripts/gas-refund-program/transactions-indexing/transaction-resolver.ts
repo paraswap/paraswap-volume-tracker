@@ -103,11 +103,13 @@ export const getContractAddresses = ({
     '0x000db803a70511e09da650d4c0506d0000100000'.toLowerCase(), // augustus 6.1
   ];
 
-  return chainId == 1
-    ? withoutDelta
-    : withoutDelta.concat(
-        '0x6a000f20005980200259b80c5102003040001068'.toLowerCase(),
-      ); // augustus 6.2 -> with delta
+  // IMPORTANT: THIS DIFF WAS MISSING WHEN I WAS CHECKING AGAINST OLD CODE -> FOUND BUG THIS WAY
+  // return chainId == 1
+  //   ? withoutDelta
+  //   :
+  return withoutDelta.concat(
+    '0x6a000f20005980200259b80c5102003040001068'.toLowerCase(),
+  ); // augustus 6.2 -> with delta
 };
 
 export const getAllTXs = async ({

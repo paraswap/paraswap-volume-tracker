@@ -9,10 +9,17 @@ import {
 import { GRP_SUPPORTED_CHAINS } from '../../src/lib/gas-refund/gas-refund';
 import { getContractAddresses } from './transactions-indexing/transaction-resolver';
 import * as moment from 'moment';
+import * as fs from 'fs';
 
 import { MIGRATION_SEPSP2_100_PERCENT_KEY } from './staking/2.0/utils';
 import { isTruthy } from '../../src/lib/utils';
 import { CHAIN_ID_OPTIMISM } from '../../src/lib/constants';
+import { grp2ConfigByChain } from '../../src/lib/gas-refund/config';
+
+const loadStakersFromFile = (filePath: string): string[] => {
+  const fileContent = fs.readFileSync(filePath, 'utf-8');
+  return fileContent.split('\n').filter(line => line.trim() !== '');
+};
 
 export const CHAIN_ID_TO_DUNE_NETWORK: Record<number, string> = {
   1: 'ethereum',
@@ -33,6 +40,7 @@ function getContractsByChainId() {
   const contractAddressesByChainId = Object.fromEntries(
     GRP_SUPPORTED_CHAINS.map(chainId => [
       chainId,
+      // skip migration of sPSP to social escrow 2.0 - 6 epochs when it was eligible passed long ago
       getContractAddresses({ epoch: currentEpoch, chainId }).filter(
         address => address !== MIGRATION_SEPSP2_100_PERCENT_KEY,
       ),
@@ -43,9 +51,10 @@ function getContractsByChainId() {
 
 // @TODO: probably should use some tempating engine here
 async function generateDuneQuery() {
-  const currentEpoch = getCurrentEpoch();
+  const targetEpoch = 51;
+  // const currentEpoch = getCurrentEpoch();
   const { startCalcTime, endCalcTime } = await resolveEpochCalcTimeInterval(
-    currentEpoch - 1,
+    targetEpoch,
   );
   const dateFrom = timestampToDuneFormatted(startCalcTime);
   const dateTo = timestampToDuneFormatted(endCalcTime);
@@ -54,11 +63,11 @@ async function generateDuneQuery() {
 
   const parts = GRP_SUPPORTED_CHAINS.map(chainId => {
     const network = CHAIN_ID_TO_DUNE_NETWORK[chainId];
-    const transactionsInvolvingContract = `transactionsInvolvingContract_${network}`;
+    const transactionsInvolvingContractsAlias = `transactionsInvolvingContracts_${network}`;
     const contracts = [...conractsByChainId[chainId]].join(',');
 
     const txTableColumns = `
-from
+"from"
 gas_price
 hash
 to
@@ -72,52 +81,49 @@ success
       .map(s => s.trim())
       .filter(isTruthy);
 
+    const skip_from_casting_to_varchar = new Set([
+      'block_time',
+      'l1_fee',
+      '"from"',
+      'hash',
+    ]);
     const txTableColumnsPart =
       chainId === CHAIN_ID_OPTIMISM
         ? txTableColumns
-            .map(s => `cast(transactions."${s}" as varchar) as "${s}"`)
+            .map(s =>
+              skip_from_casting_to_varchar.has(s)
+                ? s
+                : `cast(transactions."${s}" as varchar) as "${s}"`,
+            )
             .join(', ')
         : txTableColumns
             .map(s =>
               s.includes('l1_')
-                ? `'n/a' as "${s}"`
+                ? `0 as "${s}"`
+                : skip_from_casting_to_varchar.has(s)
+                ? s
                 : `cast(transactions."${s}" as varchar) as "${s}"`,
             )
             .join(', ');
 
-    const networkData = `networkData_${network}`;
     const query = `     
   
-     ${transactionsInvolvingContract} as (
-       select         
-         tx_hash,
-         max(to) as contract,   
-         max(block_time),
-         max(block_number) as block_number   
+     ${transactionsInvolvingContractsAlias} as (
+       select     
+        ${chainId} as chainId,         
+         to as contract,            
+         ${txTableColumnsPart}
        from
-         ${network}.traces
+         ${network}.transactions
        where
         block_time >= to_timestamp(${dateFrom}, 'yyyy-mm-dd hh24:mi:ss')
          and block_time <= to_timestamp(${dateTo}, 'yyyy-mm-dd hh24:mi:ss')         
          and to in (${contracts})
-       group by
-         tx_hash         
-       order by
-         max(block_time) desc
-     ),
-     ${networkData} as (
-   select
-     ${chainId} as chainId, ${transactionsInvolvingContract}.contract as contract, ${txTableColumnsPart}
-   from
-     ${transactionsInvolvingContract}
-     left join ${network}.transactions as transactions on ${transactionsInvolvingContract}.block_number = transactions.block_number
-     and ${transactionsInvolvingContract}.tx_hash = transactions.hash
-     and transactions.block_time >= to_timestamp(${dateFrom}, 'yyyy-mm-dd hh24:mi:ss')
-     and block_time <= to_timestamp(${dateTo}, 'yyyy-mm-dd hh24:mi:ss')
-     where transactions.success = true     
+         and "from" in (select staker from hardcoded_stakers)       
+         and transactions.success = true
      )`;
 
-    return [networkData, query];
+    return [transactionsInvolvingContractsAlias, query];
   });
 
   const queries = parts.map(([, query]) => `${query}`).join(',\n');
@@ -126,7 +132,28 @@ success
     .map(([networkData]) => `(select * from ${networkData})`)
     .join(' UNION \n');
 
-  return `with ${queries} SELECT * from (\n${unionPart}) ORDER BY block_time DESC`;
+  //   WITH hardcoded_stakers AS (
+  //     SELECT staker
+  //     FROM UNNEST(ARRAY[
+  //     0xfffff9b1c2c387b1e3d19af292d91d913374f42b,
+  //     0xffffd230115df924d3b805624437f4e47281c3f8
+  //     ]) AS t(staker)
+  // )
+  const stakers = loadStakersFromFile('all_stakers_by_epoch_20.csv');
+
+  return `
+  
+  
+  
+  with hardcoded_stakers AS (
+      SELECT staker
+      FROM UNNEST(ARRAY[
+      ${stakers.join(',')}
+      ]) AS t(staker)
+  ),
+  ${queries} SELECT * from (\n${unionPart}) ORDER BY block_time DESC
+  
+  `;
 }
 
 async function main() {

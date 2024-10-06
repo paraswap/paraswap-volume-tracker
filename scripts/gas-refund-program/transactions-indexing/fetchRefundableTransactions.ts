@@ -296,7 +296,7 @@ export async function fetchRefundableTransactions({
   return withPatches;
 }
 
-async function storeTxs({
+export async function storeTxs({
   txsWithScores: refundableTransactions,
   logger,
 }: {
