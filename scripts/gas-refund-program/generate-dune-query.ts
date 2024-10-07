@@ -86,6 +86,7 @@ success
       'l1_fee',
       '"from"',
       'hash',
+      'block_number',
     ]);
     const txTableColumnsPart =
       chainId === CHAIN_ID_OPTIMISM
@@ -145,12 +146,15 @@ success
   
   
   
-  with hardcoded_stakers AS (
-      SELECT staker
-      FROM UNNEST(ARRAY[
-      ${stakers.join(',')}
-      ]) AS t(staker)
-  ),
+  with
+  hardcoded_stakers AS (
+    SELECT
+      staker
+    from
+    --4129573 -- epoch 020-51
+    -- 4131968 -- epoch 021-52
+      query_xxx
+  ),  
   ${queries} SELECT * from (\n${unionPart}) ORDER BY block_time DESC
   
   `;
