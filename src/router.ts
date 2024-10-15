@@ -25,7 +25,7 @@ import {
   computeAggregatedStakeChainDetails,
   loadTransactionWithByStakeChainData,
 } from './lib/gas-refund/multi-staking-utils';
-import { GasRefundDistribution } from './models/GasRefundDistribution';
+import { fetchUserDebugData } from './lib/utils/staking-snapshot-helper';
 
 const logger = global.LOGGER();
 
@@ -239,6 +239,24 @@ export default class Router {
         }
       },
     );
+
+    if (process.env.NODE_ENV === 'development') {
+      router.get(
+        '/user-debug-details-at-timestamp/:address/:timestamp',
+        async (req, res) => {
+          const address = req.params.address.toLowerCase();
+          const timestamp = Number(req.params.timestamp);
+          try {
+            return res.json(await fetchUserDebugData(address, timestamp));
+          } catch (e) {
+            logger.error(req.path, e);
+            return res.status(500).send({
+              error: `something wnet wrong`,
+            });
+          }
+        },
+      );
+    }
 
     // NB: this endpoint will return approximate amounts. They will differ from the ones in merkle tree
     router.get(
