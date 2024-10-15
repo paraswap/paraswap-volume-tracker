@@ -77,11 +77,11 @@ function constructTransactionsProcessor({
                 transaction.txGasPrice.toString(),
               ); // in wei
 
-          const currGasUsedUSD =
-          transaction.txGasUsedUSD ? new BigNumber(transaction.txGasUsedUSD) :
-            currGasUsedChainCur
-            .multipliedBy(currencyRate.chainPrice)
-            .dividedBy(10 ** 18); // chaincurrency always encoded in 18decimals
+          const currGasUsedUSD = transaction.txGasUsedUSD
+            ? new BigNumber(transaction.txGasUsedUSD)
+            : currGasUsedChainCur
+                .multipliedBy(currencyRate.chainPrice)
+                .dividedBy(10 ** 18); // chaincurrency always encoded in 18decimals
 
           const currGasFeePSP = currGasUsedChainCur.dividedBy(
             currencyRate.pspToChainCurRate,
