@@ -51,7 +51,14 @@ export class Database {
 
     const connectionString = connectionStringParts.join('/');
     this.sequelize = new Sequelize(connectionString, {
-      logging: IS_DEV ? msg => logger.debug(msg) : undefined,
+      logging: IS_DEV
+        ? (
+            msg, // avoid huge insert queries stuffing stdout
+          ) =>
+            logger.debug(
+              msg.includes('INSERT INTO') ? msg.substring(0, 300) : msg,
+            )
+        : undefined,
       models: [__dirname + '/models'],
       // needed locally to connect to docker db
       ...(IS_DEV && {
