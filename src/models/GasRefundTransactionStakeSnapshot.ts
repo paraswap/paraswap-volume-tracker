@@ -5,11 +5,15 @@ import {
   createIndexDecorator,
   Table,
 } from 'sequelize-typescript';
-import { DataType_KECCAK256_HASHED_VALUE } from '../lib/sql-data-types';
+import {
+  DataType_ADDRESS,
+  DataType_KECCAK256_HASHED_VALUE,
+} from '../lib/sql-data-types';
 
 export interface GasRefundTransactionStakeSnapshotData {
   transactionChainId: number;
   transactionHash: string;
+  staker: string;
   stakeChainId: number;
   stakeScore: string; // should be computed by JS, not by SQL
   sePSP1Balance: string;
@@ -20,7 +24,7 @@ export interface GasRefundTransactionStakeSnapshotData {
 }
 
 const compositeIndex = createIndexDecorator({
-  name: 'txChain_txHash_stakeChain',
+  name: 'txChain_txHash_staker_stakeChain',
   type: 'UNIQUE',
   unique: true,
 });
@@ -34,6 +38,10 @@ export class GasRefundTransactionStakeSnapshot extends Model<GasRefundTransactio
   @compositeIndex
   @Column(DataType_KECCAK256_HASHED_VALUE)
   transactionHash: string;
+
+  @compositeIndex
+  @Column(DataType_ADDRESS)
+  staker: string;
 
   @compositeIndex
   @Column(DataType.INTEGER)
