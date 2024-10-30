@@ -231,6 +231,7 @@ export function composeGasRefundTransactionStakeSnapshots(
       bptTotalSupply: score?.bptTotalSupply || '0',
       bptPSPBalance: score?.bptPSPBalance || '0',
       claimableSePSP1Balance: score?.claimableSePSP1Balance || '0',
+      staker: transaction.address,
     }));
   }
   return [];

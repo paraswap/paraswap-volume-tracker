@@ -26,3 +26,5 @@ states.json
 
 
 scripts/gas-refund-program/*.csv
+
+.ignored

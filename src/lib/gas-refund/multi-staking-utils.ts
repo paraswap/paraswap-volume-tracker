@@ -12,6 +12,8 @@ from
 left join "GasRefundTransactionStakeSnapshots" grtss on
 	grt.hash = grtss."transactionHash"
 	and grt."chainId" = grtss."transactionChainId"
+  -- before Delta, staker field was missing in the GasRefundTransactionStakeSnapshots as txs were 1:1 with stakers
+  and ((grtss.staker = grt.address) OR (grtss.staker is NULL))
 where 
     grt.address = :address 
     and grt.epoch between :epochFrom and :epochTo
@@ -144,7 +146,14 @@ export function computeAggregatedStakeChainDetails(
   const transactionsWithClaimableByChain: TransactionWithCaimableByStakeChain[] =
     transactions.map(tx => {
       const sumStakeScore = Object.values(tx.stakeByChain).reduce(
-        (acc, stake) => acc + BigInt(stake.stakeScore),
+        (acc, stake) => {
+          const stakeScore = stake.stakeScore || '0';
+          if (!stake.stakeScore)
+            console.log(
+              `stakeScore is null for tx ${tx.hash} on chain ${tx.chainId} of user ${tx.address}`,
+            );
+          return acc + BigInt(stakeScore);
+        },
         BigInt(0),
       );
 
@@ -213,8 +222,12 @@ export function computeAggregatedStakeChainDetails(
   return byEpoch;
 }
 
-
-function toFixed<K  extends string | number | symbol>(dictionary: Record<K, BigNumber>): Record<K, string> {
-  const entries = Object.entries<BigNumber>(dictionary).map(([k, v]) => [k, v.toFixed()]);
-  return Object.fromEntries(entries)
+function toFixed<K extends string | number | symbol>(
+  dictionary: Record<K, BigNumber>,
+): Record<K, string> {
+  const entries = Object.entries<BigNumber>(dictionary).map(([k, v]) => [
+    k,
+    v.toFixed(),
+  ]);
+  return Object.fromEntries(entries);
 }
