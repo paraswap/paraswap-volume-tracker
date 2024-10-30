@@ -20,7 +20,7 @@ type ParaswapTransactionData = {
   blocknumber: number; // 58545814,
   blockhash: string; // '0xb1fdf818d10b1b2d97d82ff421972b03e1e04ceafaa5237c8373e705531e4617',
   txhash: string; //'0xca4c03b4e1fc17553706f9b91a3dd7eaa20202927e3ef77aa31dfdfc04ca4b16'
-  delta_fees_usd: null | number
+  delta_fees_usd: null | number;
 };
 function generateObjectsFromData(data: any): ParaswapTransactionData[] {
   // Dynamically extract column names from the 'cols' array
@@ -102,7 +102,7 @@ export async function fetchParaswapV6StakersTransactions(arg0: {
           txGasUsed: item.txgasused.toString(),
           gasSpentInChainCurrencyWei,
           contract: item.augustusaddress,
-          txGasUsedUSD: item.delta_fees_usd || undefined
+          txGasUsedUSD: item.delta_fees_usd || undefined,
         };
       },
     ),
