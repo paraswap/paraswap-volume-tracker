@@ -25,7 +25,7 @@ import {
 } from '../../src/lib/gas-refund/gas-refund';
 import { GasRefundTransactionDataWithStakeScore } from './transactions-indexing/types';
 import { storeTxs } from './transactions-indexing/fetchRefundableTransactions';
-import { sleep } from '@snapshot-labs/snapshot.js/dist/utils';
+import BigNumber from 'bignumber.js';
 
 const loadCSVAsAssociativeArray = (
   filePath: string,
@@ -51,7 +51,10 @@ const calculateEpoch = (date: Date): number => {
 };
 function isMigrationTx() {}
 
-const EPOCH = 52;
+const EPOCH = process.env.EPOCH ? parseInt(process.env.EPOCH) : 0;
+if (!EPOCH) {
+  throw new Error('EPOCH is not set');
+}
 async function startComputingGasRefundAllChains() {
   await Database.connectAndSync('gas-refund-computation');
   loadEpochMetaData();
@@ -71,6 +74,7 @@ async function startComputingGasRefundAllChains() {
         from: row.from,
         contract: row.contract,
         hash: row.hash,
+        call_block_number: parseInt(row.call_block_number),
       };
     });
 
@@ -134,8 +138,10 @@ async function startComputingGasRefundAllChains() {
           total_score: totalUserScore,
           gas_refund_percent: gas_refund_percent,
 
-          psp_refunded:
-            parseFloat(csvRow.full_gas_fee_in_psp) * (gas_refund_percent || 0),
+          psp_refunded_wei: new BigNumber(csvRow.full_gas_fee_in_psp)
+            .multipliedBy(gas_refund_percent || 0)
+            .multipliedBy(1e18)
+            .toFixed(0),
           stake_score_combined: stakeScore.combined.toFixed(),
           stake_chain_1_stake_score: stakeScore.byNetwork[1]?.stakeScore,
           stake_chain_1_stake_sepsp1_balance:
@@ -190,17 +196,17 @@ async function startComputingGasRefundAllChains() {
           address: csvRow.from.toLowerCase(),
           chainId: csvRow.chain_id,
           hash: csvRow.hash,
-          block: 0, //TODO
+          block: csvRow.call_block_number, //TODO
           timestamp: csvRow.call_block_time.getTime() / 1000,
-          gasUsed: '0', //TODO
-          gasUsedChainCurrency: '0', //TODO
-          gasPrice: '0', //TODO
+          gasUsed: '0', //TODO // - don't bother prop drilling this data, as it's inherently wrong -> need to include l1 fee in data structure
+          gasUsedChainCurrency: '0', //TODO -- same as above
+          gasPrice: '0', //TODO -- same as above
           gasUsedUSD: csvRow.gas_fee_usd,
           pspUsd: parseFloat(csvRow.psp_token_usd_price),
-          chainCurrencyUsd: 0, //TODO
-          pspChainCurrency: 0, //TODO
+          chainCurrencyUsd: 0, //TODO - same as above
+          pspChainCurrency: 0, //TODO -- same as aboe -- data is dervied from USD and full psp price at time of tx...
           totalStakeAmountPSP: totalUserScore,
-          refundedAmountPSP: '0', // extendedCsvRow.psp_refunded, TODO should be wei
+          refundedAmountPSP: extendedCsvRow.psp_refunded_wei,
           refundedAmountUSD: `${usdRefunded}`,
           contract: csvRow.contract,
           status: is_over_limit
@@ -239,13 +245,14 @@ delete from "GasRefundTransactionStakeSnapshots";
   
       `);
 
-    // const txsWithScores = withScores
-    //   .map(item => item.gasRefundTransactionModelDataWithStakeScore)
-    //   .filter(item => parseFloat(item.refundedAmountUSD) > 0);
-    // await storeTxs({
-    //   txsWithScores,
-    //   logger,
-    // });
+    const txsWithScores = withScores
+      .map(item => item.gasRefundTransactionModelDataWithStakeScore)
+      .filter(item => parseFloat(item.refundedAmountUSD) > 0);
+
+    await storeTxs({
+      txsWithScores,
+      logger,
+    });
 
     // await validateTransactions();
     saveAsCSV(
