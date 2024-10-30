@@ -236,10 +236,10 @@ async function startComputingGasRefundAllChains() {
       
     
 
-delete from "GasRefundTransactionStakeSnapshots";
--- where  "transactionHash" in (
-  --    select "hash" from "GasRefundTransactions" where "epoch" = ${EPOCH}
-    --  );
+    delete from "GasRefundTransactionStakeSnapshots"
+      where  "transactionHash" in (
+        select "hash" from "GasRefundTransactions" where "epoch" = ${EPOCH}
+      );
     
       delete from "GasRefundTransactions" where "epoch" = ${EPOCH};
   
