@@ -69,15 +69,18 @@ export default class StakesTracker {
     return this.instance;
   }
 
-  async loadHistoricalStakes() {
+  async loadHistoricalStakes(forcedEpoch?: number) {
     // to maintain consistent roots for pre-fix epoch, epochToStartFrom is coupled with that fix
-    const { epochToStartFrom } = await loadEpochToStartFromWithFix();
+    const { epochToStartFrom: epochToStartFromLoaded } =
+      await loadEpochToStartFromWithFix();
+    const epochToStartFrom = forcedEpoch || epochToStartFromLoaded;
+    console.log('loadHistoricalStakes::epochToStartFrom', epochToStartFrom);
 
     const endTime = SCRIPT_START_TIME_SEC - OFFSET_CALC_TIME;
 
     // V2
-    const currentEpoch = getCurrentEpoch();
-    if (currentEpoch >= GasRefundV2EpochFlip) {
+    const epoch = forcedEpoch || getCurrentEpoch();
+    if (epoch >= GasRefundV2EpochFlip) {
       let startTimeStakeV2 = await getEpochStartCalcTime(
         epochToStartFrom || GasRefundV2EpochFlip,
       );

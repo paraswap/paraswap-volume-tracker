@@ -41,25 +41,21 @@ export async function computeDistributionSafeProposal(
   const txs = [
     // on optimism no need to obtain sePSP1, as we already have enough from aura rewards
     // (was true for EPOCH #016 (47))
-    ...(+chainId === CHAIN_ID_OPTIMISM
-      ? []
-      : [
-          {
-            to: PSPAddress,
-            data: ERC20Interface.encodeFunctionData('approve', [
-              sePSP1Address,
-              totalAmountRefunded,
-            ]),
-            value: '0',
-          },
-          {
-            to: sePSP1Address,
-            data: SePSPIface.encodeFunctionData('deposit', [
-              totalAmountRefunded,
-            ]),
-            value: '0',
-          },
+    [
+      {
+        to: PSPAddress,
+        data: ERC20Interface.encodeFunctionData('approve', [
+          sePSP1Address,
+          totalAmountRefunded,
         ]),
+        value: '0',
+      },
+      {
+        to: sePSP1Address,
+        data: SePSPIface.encodeFunctionData('deposit', [totalAmountRefunded]),
+        value: '0',
+      },
+    ],
     {
       to: sePSP1Address,
       data: ERC20Interface.encodeFunctionData('approve', [

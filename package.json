@@ -17,6 +17,7 @@
     "gas-refund:computeDistributionDataAndPersistDB": "patch-package && NODE_ENV=development ts-node scripts/gas-refund-program/distribution/computeDistributionDataAndPersistDB",
     "gas-refund:computeDistributionDataAndPersistDB-epoch-47": "DISTRIBUTED_EPOCH=47 yarn gas-refund:computeDistributionDataAndPersistDB",
     "gas-refund:computeDistributionDataAndPersistDB-epoch-48": "DISTRIBUTED_EPOCH=48 yarn gas-refund:computeDistributionDataAndPersistDB",
+    "gas-refund:computeDistributionDataAndPersistDB-epoch-53": "DISTRIBUTED_EPOCH=53 yarn gas-refund:computeDistributionDataAndPersistDB",
     "gas-refund:computeDistributionFilesAndPersistIPFS": "patch-package && NODE_ENV=development ts-node scripts/gas-refund-program/distribution/computeDistributionFilesAndPersistIPFS",
     "gas-refund:generate-dune-query": "patch-package && NODE_ENV=development ts-node scripts/gas-refund-program/generate-dune-query",
     "gas-refund:index-dune-transactions": "patch-package && NODE_ENV=development NODE_OPTIONS='--max-old-space-size=8200' ts-node scripts/gas-refund-program/index-dune-transactions",
