@@ -20,7 +20,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SERVICE_NAME: gas-refund-program
+  SERVICE_NAME: volume-tracker
   GITHUB_CICD_APP_APP_ID: 1061706
 
 jobs:
