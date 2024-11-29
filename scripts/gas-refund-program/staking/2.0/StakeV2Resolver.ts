@@ -122,7 +122,7 @@ export class StakeV2Resolver extends AbstractStateTracker {
       .decimalPlaces(0, BigNumber.ROUND_DOWN);
 
     const stake = sePSP1Balance
-      .plus(claimableSePSP1)
+      // .plus(claimableSePSP1)
       .plus(pspInSePSP2.multipliedBy(grp2GlobalConfig.sePSP2PowerMultiplier))
       .decimalPlaces(0, BigNumber.ROUND_DOWN);
 
