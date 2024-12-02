@@ -147,8 +147,9 @@ export interface CovalentTransactionV3 {
   gas_price: number;
   block_height: number;
   block_signed_at: string;
-  gas_spent: string;
+  gas_spent: number;
   fees_paid: string;
+  successful: boolean;
 }
 
 interface MinBulkTimeBucketTxsResponse {
