@@ -39,6 +39,11 @@ export const Web3Provider: { [network: number]: string } = {
   [CHAIN_ID_AVALANCHE]: process.env.HTTP_PROVIDER_43114 || '',
 };
 
+export const Web3ProviderArchive: { [network: number]: string } = {
+  [CHAIN_ID_MAINNET]: process.env.HTTP_ARCHIVE_PROVIDER || '',
+  [CHAIN_ID_OPTIMISM]: process.env.HTTP_ARCHIVE_PROVIDER_10 || '',
+};
+
 // TODO: in future we can fetch it from the api directly
 export const AugustusV5Address: { [network: number]: string } = {
   [CHAIN_ID_MAINNET]: '0xdef171fe48cf0115b1d80b88dc8eab59176fee57',
@@ -95,15 +100,18 @@ export const SAFETY_MODULE_ADDRESS =
 
 //All these must be lower-cased!
 export const AUGUSTUS_V5_ADDRESS = '0xdef171fe48cf0115b1d80b88dc8eab59176fee57';
-export const AUGUSTUS_V6_0_ADDRESS = '0x00000000fdac7708d0d360bddc1bc7d097f47439'; 
-export const AUGUSTUS_V6_1_ADDRESS = '0x000db803a70511e09da650d4c0506d0000100000';
-export const AUGUSTUS_V6_2_ADDRESS = '0x6a000f20005980200259b80c5102003040001068';
+export const AUGUSTUS_V6_0_ADDRESS =
+  '0x00000000fdac7708d0d360bddc1bc7d097f47439';
+export const AUGUSTUS_V6_1_ADDRESS =
+  '0x000db803a70511e09da650d4c0506d0000100000';
+export const AUGUSTUS_V6_2_ADDRESS =
+  '0x6a000f20005980200259b80c5102003040001068';
 
 export const AUGUSTUS_SWAPPERS_V6_OMNICHAIN = new Set([
   AUGUSTUS_V6_0_ADDRESS,
   AUGUSTUS_V6_1_ADDRESS,
-  AUGUSTUS_V6_2_ADDRESS
-])
+  AUGUSTUS_V6_2_ADDRESS,
+]);
 
 export const BalancerVaultAddress =
   '0xba12222222228d8ba445958a75a0704d566bf2c8';
