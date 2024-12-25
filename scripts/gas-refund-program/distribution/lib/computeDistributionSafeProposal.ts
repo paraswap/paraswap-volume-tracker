@@ -6,6 +6,7 @@ import { Contract } from 'ethers';
 import { Provider } from '../../../../src/lib/provider';
 import { ERC20Interface, MerkleRedeemIface, SePSPIface } from './abis';
 import { CHAIN_ID_OPTIMISM } from '../../../../src/lib/constants';
+import { TransactionRequest } from '@ethersproject/providers';
 
 export async function computeDistributionSafeProposal(
   merkleDistributionData: MerkleTreeAndChain,
@@ -38,24 +39,23 @@ export async function computeDistributionSafeProposal(
 
   const PSPAddress = await sePSP1.callStatic.asset();
 
-  const txs = [
+  const txs: TransactionRequest[] = [
     // on optimism no need to obtain sePSP1, as we already have enough from aura rewards
     // (was true for EPOCH #016 (47))
-    [
-      {
-        to: PSPAddress,
-        data: ERC20Interface.encodeFunctionData('approve', [
-          sePSP1Address,
-          totalAmountRefunded,
-        ]),
-        value: '0',
-      },
-      {
-        to: sePSP1Address,
-        data: SePSPIface.encodeFunctionData('deposit', [totalAmountRefunded]),
-        value: '0',
-      },
-    ],
+
+    {
+      to: PSPAddress,
+      data: ERC20Interface.encodeFunctionData('approve', [
+        sePSP1Address,
+        totalAmountRefunded,
+      ]),
+      value: '0',
+    },
+    {
+      to: sePSP1Address,
+      data: SePSPIface.encodeFunctionData('deposit', [totalAmountRefunded]),
+      value: '0',
+    },
     {
       to: sePSP1Address,
       data: ERC20Interface.encodeFunctionData('approve', [
