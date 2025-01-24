@@ -6,7 +6,8 @@ source .env
 # epoch 022 - 53 = 4221949 # CSV=true bash fetch-from-dune.sh > 022-53-sorted.csv
 # epoch 023 - 54 = 4343822 # CSV=true bash fetch-from-dune.sh > 023-54-sorted.csv
 # epoch 024 - 55 = 4476980 # CSV=true bash fetch-from-dune.sh > 024-55-sorted.csv
-BASE_URL="https://api.dune.com/api/v1/query/4476980/results"
+# epoch 025 - 56 = 4614913 # CSV=true bash fetch-from-dune.sh > 025-56-sorted.csv
+BASE_URL="https://api.dune.com/api/v1/query/4614913/results"
 
 # Check if CSV is set to true and modify the URL if necessary
 if [ "$CSV" = "true" ]; then
