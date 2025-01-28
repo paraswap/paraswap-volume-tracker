@@ -69,7 +69,7 @@ export default class ERC20StateTracker extends AbstractStateTracker {
     this.contract = new Contract(
       contractAddress,
       ERC20ABI,
-      Provider.getJsonRpcProvider(chainId),
+      Provider.getArchiveJsonRpcProvider(chainId),
     );
   }
 
@@ -107,7 +107,7 @@ export default class ERC20StateTracker extends AbstractStateTracker {
       this.contract.filters.Transfer(),
       this.startBlock,
       this.endBlock,
-      { batchSize: QUERY_EVENT_BATCH_SIZE_BY_CHAIN[this.chainId]}
+      { batchSize: QUERY_EVENT_BATCH_SIZE_BY_CHAIN[this.chainId] },
     )) as Transfer[];
 
     logger.info(
