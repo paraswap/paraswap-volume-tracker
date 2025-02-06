@@ -110,7 +110,7 @@ export default class BPTStateTracker extends AbstractStateTracker {
     this.bVaultContract = new Contract(
       BalancerVaultAddress, // same address for all chains
       BVaultABI,
-      Provider.getJsonRpcProvider(this.chainId),
+      Provider.getArchiveJsonRpcProvider(this.chainId),
     ) as BVaultContract;
 
     const poolId = Balancer_80PSP_20WETH_address[this.chainId];
@@ -118,7 +118,7 @@ export default class BPTStateTracker extends AbstractStateTracker {
     this.bptAsERC20 = new Contract(
       poolId,
       ERC20ABI,
-      Provider.getJsonRpcProvider(this.chainId),
+      Provider.getArchiveJsonRpcProvider(this.chainId),
     ) as MinERC20;
   }
 
@@ -161,7 +161,7 @@ export default class BPTStateTracker extends AbstractStateTracker {
       ),
       this.startBlock,
       this.endBlock,
-      { batchSize: QUERY_EVENT_BATCH_SIZE_BY_CHAIN[this.chainId]}
+      { batchSize: QUERY_EVENT_BATCH_SIZE_BY_CHAIN[this.chainId] },
     )) as PoolBalanceChanged[];
 
     const blockNumToTimestamp = await fetchBlockTimestampForEvents(
@@ -214,7 +214,7 @@ export default class BPTStateTracker extends AbstractStateTracker {
       ),
       this.startBlock,
       this.endBlock,
-      { batchSize: QUERY_EVENT_BATCH_SIZE_BY_CHAIN[this.chainId]}
+      { batchSize: QUERY_EVENT_BATCH_SIZE_BY_CHAIN[this.chainId] },
     )) as Swap[];
 
     const blockNumToTimestamp = await fetchBlockTimestampForEvents(
@@ -268,14 +268,14 @@ export default class BPTStateTracker extends AbstractStateTracker {
           this.bptAsERC20.filters.Transfer(NULL_ADDRESS),
           this.startBlock,
           this.endBlock,
-          { batchSize: QUERY_EVENT_BATCH_SIZE_BY_CHAIN[this.chainId]}
+          { batchSize: QUERY_EVENT_BATCH_SIZE_BY_CHAIN[this.chainId] },
         ),
         queryFilterBatched(
           this.bptAsERC20,
           this.bptAsERC20.filters.Transfer(null, NULL_ADDRESS),
           this.startBlock,
           this.endBlock,
-          { batchSize: QUERY_EVENT_BATCH_SIZE_BY_CHAIN[this.chainId]}
+          { batchSize: QUERY_EVENT_BATCH_SIZE_BY_CHAIN[this.chainId] },
         ),
       ])
     ).flat() as Transfer[];
