@@ -82,6 +82,7 @@ export const constructHttpClient = (
     ...(options?.retryOptions || {}),
   });
 
+  if (process.env.NODE_ENV === 'development') axiosCurlirize(client);
   if (shouldCurlize) axiosCurlirize(client);
 
   return client;

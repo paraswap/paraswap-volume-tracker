@@ -222,16 +222,34 @@ export async function validateTransactions() {
       let cappedRefundedAmountPSP: BigNumber | undefined;
       let cappedRefundedAmountUSD: BigNumber | undefined;
 
+      // (guardian.isMaxYearlyPSPGlobalBudgetSpent() ||
+      //     guardian.hasSpentYearlyUSDBudget(address) ||
+      //     (tx.epoch >= GasRefundBudgetLimitEpochBasedStartEpoch &&
+      //       guardian.hasSpentUSDBudgetForEpoch(address, tx.epoch)) ||
+      //     (tx.epoch >= GasRefundDeduplicationStartEpoch &&
+      //       uniqTxHashesForEpoch.has(hashKey(tx))) || // prevent double spending overall
+      //     migrationsTxsHashesSet.has(tx.hash)) // avoid double spending for twin migration txs (with contract set to actual contract address). Order of txs matters
+      const rejectReasons = {
+        yearlyPSP: guardian.isMaxYearlyPSPGlobalBudgetSpent(),
+        yearlyUSD: guardian.hasSpentYearlyUSDBudget(address),
+        epochUSD:
+          tx.epoch >= GasRefundBudgetLimitEpochBasedStartEpoch &&
+          guardian.hasSpentUSDBudgetForEpoch(address, tx.epoch),
+        deduplication:
+          tx.epoch >= GasRefundDeduplicationStartEpoch &&
+          uniqTxHashesForEpoch.has(hashKey(tx)),
+        migration: migrationsTxsHashesSet.has(tx.hash),
+      };
+
+      const truthyRectionReasons = Object.entries(rejectReasons).filter(
+        ([_, value]) => value,
+      );
+
       if (
         !isMigrationToV2Tx && // always refund migration txs (100%)
-        (guardian.isMaxYearlyPSPGlobalBudgetSpent() ||
-          guardian.hasSpentYearlyUSDBudget(address) ||
-          (tx.epoch >= GasRefundBudgetLimitEpochBasedStartEpoch &&
-            guardian.hasSpentUSDBudgetForEpoch(address, tx.epoch)) ||
-          (tx.epoch >= GasRefundDeduplicationStartEpoch &&
-            uniqTxHashesForEpoch.has(hashKey(tx))) || // prevent double spending overall
-          migrationsTxsHashesSet.has(tx.hash)) // avoid double spending for twin migration txs (with contract set to actual contract address). Order of txs matters
+        truthyRectionReasons.length > 0
       ) {
+        debugger;
         newStatus = TransactionStatus.REJECTED;
       } else {
         newStatus = TransactionStatus.VALIDATED;
