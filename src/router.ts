@@ -17,6 +17,8 @@ import {
 import { EpochInfo } from './lib/epoch-info';
 import {
   GRP_SUPPORTED_CHAINS,
+  GRP_SUPPORTED_CHAINS_STAKING_V3,
+  GRP_SUPPORTED_CHAINS_V3,
   GRP_V2_SUPPORTED_CHAINS_STAKING,
 } from './lib/gas-refund/gas-refund';
 import { StakingService } from './lib/staking/staking';
@@ -241,6 +243,9 @@ export default class Router {
     );
 
     // NB: this endpoint will return approximate amounts. They will differ from the ones in merkle tree
+    // it's used to feed data to UI sections "Pending Distribution" (estimation of to be distributed amount) and "Accumulated" (esimtation of ongoing epoch)
+
+    // TODO: check: counts Base as stake network when time comes
     router.get(
       '/gas-refund/by-network/:address/:epochFrom/:epochTo',
       async (req, res) => {
@@ -302,10 +307,12 @@ export default class Router {
       async (req, res) => {
         const address = req.params.address.toLowerCase();
 
+        // include both -- legacy and new v3 networks, so that users can claim old refunds
+        const networksToReturnClaims =  Array.from(new Set([...GRP_SUPPORTED_CHAINS,...GRP_SUPPORTED_CHAINS_V3, ...GRP_SUPPORTED_CHAINS_STAKING_V3]))
         try {
           const byNetworkId = Object.fromEntries(
             await Promise.all(
-              GRP_SUPPORTED_CHAINS.map(async network => {
+              networksToReturnClaims.map(async network => {
                 const gasRefundApi = GasRefundApi.getInstance(network);
                 return [
                   network,
