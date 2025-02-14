@@ -6,7 +6,9 @@ import {
 import {
   GasRefundGenesisEpoch,
   GasRefundV2EpochOptimismFlip,
+  GasRefundV3EpochFlip,
   GRP_SUPPORTED_CHAINS,
+  GRP_SUPPORTED_CHAINS_V3,
 } from '../../../src/lib/gas-refund/gas-refund';
 
 import {
@@ -22,8 +24,13 @@ const logger = global.LOGGER('GRP::fetchRefundableTransactionsAllChains');
 
 export async function fetchRefundableTransactionsAllChains() {
   const lastEthereumDistribution = await loadLastEthereumDistributionFromDb();
+
+  const GrpChainsToIterateOver =
+    lastEthereumDistribution && lastEthereumDistribution >= GasRefundV3EpochFlip -1
+      ? GRP_SUPPORTED_CHAINS_V3
+      : GRP_SUPPORTED_CHAINS;
   return Promise.all(
-    GRP_SUPPORTED_CHAINS.map(async chainId => {
+    GrpChainsToIterateOver.map(async chainId => {
       const _lastEpochRefunded =
         lastEthereumDistribution ??
         (await getLatestEpochRefunded(
