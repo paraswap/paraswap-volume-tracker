@@ -205,7 +205,8 @@ async function startComputingGasRefundAllChains() {
           pspUsd: parseFloat(csvRow.psp_token_usd_price),
           chainCurrencyUsd: 0, //TODO - same as above
           pspChainCurrency: 0, //TODO -- same as aboe -- data is dervied from USD and full psp price at time of tx...
-          totalStakeAmountPSP: totalUserScore,
+          // here we store raw score, without paraboost factor
+          totalStakeAmountPSP: stakeScore.combined.toFixed(),
           refundedAmountPSP: extendedCsvRow.psp_refunded_wei,
           refundedAmountUSD: `${usdRefunded}`,
           contract: csvRow.contract,
