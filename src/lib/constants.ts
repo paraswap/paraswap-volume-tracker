@@ -96,6 +96,7 @@ export const MULTICALL_ADDRESS_V3: Record<number,string> = {
 }
 
 export type MulticallEncodedData = { returnData: string[] };
+export type MulticallEncodedData_V3 =  {returnData: string }[];
 
 export const DEFAULT_CHAIN_ID = parseInt(process.env.DEFAULT_CHAIN_ID || '1');
 

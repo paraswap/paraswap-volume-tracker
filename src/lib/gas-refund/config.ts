@@ -53,6 +53,25 @@ export const grp2CConfigParticularities: {
   },
 };
 
+
+
+
+export const grpConfigParticularities_V3: {
+  [network: number]: GRP2ConfigByChain;
+} = {
+  // @TODO: adjust here
+  [CHAIN_ID_MAINNET]: {},
+  [CHAIN_ID_BASE]: {
+    // TODO: umock here. Mock contract deploy tx: https://basescan.org/tx/0x9a844fda2e343a21d565041d9649a09d32ae504a3ca61f14ac4cb1e724bd141e
+    stakingStartCalcTimestamp: Math.round(new Date('Feb-06-2025 08:18:59 AM +00').getTime()/1000)+5,
+  },
+  [CHAIN_ID_OPTIMISM]: {
+    // TODO: unmock here. Mock contract deploy tx: https://optimistic.etherscan.io/tx/0x98f705f6b286096405a3afc77bcb82c486338616cc27b1f4878740ecdcf93fcf
+    stakingStartCalcTimestamp: Math.round(new Date('Jan-20-2025 05:44:37 PM +00').getTime()/1000)+5,
+  },
+};
+
+console.log(grpConfigParticularities_V3)
 type GRPV2ConfigByChain = {
   sePSP1: string;
   sePSP2: string;
