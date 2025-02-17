@@ -81,6 +81,7 @@ export function isStakeScoreV2(
 export function isStakeScoreV3(
   stakeScore: StakedScoreV1 | StakedScoreV2 | StakedScoreV3,
 ): stakeScore is StakedScoreV2 {
+  /// TODO: check networks included, should correspond to v3
   return 'version' in stakeScore && stakeScore.version === 3;
 }
 export default class StakesTracker {
@@ -188,7 +189,7 @@ export default class StakesTracker {
             return acc;
           }
 
-          return {
+          return {            
             ...acc,
             [chainId]: StakeV3Resolver.getInstance(chainId).getStakeForRefund(
               timestamp,
@@ -200,6 +201,7 @@ export default class StakesTracker {
       );
 
       return {
+        version: 3,
         combined: Object.values(byNetwork).reduce<BigNumber>(
           (acc, val) => acc.plus(val?.stakeScore || 0),
           new BigNumber(0),
