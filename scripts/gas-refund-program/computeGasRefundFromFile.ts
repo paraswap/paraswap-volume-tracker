@@ -3,7 +3,7 @@ dotenv.config();
 
 import '../../src/lib/log4js';
 import Database from '../../src/database';
-import StakesTracker, { isStakeScoreV2 } from './staking/stakes-tracker';
+import StakesTracker, { isStakeScoreV2, isStakeScoreV3 } from './staking/stakes-tracker';
 import { validateTransactions } from './transactions-validation/validateTransactions';
 import { fetchRefundableTransactionsAllChains } from './transactions-indexing/fetchRefundableTransactionsAllChains';
 import {
@@ -113,7 +113,7 @@ async function startComputingGasRefundAllChains() {
           endTimestamp,
         );
 
-        assert(isStakeScoreV2(stakeScore), 'byNetwork not in stakeScore');
+        assert(isStakeScoreV3(stakeScore), 'wrong stakeScore shape');
 
         const user_paraboost = paraboosts[csvRow.from.toLowerCase()] || 1;
         const is_still_staker_eoe = !!user_paraboost;
@@ -285,5 +285,6 @@ startComputingGasRefundAllChains()
       err.response?.data,
       err.request?.path,
     );
+    throw err;
     process.exit(1);
   });

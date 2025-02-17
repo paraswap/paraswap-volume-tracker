@@ -55,9 +55,15 @@ export class AbstractStakesTracker {
   }
 
   assertTimestampWithinLoadInterval(timestamp: number) {
-    assert(
-      timestamp >= this.startTimestamp && timestamp <= this.endTimestamp,
-      'timestamp is out of range',
-    );
+    try {
+      assert(
+        timestamp >= this.startTimestamp && timestamp <= this.endTimestamp,
+        'timestamp is out of range',
+      );
+    } catch (e) {
+      debugger;
+
+      throw e;
+    }
   }
 }
