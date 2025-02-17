@@ -4,6 +4,7 @@ import { BlockInfo } from '../../../../src/lib/block-info';
 import {  
   grp2ConfigByChain_V3,  
   grp3GlobalConfig,
+  grpConfigParticularities_V3,
   STAKING_V3_TIMESTAMP,
 } from '../../../../src/lib/gas-refund/config';
 import { AbstractStateTracker } from './AbstractStateTracker';
@@ -12,7 +13,7 @@ import { StakedScoreV3 } from '../stakes-tracker';
 import BPTStateTracker_V3 from './BPTStateTracker_V3';
 
 export class StakeV3Resolver extends AbstractStateTracker {
-  seXYZTracker: ERC20StateTracker;  
+  seXYZTracker: ERC20StateTracker;
   bptTracker: BPTStateTracker_V3;
 
   static instance: { [chainId: string]: StakeV3Resolver } = {};
@@ -20,10 +21,10 @@ export class StakeV3Resolver extends AbstractStateTracker {
   constructor(protected chainId: number) {
     super(chainId);
     const { seXYZ } = grp2ConfigByChain_V3[chainId] || {};
-      assert(seXYZ, 'seXYZ must be defined');    
+    assert(seXYZ, 'seXYZ must be defined');
 
-    this.seXYZTracker = ERC20StateTracker.getInstance(chainId, seXYZ);    
-    this.bptTracker = BPTStateTracker_V3.getInstance(chainId);    
+    this.seXYZTracker = ERC20StateTracker.getInstance(chainId, seXYZ);
+    this.bptTracker = BPTStateTracker_V3.getInstance(chainId);
   }
 
   static getInstance(chainId: number) {
@@ -67,11 +68,16 @@ export class StakeV3Resolver extends AbstractStateTracker {
   }
 
   async loadWithinInterval(epochStartTimestamp: number, endTimestamp: number) {
-
     // set staking start time higher if staking contracts have been deployed after epoch start
-    const deploymentTimestamp = STAKING_V3_TIMESTAMP
-    const startTimestamp = Math.max(epochStartTimestamp, deploymentTimestamp || 0)
-    
+
+    const deploymentTimestamp =
+      grpConfigParticularities_V3[this.chainId].stakingStartCalcTimestamp;
+
+    const startTimestamp = Math.max(
+      epochStartTimestamp,
+      deploymentTimestamp || 0,
+    );
+
     await this.resolveBlockBoundary({ startTimestamp, endTimestamp });
 
     const boundary = this.getBlockTimeBoundary();
@@ -81,12 +87,12 @@ export class StakeV3Resolver extends AbstractStateTracker {
       'wrong boundary resolved',
     );
 
-    this.seXYZTracker.setBlockTimeBoundary(boundary);    
-    this.bptTracker.setBlockTimeBoundary(boundary);    
+    this.seXYZTracker.setBlockTimeBoundary(boundary);
+    this.bptTracker.setBlockTimeBoundary(boundary);
 
     await Promise.all([
-      this.seXYZTracker.loadStates(),      
-      this.bptTracker.loadStates(),      
+      this.seXYZTracker.loadStates(),
+      this.bptTracker.loadStates(),
     ]);
   }
 
@@ -98,7 +104,7 @@ export class StakeV3Resolver extends AbstractStateTracker {
     this.assertTimestampWithinLoadInterval(timestamp);
 
     const seXYZBalance = this.seXYZTracker.getBalance(timestamp, account);
-    
+
     const { xyzBalance: bptXYZBalance, totalSupply: bptTotalSupply } =
       this.bptTracker.getBPTState(timestamp);
 
@@ -107,14 +113,15 @@ export class StakeV3Resolver extends AbstractStateTracker {
       .dividedBy(bptTotalSupply)
       .decimalPlaces(0, BigNumber.ROUND_DOWN);
 
-    const stake = xyzInSeXYZ.multipliedBy(grp3GlobalConfig.seXYZPowerMultiplier)
+    const stake = xyzInSeXYZ
+      .multipliedBy(grp3GlobalConfig.seXYZPowerMultiplier)
       .decimalPlaces(0, BigNumber.ROUND_DOWN);
 
     return {
       stakeScore: stake.toFixed(),
-      seXYZBalance: seXYZBalance.toFixed(),      
+      seXYZBalance: seXYZBalance.toFixed(),
       bptTotalSupply: bptTotalSupply.toFixed(),
-      bptXYZBalance: bptXYZBalance.toFixed(),      
+      bptXYZBalance: bptXYZBalance.toFixed(),
     };
   }
 }

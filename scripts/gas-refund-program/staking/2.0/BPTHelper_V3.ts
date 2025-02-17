@@ -10,6 +10,7 @@ import {
   Balancer_80XYZ_20WETH_address,
   Balancer_80XYZ_20WETH_poolId,
   MULTICALL_ADDRESS_V3,
+  MulticallEncodedData_V3,
 } from '../../../../src/lib/constants';
 import { Provider } from '../../../../src/lib/provider';
 import { BigNumber as EthersBN, Contract } from 'ethers';
@@ -70,20 +71,20 @@ export class BPTHelper_V3 {
     ];
 
     
-    const rawResults: MulticallEncodedData =
+    const rawResults: MulticallEncodedData_V3 =
       await this.multicallContract.callStatic.aggregate3(multicallData, {
         blockTag: blockNumber,
       });       
 
     const bptTotalSupply = new BigNumber(
       this.erc20Iface
-        .decodeFunctionResult('totalSupply', rawResults.returnData[0])
+        .decodeFunctionResult('totalSupply', rawResults[0].returnData)
         .toString(),
     );
 
     const { tokens, balances } = this.bVaultIface.decodeFunctionResult(
       'getPoolTokens',
-      rawResults.returnData[1],
+      rawResults[1].returnData,
     ) as unknown as {
       tokens: [string, string];
       balances: [EthersBN, EthersBN];
