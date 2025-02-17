@@ -47,6 +47,9 @@ export const GasRefundV2EpochFlip = 31;
 export const GasRefundV2EpochPSPEP3Flip = 32;
 export const GasRefundV2EpochOptimismFlip = 34;
 export const GasRefundV2PIP38 = 38;
+// TODO: change it to 57. Had 56 here to test previous distribution as if it was already done on v3 staking system
+export const GasRefundV3EpochFlip = 56;
+
 
 interface BaseGasRefundData {
   epoch: number;
@@ -204,10 +207,29 @@ export const getRefundPercentV2 = (score: string): number => {
   return refundPercent;
 };
 
+
+export const grpV3Func = (x: number): number => {
+  const rawRefundPecent = 0.152003 * Math.log(0.000517947 * x);
+
+  const cappedRefundPercent = Math.min(rawRefundPecent, GRP_MAX_REFUND_PERCENT);
+
+  return cappedRefundPercent;
+};
+export const getRefundPercentV3 = (score: string): number => {
+  const scoreNorm = +(BigInt(score) / BigInt(10 ** 18)).toString();
+  const refundPercent = grpV3Func(scoreNorm);
+  return refundPercent;
+};
+
 export const getRefundPercent = (
   epoch: number,
   stakedAmount: string,
-): number | undefined =>
-  (epoch < GasRefundV2EpochFlip ? getRefundPercentV1 : getRefundPercentV2)(
+): number | undefined => {
+  // TODO: fallback to V2 formula. V3 is currently used just for tests
+  if(epoch > GasRefundV3EpochFlip) 
+    return getRefundPercentV3(stakedAmount);
+
+  return (epoch < GasRefundV2EpochFlip ? getRefundPercentV1 : getRefundPercentV2)(
     stakedAmount,
   );
+}

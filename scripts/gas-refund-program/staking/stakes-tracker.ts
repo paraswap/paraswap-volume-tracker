@@ -6,8 +6,10 @@ import {
 import {
   forceStakingChainId,
   grp2CConfigParticularities,
+  STAKING_V3_TIMESTAMP,
 } from '../../../src/lib/gas-refund/config';
 import {
+  CHAIN_ID_BASE,
   CHAIN_ID_MAINNET,
   CHAIN_ID_OPTIMISM,
 } from '../../../src/lib/constants';
@@ -21,6 +23,7 @@ import {
   GasRefundSafetyModuleStartEpoch,
   GasRefundSPSPStakesAlgoFlipEpoch,
   GasRefundV2EpochFlip,
+  GasRefundV3EpochFlip,
   GasRefundVirtualLockupStartEpoch,
 } from '../../../src/lib/gas-refund/gas-refund';
 import { loadEpochToStartFromWithFix } from './2.0/fix';
@@ -29,7 +32,11 @@ import SafetyModuleStakesTracker from './safety-module-stakes-tracker';
 import SPSPStakesTracker from './spsp-stakes-tracker';
 import BigNumber from 'bignumber.js';
 
-import { GasRefundTransactionStakeSnapshotData } from '../../../src/models/GasRefundTransactionStakeSnapshot';
+import {
+  GasRefundTransactionStakeSnapshotData,
+  GasRefundTransactionStakeSnapshotData_V3,
+} from '../../../src/models/GasRefundTransactionStakeSnapshot';
+import { StakeV3Resolver } from './2.0/StakeV3Resolver';
 
 export type StakedScoreV2 = {
   combined: BigNumber;
@@ -48,17 +55,38 @@ export type StakedScoreV2 = {
   >;
 };
 
+export type StakedScoreV3 = {
+  combined: BigNumber;
+  version: 3;
+  byNetwork: Record<
+    number,
+    | Pick<
+        GasRefundTransactionStakeSnapshotData_V3,
+        'bptXYZBalance' | 'bptTotalSupply' | 'seXYZBalance' | 'stakeScore'
+      >
+    | undefined
+  >;
+};
+
 export type StakedScoreV1 = {
   combined: BigNumber;
 };
 
 export function isStakeScoreV2(
-  stakeScore: StakedScoreV1 | StakedScoreV2,
+  stakeScore: StakedScoreV1 | StakedScoreV2 | StakedScoreV3,
 ): stakeScore is StakedScoreV2 {
-  return 'byNetwork' in stakeScore;
+  return 'byNetwork' in stakeScore && !('version' in stakeScore);
+}
+
+export function isStakeScoreV3(
+  stakeScore: StakedScoreV1 | StakedScoreV2 | StakedScoreV3,
+): stakeScore is StakedScoreV2 {
+  /// TODO: check networks included, should correspond to v3
+  return 'version' in stakeScore && stakeScore.version === 3;
 }
 export default class StakesTracker {
   chainIds = [forceStakingChainId(CHAIN_ID_MAINNET), CHAIN_ID_OPTIMISM];
+  chainIds_V3 = [CHAIN_ID_OPTIMISM, CHAIN_ID_BASE]; // @TODO: add mainnet when time comes
 
   static instance: StakesTracker;
 
@@ -78,9 +106,26 @@ export default class StakesTracker {
 
     const endTime = SCRIPT_START_TIME_SEC - OFFSET_CALC_TIME;
 
+    
     // V2
     const epoch = forcedEpoch || getCurrentEpoch();
-    if (epoch >= GasRefundV2EpochFlip) {
+
+    // v3
+    if (epoch >= GasRefundV3EpochFlip) {
+      assert(epochToStartFrom, 'epochToStartFrom should be defined');
+      const startTimeStakeV3 = await getEpochStartCalcTime(
+        epochToStartFrom
+      );
+
+      await Promise.all(
+        this.chainIds_V3.map(async chainId =>
+          StakeV3Resolver.getInstance(chainId).loadWithinInterval(
+            startTimeStakeV3,
+            endTime,
+          ),
+        ),
+      );
+    }else if (epoch >= GasRefundV2EpochFlip) {
       let startTimeStakeV2 = await getEpochStartCalcTime(
         epochToStartFrom || GasRefundV2EpochFlip,
       );
@@ -133,8 +178,37 @@ export default class StakesTracker {
     timestamp: number,
     epoch: number,
     eofEpochTimestampForBackwardCompat: number,
-  ): StakedScoreV2 | StakedScoreV1 {
+  ): StakedScoreV3 | StakedScoreV2 | StakedScoreV1 {
     const account = _account.toLowerCase();
+
+    // v3
+    if (epoch >= GasRefundV3EpochFlip) {
+      const byNetwork: StakedScoreV3['byNetwork'] = this.chainIds_V3.reduce(
+        (acc, chainId) => {
+          if (timestamp < STAKING_V3_TIMESTAMP) {
+            return acc;
+          }
+
+          return {            
+            ...acc,
+            [chainId]: StakeV3Resolver.getInstance(chainId).getStakeForRefund(
+              timestamp,
+              account,
+            ),
+          };
+        },
+        {},
+      );
+
+      return {
+        version: 3,
+        combined: Object.values(byNetwork).reduce<BigNumber>(
+          (acc, val) => acc.plus(val?.stakeScore || 0),
+          new BigNumber(0),
+        ),
+        byNetwork,
+      };
+    }
 
     // V2
     if (epoch >= GasRefundV2EpochFlip) {

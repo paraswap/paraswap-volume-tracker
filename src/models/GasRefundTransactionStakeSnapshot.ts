@@ -10,6 +10,17 @@ import {
   DataType_KECCAK256_HASHED_VALUE,
 } from '../lib/sql-data-types';
 
+export interface GasRefundTransactionStakeSnapshotData_V3 {
+  transactionChainId: number;
+  transactionHash: string;
+  staker: string;
+  stakeChainId: number;
+  stakeScore: string; // should be computed by JS, not by SQL
+  seXYZBalance: string;
+  bptTotalSupply: string;
+  bptXYZBalance: string;  
+}
+
 export interface GasRefundTransactionStakeSnapshotData {
   transactionChainId: number;
   transactionHash: string;

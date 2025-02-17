@@ -1,5 +1,6 @@
 import { identity } from 'lodash';
 import {
+  CHAIN_ID_BASE,
   CHAIN_ID_GOERLI,
   CHAIN_ID_MAINNET,
   CHAIN_ID_OPTIMISM,
@@ -20,6 +21,24 @@ export const grp2GlobalConfig: GRPV2GlobalConfig = {
   sePSP2PowerMultiplier: 2.5,
 };
 
+
+// epoch 56 from/to: 1734955200	1737374400	12/23/2024 12:00:00	1/20/2025 12:00:00	
+// epoch 57 from/to: 1737374400	1739793600	1/20/2025 12:00:00	2/17/2025 12:00:00
+// TODO: set correct epoch when time comes, for now setting it to 56 to test previous distribution as if it happened on v3 staking
+export const STAKING_V3_TIMESTAMP = 1734955200
+
+type GRPV3GlobalConfig = {
+  startEpochTimestamp: number;
+  epochDuration: number;
+  seXYZPowerMultiplier: number;
+};
+
+export const grp3GlobalConfig: GRPV3GlobalConfig = {
+  startEpochTimestamp: STAKING_V3_TIMESTAMP,
+  epochDuration: 4 * 7 * 24 * 60 * 60,
+  seXYZPowerMultiplier: 2.5,  
+};
+
 type GRP2ConfigByChain = {
   stakingStartCalcTimestamp?: number; // the timestamp of staking enabling for a particular chain
 };
@@ -34,6 +53,25 @@ export const grp2CConfigParticularities: {
   },
 };
 
+
+
+
+export const grpConfigParticularities_V3: {
+  [network: number]: GRP2ConfigByChain;
+} = {
+  // @TODO: adjust here
+  [CHAIN_ID_MAINNET]: {},
+  [CHAIN_ID_BASE]: {
+    // TODO: umock here. Mock contract deploy tx: https://basescan.org/tx/0x9a844fda2e343a21d565041d9649a09d32ae504a3ca61f14ac4cb1e724bd141e
+    stakingStartCalcTimestamp: Math.round(new Date('Feb-06-2025 08:18:59 AM +00').getTime()/1000)+5,
+  },
+  [CHAIN_ID_OPTIMISM]: {
+    // TODO: unmock here. Mock contract deploy tx: https://optimistic.etherscan.io/tx/0x98f705f6b286096405a3afc77bcb82c486338616cc27b1f4878740ecdcf93fcf
+    stakingStartCalcTimestamp: Math.round(new Date('Jan-20-2025 05:44:37 PM +00').getTime()/1000)+5,
+  },
+};
+
+console.log(grpConfigParticularities_V3)
 type GRPV2ConfigByChain = {
   sePSP1: string;
   sePSP2: string;
@@ -41,6 +79,13 @@ type GRPV2ConfigByChain = {
   poolId: string;
   psp1ToPsp2Migrator?: string;
   sePSP1ToSePSP2Migrator: string;
+};
+
+type GRPV2ConfigByChain_V3 = {
+  seXYZ: string;  
+  bpt: string;
+  poolId: string;
+  // psp1ToPsp2Migrator?: string;  // unlike with v1->v2, we don't refund migration v2->v3 txs   
 };
 
 const l = (s: string) => s.toLowerCase();
@@ -78,6 +123,35 @@ export const grp2ConfigByChain: {
     sePSP1ToSePSP2Migrator: l('0x18e1A8431Ce39cBFe95958207dA2d68A7Ef8C583'),
   },
 };
+
+export const grp2ConfigByChain_V3: {
+  [chainId: number]: GRPV2ConfigByChain_V3;
+} = {
+  // [CHAIN_ID_MAINNET]: {
+    
+  //   seXYZ: l(''),
+  //   bpt: l(''),
+  //   poolId: l(
+  //     '',
+  //   ),        
+  // },
+  [CHAIN_ID_OPTIMISM]: {
+    seXYZ: l('0x8C934b7dBc782568d14ceaBbEAeDF37cB6348615'),    
+    bpt: l('0xBe8dDA0753EF6992A28759282585209c98C25de2'),
+    poolId: l(
+      '0xbe8dda0753ef6992a28759282585209c98c25de2000200000000000000000161',
+    ),    
+  },
+  [CHAIN_ID_BASE]: {
+    seXYZ: l('0x9D3a624085a4A8bcE0057D1c17eB363073aC3f49'),    
+    bpt: l('0xf80c528ecf45efefff5e4bc6d9f11ed1f6e5f09d'),
+    poolId: l(
+      '0xf80c528ecf45efefff5e4bc6d9f11ed1f6e5f09d0002000000000000000001bd',
+    ),    
+  },
+};
+
+export const STAKING_CHAIN_IDS_V3 = Object.keys(grp2ConfigByChain_V3).map(Number)
 
 const twistChains = (chain1: number, chain2: number) => (chainId: number) =>
   chainId === chain1 ? chain2 : chain2;
