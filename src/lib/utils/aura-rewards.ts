@@ -40,7 +40,8 @@ const config: Record<number, string> = {
   53: '0',
   54: '0',
   55: '0',
-  56: '0'
+  56: '0',
+  57: '0'
 };
 // debugger;
 const AURA_REWARDS_START_EPOCH_OLD_STYLE = Math.min(
