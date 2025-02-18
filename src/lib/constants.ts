@@ -6,7 +6,6 @@ export const CHAIN_ID_BINANCE = 56;
 export const CHAIN_ID_POLYGON = 137;
 export const CHAIN_ID_AVALANCHE = 43114;
 export const CHAIN_ID_FANTOM = 250;
-export const CHAIN_ID_BASE = 8453;
 
 export const PSP_ADDRESS: { [chainId: number]: string } = {
   [CHAIN_ID_MAINNET]: '0xcafe001067cdef266afb7eb5a286dcfd277f3de5',

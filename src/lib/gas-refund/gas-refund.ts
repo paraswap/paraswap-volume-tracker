@@ -1,6 +1,5 @@
 import BigNumber from 'bignumber.js';
 import {
-  CHAIN_ID_BASE,
   CHAIN_ID_BINANCE,
   CHAIN_ID_FANTOM,
   CHAIN_ID_GOERLI,
@@ -21,17 +20,6 @@ export const GRP_SUPPORTED_CHAINS = [
   CHAIN_ID_BINANCE,
   CHAIN_ID_FANTOM,
 ].filter(isTruthy);
-
-// the txs on these chains are refunded
-export const GRP_SUPPORTED_CHAINS_V3 = [
-  CHAIN_ID_MAINNET
-]
-
-export const GRP_SUPPORTED_CHAINS_STAKING_V3 = new Set([
-  CHAIN_ID_OPTIMISM,
-  CHAIN_ID_MAINNET,
-  CHAIN_ID_BASE
-]);
 
 export const GRP_V2_SUPPORTED_CHAINS_STAKING = new Set([
   CHAIN_ID_OPTIMISM,
@@ -59,7 +47,7 @@ export const GasRefundV2EpochFlip = 31;
 export const GasRefundV2EpochPSPEP3Flip = 32;
 export const GasRefundV2EpochOptimismFlip = 34;
 export const GasRefundV2PIP38 = 38;
-export const GasRefundV3EpochFlip = 57;
+export const GasRefundV2PIP55 = 56;
 
 interface BaseGasRefundData {
   epoch: number;
