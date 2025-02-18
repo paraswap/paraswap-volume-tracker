@@ -12,14 +12,7 @@ import { AmountsByProgram } from '../../types';
 
 export const isMainnetStaking = true; // TODO FIXME move to env var
 
-export const GRP_SUPPORTED_CHAINS = [
-  isMainnetStaking ? undefined : CHAIN_ID_GOERLI,
-  CHAIN_ID_MAINNET,
-  CHAIN_ID_OPTIMISM,
-  CHAIN_ID_POLYGON,
-  CHAIN_ID_BINANCE,
-  CHAIN_ID_FANTOM,
-].filter(isTruthy);
+export const GRP_SUPPORTED_CHAINS = [CHAIN_ID_MAINNET];
 
 export const GRP_V2_SUPPORTED_CHAINS_STAKING = new Set([
   CHAIN_ID_OPTIMISM,

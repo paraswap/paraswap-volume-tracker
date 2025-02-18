@@ -13,7 +13,10 @@ import * as fs from 'fs';
 
 import { MIGRATION_SEPSP2_100_PERCENT_KEY } from './staking/2.0/utils';
 import { isTruthy } from '../../src/lib/utils';
-import { CHAIN_ID_OPTIMISM } from '../../src/lib/constants';
+import {
+  AUGUSTUS_V5_ADDRESS,
+  CHAIN_ID_OPTIMISM,
+} from '../../src/lib/constants';
 import { grp2ConfigByChain } from '../../src/lib/gas-refund/config';
 
 const loadStakersFromFile = (filePath: string): string[] => {
@@ -42,7 +45,9 @@ function getContractsByChainId() {
       chainId,
       // skip migration of sPSP to social escrow 2.0 - 6 epochs when it was eligible passed long ago
       getContractAddresses({ epoch: currentEpoch, chainId }).filter(
-        address => address !== MIGRATION_SEPSP2_100_PERCENT_KEY,
+        address =>
+          address !== MIGRATION_SEPSP2_100_PERCENT_KEY &&
+          address !== AUGUSTUS_V5_ADDRESS,
       ),
     ]),
   );
@@ -51,7 +56,7 @@ function getContractsByChainId() {
 
 // @TODO: probably should use some tempating engine here
 async function generateDuneQuery() {
-  const targetEpoch = 56;
+  const targetEpoch = 57;
   // const currentEpoch = getCurrentEpoch();
   const { startCalcTime, endCalcTime } = await resolveEpochCalcTimeInterval(
     targetEpoch,
@@ -157,6 +162,7 @@ success
     -- 4343275 -- epoch 023-54
     -- 4472438 -- epoch 024-55
     -- 4609884 -- epoch 025-56
+    -- 4733819 -- epoch 026-57
       query_xxx
   ),  
   ${queries} SELECT * from (\n${unionPart}) ORDER BY block_time DESC
