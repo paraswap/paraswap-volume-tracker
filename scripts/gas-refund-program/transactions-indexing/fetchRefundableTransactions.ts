@@ -12,7 +12,7 @@ import {
   GasRefundV2EpochFlip,
   getRefundPercent,
   getMinStake,
-  GasRefundV3EpochFlip,
+  GasRefundV2PIP55,
 } from '../../../src/lib/gas-refund/gas-refund';
 import { ONE_HOUR_SEC } from '../../../src/lib/utils/helpers';
 import { PriceResolverFn } from '../token-pricing/psp-chaincurrency-pricing';
@@ -170,7 +170,7 @@ export async function fetchRefundableTransactions({
 
   let allButV6ContractAddresses = getContractAddresses({ epoch, chainId });
 
-  if(epoch >= GasRefundV3EpochFlip){
+  if(epoch >= GasRefundV2PIP55){
     // starting from epoch 57 we no longer refund augustus v5 txs
     allButV6ContractAddresses = allButV6ContractAddresses.filter(
       contract => contract !== AUGUSTUS_V5_ADDRESS,
