@@ -19,7 +19,10 @@ import { PriceResolverFn } from '../token-pricing/psp-chaincurrency-pricing';
 import StakesTracker from '../staking/stakes-tracker';
 import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/utils';
 import { isTruthy } from '../../../src/lib/utils';
-import { AUGUSTUS_SWAPPERS_V6_OMNICHAIN, AUGUSTUS_V5_ADDRESS } from '../../../src/lib/constants';
+import {
+  AUGUSTUS_SWAPPERS_V6_OMNICHAIN,
+  AUGUSTUS_V5_ADDRESS,
+} from '../../../src/lib/constants';
 import { fetchParaswapV6StakersTransactions } from '../../../src/lib/paraswap-v6-stakers-transactions';
 import { ExtendedCovalentGasRefundTransaction } from '../../../src/types-from-scripts';
 import { GasRefundTransactionDataWithStakeScore, TxProcessorFn } from './types';
@@ -170,13 +173,12 @@ export async function fetchRefundableTransactions({
 
   let allButV6ContractAddresses = getContractAddresses({ epoch, chainId });
 
-  if(epoch >= GasRefundV2PIP55){
-    // starting from epoch 57 we no longer refund augustus v5 txs
+  if (epoch >= GasRefundV2PIP55) {
+    // starting from epoch 56 we no longer refund augustus v5 txs
     allButV6ContractAddresses = allButV6ContractAddresses.filter(
       contract => contract !== AUGUSTUS_V5_ADDRESS,
     );
   }
-
 
   const processRawTxs = constructTransactionsProcessor({
     chainId,
