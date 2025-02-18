@@ -5,11 +5,14 @@ import {
 } from '../../../src/lib/utils/covalent';
 import { covalentClient } from '../../../src/lib/utils/data-providers-clients';
 import { CHAIN_ID_OPTIMISM } from '../../../src/lib/constants';
+import { DuneTransaction } from '../../../src/models/DuneTransaction';
 import {
   CovalentTransaction,
   CovalentAPI,
   ExtendedCovalentGasRefundTransaction,
 } from '../../../src/types-from-scripts';
+import { GasRefundTransaction } from '../../../src/models/GasRefundTransaction';
+import { parse } from 'path';
 
 interface GetContractTXsByNetworkInput {
   chainId: number;
@@ -167,4 +170,61 @@ export const covalentGetTXsForContractV3 = async ({
     );
 
   return filteredTxs;
+};
+
+export function duneToCovalentLike(
+  dbTx: DuneTransaction,
+): CovalentTransactionV3 {
+  return {
+    to_address: dbTx.to,
+    tx_hash: dbTx.hash,
+    from_address: dbTx.from,
+    gas_price: parseInt(dbTx.gas_price),
+    gas_spent: dbTx.gas_used,
+    block_height: dbTx.block_number,
+    block_signed_at: new Date(dbTx.block_timestamp * 1000)
+      .toISOString()
+      .replace(/\.\d+Z$/, 'Z'),
+    fees_paid: (
+      BigInt(dbTx.gas_used) * BigInt(dbTx.gas_price) +
+      BigInt(dbTx.l1_fee || 0)
+    ).toString(),
+    successful: dbTx.success,
+  };
+}
+
+export const constructCovalentAddressToTransaction = (
+  contract: string,
+  chainId: number,
+) => {
+  return (
+    txCov: CovalentTransactionV3,
+  ): ExtendedCovalentGasRefundTransaction => {
+    const {
+      tx_hash: txHash,
+      from_address: txOrigin,
+      gas_price: _txGasPrice,
+      gas_spent: txGasUsed,
+      block_height: blockNumber,
+      block_signed_at: blockTimestamp,
+      fees_paid: feesPaidInChainCurrency,
+    } = txCov;
+
+    const timestamp = (new Date(blockTimestamp).getTime() / 1000).toString(); // convert time to unixtime (seconds)
+
+    const txGasPrice =
+      chainId !== CHAIN_ID_OPTIMISM
+        ? _txGasPrice.toString()
+        : (BigInt(feesPaidInChainCurrency) / BigInt(txGasUsed)).toString(); // virtually scaling gasPrice up for optimism to take into account for L1 tx fees submission (dirty fix, shouldn't cause too much troubles)
+
+    return {
+      txHash,
+      txOrigin,
+      txGasPrice,
+      txGasUsed: txGasUsed.toString(),
+      blockNumber: blockNumber.toString(),
+      timestamp: timestamp,
+      contract,
+    };
+  };
 };
