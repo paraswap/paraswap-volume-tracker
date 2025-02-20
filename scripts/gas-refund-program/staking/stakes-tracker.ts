@@ -32,11 +32,9 @@ import SafetyModuleStakesTracker from './safety-module-stakes-tracker';
 import SPSPStakesTracker from './spsp-stakes-tracker';
 import BigNumber from 'bignumber.js';
 
-import {
-  GasRefundTransactionStakeSnapshotData,
-  GasRefundTransactionStakeSnapshotData_V3,
-} from '../../../src/models/GasRefundTransactionStakeSnapshot';
+import { GasRefundTransactionStakeSnapshotData } from '../../../src/models/GasRefundTransactionStakeSnapshot';
 import { StakeV3Resolver } from './2.0/StakeV3Resolver';
+import { GasRefundTransactionStakeSnapshotData_V3 } from '../../../src/models/GasRefundTransactionStakeSnapshot_V3';
 
 export type StakedScoreV2 = {
   combined: BigNumber;
@@ -80,7 +78,7 @@ export function isStakeScoreV2(
 
 export function isStakeScoreV3(
   stakeScore: StakedScoreV1 | StakedScoreV2 | StakedScoreV3,
-): stakeScore is StakedScoreV2 {
+): stakeScore is StakedScoreV3 {
   /// TODO: check networks included, should correspond to v3
   return 'version' in stakeScore && stakeScore.version === 3;
 }
@@ -106,16 +104,13 @@ export default class StakesTracker {
 
     const endTime = SCRIPT_START_TIME_SEC - OFFSET_CALC_TIME;
 
-    
     // V2
     const epoch = forcedEpoch || getCurrentEpoch();
 
     // v3
     if (epoch >= GasRefundV3EpochFlip) {
       assert(epochToStartFrom, 'epochToStartFrom should be defined');
-      const startTimeStakeV3 = await getEpochStartCalcTime(
-        epochToStartFrom
-      );
+      const startTimeStakeV3 = await getEpochStartCalcTime(epochToStartFrom);
 
       await Promise.all(
         this.chainIds_V3.map(async chainId =>
@@ -125,7 +120,7 @@ export default class StakesTracker {
           ),
         ),
       );
-    }else if (epoch >= GasRefundV2EpochFlip) {
+    } else if (epoch >= GasRefundV2EpochFlip) {
       let startTimeStakeV2 = await getEpochStartCalcTime(
         epochToStartFrom || GasRefundV2EpochFlip,
       );
@@ -189,7 +184,7 @@ export default class StakesTracker {
             return acc;
           }
 
-          return {            
+          return {
             ...acc,
             [chainId]: StakeV3Resolver.getInstance(chainId).getStakeForRefund(
               timestamp,
