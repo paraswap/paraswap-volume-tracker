@@ -144,28 +144,28 @@ async function startComputingGasRefundAllChains() {
             .toFixed(0),
           stake_score_combined: stakeScore.combined.toFixed(),
           stake_chain_1_stake_score: stakeScore.byNetwork[1]?.stakeScore,
-          stake_chain_1_stake_sepsp1_balance:
-            stakeScore.byNetwork[1]?.sePSP1Balance,
-          stake_chain_1_stake_sepsp2_balance:
-            stakeScore.byNetwork[1]?.sePSP2Balance,
+          // stake_chain_1_stake_sepsp1_balance:
+          //   stakeScore.byNetwork[1]?.sePSP1Balance,
+          // stake_chain_1_stake_sepsp2_balance:
+          //   stakeScore.byNetwork[1]?.sePSP2Balance,
           stake_chain_1_stake_bpt_total_supply:
             stakeScore.byNetwork[1]?.bptTotalSupply,
-          stake_chain_1_stake_bpt_psp_balance:
-            stakeScore.byNetwork[1]?.bptPSPBalance,
-          stake_chain_1_stake_claimable_sepsp1_balance:
-            stakeScore.byNetwork[1]?.claimableSePSP1Balance,
+          // stake_chain_1_stake_bpt_psp_balance:
+          //   stakeScore.byNetwork[1]?.bptPSPBalance,
+          // stake_chain_1_stake_claimable_sepsp1_balance:
+          //   stakeScore.byNetwork[1]?.claimableSePSP1Balance,
 
           stake_chain_10_stake_score: stakeScore.byNetwork[10]?.stakeScore,
-          stake_chain_10_stake_sepsp1_balance:
-            stakeScore.byNetwork[10]?.sePSP1Balance,
-          stake_chain_10_stake_sepsp2_balance:
-            stakeScore.byNetwork[10]?.sePSP2Balance,
+          // stake_chain_10_stake_sepsp1_balance:
+          //   stakeScore.byNetwork[10]?.sePSP1Balance,
+          // stake_chain_10_stake_sepsp2_balance:
+          //   stakeScore.byNetwork[10]?.sePSP2Balance,
           stake_chain_10_stake_bpt_total_supply:
             stakeScore.byNetwork[10]?.bptTotalSupply,
-          stake_chain_10_stake_bpt_psp_balance:
-            stakeScore.byNetwork[10]?.bptPSPBalance,
-          stake_chain_10_stake_claimable_sepsp1_balance:
-            stakeScore.byNetwork[10]?.claimableSePSP1Balance,
+          // stake_chain_10_stake_bpt_psp_balance:
+          //   stakeScore.byNetwork[10]?.bptPSPBalance,
+          // stake_chain_10_stake_claimable_sepsp1_balance:
+          //   stakeScore.byNetwork[10]?.claimableSePSP1Balance,
           usd_user_refunded_cumulative: usdRefundedByUser[csvRow.from],
           is_over_limit,
           is_still_staker_eoe,
@@ -231,20 +231,21 @@ async function startComputingGasRefundAllChains() {
       });
 
     // console.log(withScores);`
-    // await fetchRefundableTransactionsAllChains();
-    await Database.sequelize.query(`
-
-      
-    
-
-    delete from "GasRefundTransactionStakeSnapshots"
+    // await fetchRefundableTransactionsAllChains();    
+      await Database.sequelize.query(`
+        delete from "GasRefundTransactionStakeSnapshots"
       where  "transactionHash" in (
         select "hash" from "GasRefundTransactions" where "epoch" = ${EPOCH}
       );
-    
-      delete from "GasRefundTransactions" where "epoch" = ${EPOCH};
-  
-      `);
+      
+        delete from "GasRefundTransactionStakeSnapshot_V3s"
+          where  "transactionHash" in (
+            select "hash" from "GasRefundTransactions" where "epoch" = ${EPOCH}
+          );
+        
+          delete from "GasRefundTransactions" where "epoch" = ${EPOCH};
+      
+          `);
 
     const txsWithScores = withScores
       .map(item => item.gasRefundTransactionModelDataWithStakeScore)
