@@ -1,3 +1,4 @@
+import { CHAIN_ID_BASE } from '../../../../src/lib/constants';
 import { sePSPMigrations } from '../../../../src/models/sePSPMigrations';
 import { Contract, EventFilter } from 'ethers';
 
@@ -15,12 +16,13 @@ export const fetchMigrationsTxHashesSet = async () => {
   return txHashes;
 };
 
-export const QUERY_EVENT_BATCH_SIZE_BY_CHAIN : {
-  [chainId: number]: number
+export const QUERY_EVENT_BATCH_SIZE_BY_CHAIN: {
+  [chainId: number]: number;
 } = {
   1: 10_000,
-  10: 20_000
-}
+  10: 20_000,
+  [CHAIN_ID_BASE]: 20_000 // this costed me 2 hours of debugging :/
+};
 
 interface QueryFilterOptions {
   batchSize: number;

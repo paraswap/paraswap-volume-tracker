@@ -20,8 +20,14 @@ import {
 import {
   StakedScoreV1,
   StakedScoreV2,
+  StakedScoreV3,
   isStakeScoreV2,
+  isStakeScoreV3,
 } from '../staking/stakes-tracker';
+import {
+  GasRefundTransactionStakeSnapshot_V3,
+  GasRefundTransactionStakeSnapshotData_V3,
+} from '../../../src/models/GasRefundTransactionStakeSnapshot_V3';
 
 export async function fetchLastTimestampTxByContract({
   chainId,
@@ -188,7 +194,19 @@ export async function fetchLastEpochRefunded(
 export const writeTransactions = async (
   newRefundableTransactions: GasRefundTransactionData[],
 ) => {
-  await GasRefundTransaction.bulkCreate(newRefundableTransactions);
+  for (const transaction of newRefundableTransactions) {
+    try {
+      await GasRefundTransaction.create(transaction);
+      console.log(`Transaction created: ${JSON.stringify(transaction)}`);
+    } catch (error) {
+      console.error(
+        `Error creating transaction: ${JSON.stringify(transaction)}`,
+        error,
+      );
+      throw error;
+    }
+  }
+  // await GasRefundTransaction.bulkCreate(newRefundableTransactions);
 };
 
 export const updateTransactionsStatusRefundedAmounts = async (
@@ -206,7 +224,7 @@ export const updateTransactionsStatusRefundedAmounts = async (
 
 export function composeGasRefundTransactionStakeSnapshots(
   transaction: GasRefundTransactionData,
-  stakeScore: StakedScoreV1 | StakedScoreV2,
+  stakeScore: StakedScoreV1 | StakedScoreV2 | StakedScoreV3,
 ): GasRefundTransactionStakeSnapshotData[] {
   if (isStakeScoreV2(stakeScore)) {
     return Object.entries(stakeScore.byNetwork).map(([chainId, score]) => ({
@@ -225,12 +243,88 @@ export function composeGasRefundTransactionStakeSnapshots(
   return [];
 }
 
+export function composeGasRefundTransactionStakeSnapshots_V3(
+  transaction: GasRefundTransactionData,
+  stakeScore: StakedScoreV3 | StakedScoreV2 | StakedScoreV1,
+): GasRefundTransactionStakeSnapshotData_V3[] {
+  if (isStakeScoreV3(stakeScore)) {
+    return Object.entries(stakeScore.byNetwork).map(([chainId, score]) => ({
+      transactionChainId: transaction.chainId,
+      transactionHash: transaction.hash,
+      stakeChainId: Number(chainId),
+      stakeScore: score?.stakeScore || '0',
+      seXYZBalance: score?.seXYZBalance || '0',
+      bptTotalSupply: score?.bptTotalSupply || '0',
+      bptXYZBalance: score?.bptXYZBalance || '0',
+      staker: transaction.address,
+    }));
+  }
+  throw new Error('Invalid stake score version');  
+}
+
+export async function writeStakeScoreSnapshots_V3(
+  items: GasRefundTransactionStakeSnapshotData_V3[],
+) {
+  const indices = items.map(item => Object.values(item).join(','));
+  const unique = new Set<string>(indices);
+  if (unique.size !== items.length) {
+    // throw new Error('Duplicated items in stake score snapshots');
+
+    const dupes = indices.filter(
+      (item, index) => indices.indexOf(item) != index,
+    );
+    debugger;
+    throw new Error(`Duplicated items in v3 stake score snapshots: ${dupes}`);
+  }
+
+  for (const item of items) {
+    try {
+      await GasRefundTransactionStakeSnapshot_V3.create(item);
+      console.log(`V3 Snapshot created or updated: ${JSON.stringify(item)}`);
+    } catch (error) {
+      console.error(
+        `Error creating or updating V3 snapshot: ${JSON.stringify(item)}`,
+        error,
+      );
+    }
+  }
+
+  // return GasRefundTransactionStakeSnapshot.bulkCreate(items, {
+  //   updateOnDuplicate: ['stakeScore'],
+  // });
+}
+//
+
 export async function writeStakeScoreSnapshots(
   items: GasRefundTransactionStakeSnapshotData[],
 ) {
-  return GasRefundTransactionStakeSnapshot.bulkCreate(items, {
-    updateOnDuplicate: ['stakeScore'],
-  });
+  const indices = items.map(item => Object.values(item).join(','));
+  const unique = new Set<string>(indices);
+  if (unique.size !== items.length) {
+    // throw new Error('Duplicated items in stake score snapshots');
+
+    const dupes = indices.filter(
+      (item, index) => indices.indexOf(item) != index,
+    );
+    debugger;
+    throw new Error(`Duplicated items in stake score snapshots: ${dupes}`);
+  }
+
+  for (const item of items) {
+    try {
+      await GasRefundTransactionStakeSnapshot.create(item);
+      console.log(`Snapshot created or updated: ${JSON.stringify(item)}`);
+    } catch (error) {
+      console.error(
+        `Error creating or updating snapshot: ${JSON.stringify(item)}`,
+        error,
+      );
+    }
+  }
+
+  // return GasRefundTransactionStakeSnapshot.bulkCreate(items, {
+  //   updateOnDuplicate: ['stakeScore'],
+  // });
 }
 
 export const merkleRootExists = async ({

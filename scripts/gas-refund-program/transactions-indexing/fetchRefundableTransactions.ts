@@ -5,6 +5,8 @@ import {
   writeTransactions,
   composeGasRefundTransactionStakeSnapshots,
   writeStakeScoreSnapshots,
+  writeStakeScoreSnapshots_V3,
+  composeGasRefundTransactionStakeSnapshots_V3,
 } from '../persistance/db-persistance';
 import { getAllTXs, getContractAddresses } from './transaction-resolver';
 import {
@@ -12,17 +14,13 @@ import {
   GasRefundV2EpochFlip,
   getRefundPercent,
   getMinStake,
-  GasRefundV2PIP55,
 } from '../../../src/lib/gas-refund/gas-refund';
 import { ONE_HOUR_SEC } from '../../../src/lib/utils/helpers';
 import { PriceResolverFn } from '../token-pricing/psp-chaincurrency-pricing';
-import StakesTracker from '../staking/stakes-tracker';
+import StakesTracker, { isStakeScoreV3 } from '../staking/stakes-tracker';
 import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/utils';
 import { isTruthy } from '../../../src/lib/utils';
-import {
-  AUGUSTUS_SWAPPERS_V6_OMNICHAIN,
-  AUGUSTUS_V5_ADDRESS,
-} from '../../../src/lib/constants';
+import { AUGUSTUS_SWAPPERS_V6_OMNICHAIN } from '../../../src/lib/constants';
 import { fetchParaswapV6StakersTransactions } from '../../../src/lib/paraswap-v6-stakers-transactions';
 import { ExtendedCovalentGasRefundTransaction } from '../../../src/types-from-scripts';
 import { GasRefundTransactionDataWithStakeScore, TxProcessorFn } from './types';
@@ -30,6 +28,10 @@ import { applyEpoch46Patch } from '../../per-epoch-patches/epoch-46';
 import { applyEpoch48Patch } from '../../per-epoch-patches/epoch-48';
 import { PatchInput } from '../../per-epoch-patches/types';
 import type { Logger } from 'log4js';
+import {
+  isGasRefundTransactionStakeSnapshotData_V2_Arr,
+  isGasRefundTransactionStakeSnapshotData_V3_Arr,
+} from '../../../src/models/GasRefundTransactionStakeSnapshot_V3';
 
 function constructTransactionsProcessor({
   chainId,
@@ -75,7 +77,14 @@ function constructTransactionsProcessor({
             `could not retrieve psp/chaincurrency same day rate for swap at ${transaction.timestamp}`,
           );
 
-          const currGasUsedChainCur = gasSpentInChainCurrencyWei
+          const currGasUsedChainCur = transaction.txGasUsedUSD // if USD override is available, most likely it's delta -> adjust spent eth and psp to refund based on that
+            ? new BigNumber(
+                new BigNumber(transaction.txGasUsedUSD)
+                  .multipliedBy(10 ** 18)
+                  .dividedBy(currencyRate.chainPrice)
+                  .toFixed(0),
+              )
+            : gasSpentInChainCurrencyWei
             ? new BigNumber(gasSpentInChainCurrencyWei)
             : new BigNumber(txGasUsed).multipliedBy(
                 transaction.txGasPrice.toString(),
@@ -171,14 +180,7 @@ export async function fetchRefundableTransactions({
     epoch,
   });
 
-  let allButV6ContractAddresses = getContractAddresses({ epoch, chainId });
-
-  if (epoch >= GasRefundV2PIP55) {
-    // starting from epoch 56 we no longer refund augustus v5 txs
-    allButV6ContractAddresses = allButV6ContractAddresses.filter(
-      contract => contract !== AUGUSTUS_V5_ADDRESS,
-    );
-  }
+  const allButV6ContractAddresses = getContractAddresses({ epoch, chainId });
 
   const processRawTxs = constructTransactionsProcessor({
     chainId,
@@ -187,7 +189,7 @@ export async function fetchRefundableTransactions({
     resolvePrice,
   });
 
-  const allTxsAndV6Combined = await Promise.all([
+  const allTxsV5AndV6Merged = await Promise.all([
     ...allButV6ContractAddresses.map(async contractAddress => {
       assert(contractAddress, 'contractAddress should be defined');
       const lastTimestampProcessed =
@@ -259,27 +261,34 @@ export async function fetchRefundableTransactions({
       return result.flat();
     }),
 
-    ...Array.from(AUGUSTUS_SWAPPERS_V6_OMNICHAIN).map(async contractAddress => {
-      const epochNewStyle = epoch - GasRefundV2EpochFlip;
+    // in this branch v6 txs are sitting together with v5 in global config
+    ...(chainId != 1
+      ? [] // only for chain id=1 take data from metabase
+      : Array.from(AUGUSTUS_SWAPPERS_V6_OMNICHAIN).map(
+          async contractAddress => {
+            const epochNewStyle = epoch - GasRefundV2EpochFlip;
 
-      const lastTimestampProcessed = lastTimestampTxByContract[contractAddress];
+            const lastTimestampProcessed =
+              lastTimestampTxByContract[contractAddress];
 
-      const allStakersTransactionsDuringEpoch =
-        await fetchParaswapV6StakersTransactions({
-          epoch: epochNewStyle,
-          timestampGreaterThan: lastTimestampProcessed,
-          chainId,
-          address: contractAddress,
-        });
+            const allStakersTransactionsDuringEpoch =
+              await fetchParaswapV6StakersTransactions({
+                epoch: epochNewStyle,
+                timestampGreaterThan: lastTimestampProcessed,
+                chainId,
+                address: contractAddress,
+              });
 
-      return await processRawTxs(
-        allStakersTransactionsDuringEpoch,
-        (epoch, totalUserScore) => getRefundPercent(epoch, totalUserScore),
-      );
-    }),
+            return await processRawTxs(
+              allStakersTransactionsDuringEpoch,
+              (epoch, totalUserScore) =>
+                getRefundPercent(epoch, totalUserScore),
+            );
+          },
+        )),
   ]);
 
-  const flattened = allTxsAndV6Combined.flat();
+  const flattened = allTxsV5AndV6Merged.flat();
   const withPatches = await addPatches({
     txs: flattened,
     epoch,
@@ -293,7 +302,7 @@ export async function fetchRefundableTransactions({
   return withPatches;
 }
 
-async function storeTxs({
+export async function storeTxs({
   txsWithScores: refundableTransactions,
   logger,
 }: {
@@ -308,11 +317,21 @@ async function storeTxs({
 
     const stakeScoreEntries = refundableTransactions
       .map(({ stakeScore, ...transaction }) =>
-        composeGasRefundTransactionStakeSnapshots(transaction, stakeScore),
+        (isStakeScoreV3(refundableTransactions[0]?.stakeScore)
+          ? composeGasRefundTransactionStakeSnapshots_V3
+          : composeGasRefundTransactionStakeSnapshots)(transaction, stakeScore),
       )
       .flat();
 
-    await writeStakeScoreSnapshots(stakeScoreEntries);
+    if (isGasRefundTransactionStakeSnapshotData_V3_Arr(stakeScoreEntries)) {
+      await writeStakeScoreSnapshots_V3(stakeScoreEntries);
+    } else if (
+      isGasRefundTransactionStakeSnapshotData_V2_Arr(stakeScoreEntries)
+    ) {
+      await writeStakeScoreSnapshots(stakeScoreEntries);
+    } else {
+      throw new Error('Unknown stake score snapshot data type');
+    }
   }
 }
 async function addPatches({
