@@ -5,6 +5,8 @@ import {
   writeTransactions,
   composeGasRefundTransactionStakeSnapshots,
   writeStakeScoreSnapshots,
+  writeStakeScoreSnapshots_V3,
+  composeGasRefundTransactionStakeSnapshots_V3,
 } from '../persistance/db-persistance';
 import { getAllTXs, getContractAddresses } from './transaction-resolver';
 import {
@@ -15,7 +17,7 @@ import {
 } from '../../../src/lib/gas-refund/gas-refund';
 import { ONE_HOUR_SEC } from '../../../src/lib/utils/helpers';
 import { PriceResolverFn } from '../token-pricing/psp-chaincurrency-pricing';
-import StakesTracker from '../staking/stakes-tracker';
+import StakesTracker, { isStakeScoreV3 } from '../staking/stakes-tracker';
 import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/utils';
 import { isTruthy } from '../../../src/lib/utils';
 import { AUGUSTUS_SWAPPERS_V6_OMNICHAIN } from '../../../src/lib/constants';
@@ -26,6 +28,10 @@ import { applyEpoch46Patch } from '../../per-epoch-patches/epoch-46';
 import { applyEpoch48Patch } from '../../per-epoch-patches/epoch-48';
 import { PatchInput } from '../../per-epoch-patches/types';
 import type { Logger } from 'log4js';
+import {
+  isGasRefundTransactionStakeSnapshotData_V2_Arr,
+  isGasRefundTransactionStakeSnapshotData_V3_Arr,
+} from '../../../src/models/GasRefundTransactionStakeSnapshot_V3';
 
 function constructTransactionsProcessor({
   chainId,
@@ -311,11 +317,21 @@ export async function storeTxs({
 
     const stakeScoreEntries = refundableTransactions
       .map(({ stakeScore, ...transaction }) =>
-        composeGasRefundTransactionStakeSnapshots(transaction, stakeScore),
+        (isStakeScoreV3(refundableTransactions[0]?.stakeScore)
+          ? composeGasRefundTransactionStakeSnapshots_V3
+          : composeGasRefundTransactionStakeSnapshots)(transaction, stakeScore),
       )
       .flat();
 
-    await writeStakeScoreSnapshots(stakeScoreEntries);
+    if (isGasRefundTransactionStakeSnapshotData_V3_Arr(stakeScoreEntries)) {
+      await writeStakeScoreSnapshots_V3(stakeScoreEntries);
+    } else if (
+      isGasRefundTransactionStakeSnapshotData_V2_Arr(stakeScoreEntries)
+    ) {
+      await writeStakeScoreSnapshots(stakeScoreEntries);
+    } else {
+      throw new Error('Unknown stake score snapshot data type');
+    }
   }
 }
 async function addPatches({
