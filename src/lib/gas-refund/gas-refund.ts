@@ -47,6 +47,8 @@ export const GasRefundV2EpochFlip = 31;
 export const GasRefundV2EpochPSPEP3Flip = 32;
 export const GasRefundV2EpochOptimismFlip = 34;
 export const GasRefundV2PIP38 = 38;
+// https://gov.paraswap.network/t/pip-53-streamlining-of-the-staked-psp-incentive-system/1813
+export const GasRefundV2PIP55 = 56;
 // TODO: change it to 57. Had 56 here to test previous distribution as if it was already done on v3 staking system
 export const GasRefundV3EpochFlip = 56;
 
