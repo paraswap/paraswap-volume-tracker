@@ -9,6 +9,9 @@ import { computeOverriddenFieldsForL2IfApplicable } from './utils/l1fee-worakrou
 const PARASWAP_V6_STAKERS_TRANSACTIONS_URL_TEMPLATE =
   process.env.PARASWAP_V6_STAKERS_TRANSACTIONS_URL_TEMPLATE;
 
+const PARASWAP_V6_STAKERS_TRANSACTIONS_URL_TEMPLATE_V3 =
+  process.env.PARASWAP_V6_STAKERS_TRANSACTIONS_URL_TEMPLATE_V3;
+
 type ParaswapTransactionData = {
   chainid: number; // 137,
   initiator: string; // '0xad1a74a31b00ed0403bb7d8b11130e30ae15853c',
@@ -41,19 +44,30 @@ function generateObjectsFromData(data: any): ParaswapTransactionData[] {
 const logger = global.LOGGER('paraswap-v6-stakers-transactions');
 
 export async function fetchParaswapV6StakersTransactions(arg0: {
+  staking_version: 2 | 3;
   epoch: number;
   chainId: number;
   address: string;
   timestampGreaterThan?: number;
 }): Promise<ExtendedCovalentGasRefundTransaction[]> {
+  // if (arg0.staking_version === 2) {
   assert(
     PARASWAP_V6_STAKERS_TRANSACTIONS_URL_TEMPLATE,
     'PARASWAP_V6_STAKERS_TRANSACTIONS_URL_TEMPLATE should be defined',
   );
-  const url = PARASWAP_V6_STAKERS_TRANSACTIONS_URL_TEMPLATE.replace(
-    '{{epoch}}',
-    arg0.epoch.toString(),
+  // } else if (arg0.staking_version === 3) {
+  assert(
+    PARASWAP_V6_STAKERS_TRANSACTIONS_URL_TEMPLATE_V3,
+    'PARASWAP_V6_STAKERS_TRANSACTIONS_URL_TEMPLATE_V3 should be defined',
+  );
+  // }
+
+  const url = (
+    arg0.staking_version === 2
+      ? PARASWAP_V6_STAKERS_TRANSACTIONS_URL_TEMPLATE
+      : PARASWAP_V6_STAKERS_TRANSACTIONS_URL_TEMPLATE_V3
   )
+    .replace('{{epoch}}', arg0.epoch.toString())
     .replace('{{chainId}}', arg0.chainId.toString())
     .replace('{{contractAddressLowerCase}}', arg0.address)
     .replace(
