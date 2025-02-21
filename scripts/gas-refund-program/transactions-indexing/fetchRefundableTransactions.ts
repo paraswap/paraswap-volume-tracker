@@ -21,7 +21,10 @@ import { PriceResolverFn } from '../token-pricing/psp-chaincurrency-pricing';
 import StakesTracker, { isStakeScoreV3 } from '../staking/stakes-tracker';
 import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/utils';
 import { isTruthy } from '../../../src/lib/utils';
-import { AUGUSTUS_SWAPPERS_V6_OMNICHAIN, AUGUSTUS_V5_ADDRESS } from '../../../src/lib/constants';
+import {
+  AUGUSTUS_SWAPPERS_V6_OMNICHAIN,
+  AUGUSTUS_V5_ADDRESS,
+} from '../../../src/lib/constants';
 import { fetchParaswapV6StakersTransactions } from '../../../src/lib/paraswap-v6-stakers-transactions';
 import { ExtendedCovalentGasRefundTransaction } from '../../../src/types-from-scripts';
 import { GasRefundTransactionDataWithStakeScore, TxProcessorFn } from './types';
@@ -58,7 +61,10 @@ function constructTransactionsProcessor({
           const address = transaction.txOrigin;
 
           // TODO: cleanup this quick tmp workaround
-          if(+transaction.timestamp < new Date('2025-02-15').getTime() / 1000) { 
+          if (
+            +transaction.timestamp <
+            new Date('2025-02-15').getTime() / 1000
+          ) {
             return;
           }
 
@@ -127,6 +133,9 @@ function constructTransactionsProcessor({
             .multipliedBy(currencyRate.pspPrice)
             .dividedBy(10 ** 18); // psp decimals always encoded in 18decimals
 
+          if (currRefundedAmountPSP.lt(0)) {
+            debugger;
+          }
           const refundableTransaction: GasRefundTransactionDataWithStakeScore =
             {
               epoch,
@@ -203,95 +212,95 @@ export async function fetchRefundableTransactions({
   });
 
   const allTxsAndV6Combined = await Promise.all([
-    ...allButV6ContractAddresses.map(async contractAddress => {
-      assert(contractAddress, 'contractAddress should be defined');
-      const lastTimestampProcessed =
-        lastTimestampTxByContract[contractAddress] || 0;
+    // ...allButV6ContractAddresses.map(async contractAddress => {
+    //   assert(contractAddress, 'contractAddress should be defined');
+    //   const lastTimestampProcessed =
+    //     lastTimestampTxByContract[contractAddress] || 0;
 
-      const _startTimestamp = Math.max(
-        startTimestamp,
-        lastTimestampProcessed + 1,
-      );
+    //   const _startTimestamp = Math.max(
+    //     startTimestamp,
+    //     lastTimestampProcessed + 1,
+    //   );
 
-      // Step 1: Create an array of time slices
-      const timeSlices = [];
-      for (
-        let _startTimestampSlice = _startTimestamp;
-        _startTimestampSlice < endTimestamp;
-        _startTimestampSlice += SLICE_DURATION
-      ) {
-        const _endTimestampSlice = Math.min(
-          _startTimestampSlice + SLICE_DURATION,
-          endTimestamp,
-        );
-        timeSlices.push({
-          start: _startTimestampSlice,
-          end: _endTimestampSlice,
-        });
-      }
+    //   // Step 1: Create an array of time slices
+    //   const timeSlices = [];
+    //   for (
+    //     let _startTimestampSlice = _startTimestamp;
+    //     _startTimestampSlice < endTimestamp;
+    //     _startTimestampSlice += SLICE_DURATION
+    //   ) {
+    //     const _endTimestampSlice = Math.min(
+    //       _startTimestampSlice + SLICE_DURATION,
+    //       endTimestamp,
+    //     );
+    //     timeSlices.push({
+    //       start: _startTimestampSlice,
+    //       end: _endTimestampSlice,
+    //     });
+    //   }
 
-      // Step 2: Map each slice to a promise
-      const promises = timeSlices.map(({ start, end }) =>
-        (async () => {
-          logger.info(
-            `fetching transactions between ${start} and ${end} for contract=${contractAddress}...`,
-          );
+    //   // Step 2: Map each slice to a promise
+    //   const promises = timeSlices.map(({ start, end }) =>
+    //     (async () => {
+    //       logger.info(
+    //         `fetching transactions between ${start} and ${end} for contract=${contractAddress}...`,
+    //       );
 
-          const transactions = await getAllTXs({
-            epoch,
-            startTimestamp: start,
-            endTimestamp: end,
-            chainId,
-            epochEndTimestamp: endTimestamp,
-            contractAddress,
-          });
+    //       const transactions = await getAllTXs({
+    //         epoch,
+    //         startTimestamp: start,
+    //         endTimestamp: end,
+    //         chainId,
+    //         epochEndTimestamp: endTimestamp,
+    //         contractAddress,
+    //       });
 
-          logger.info(
-            `fetched ${transactions.length} txs between ${start} and ${end} for contract=${contractAddress}`,
-          );
+    //       logger.info(
+    //         `fetched ${transactions.length} txs between ${start} and ${end} for contract=${contractAddress}`,
+    //       );
 
-          const refundableTransactions = await processRawTxs(
-            transactions,
-            (epoch, totalScore) => {
-              const result =
-                contractAddress === MIGRATION_SEPSP2_100_PERCENT_KEY
-                  ? 1 // 100% for migration tx
-                  : getRefundPercent(epoch, totalScore);
-              return result;
-            },
-          );
+    //       const refundableTransactions = await processRawTxs(
+    //         transactions,
+    //         (epoch, totalScore) => {
+    //           const result =
+    //             contractAddress === MIGRATION_SEPSP2_100_PERCENT_KEY
+    //               ? 1 // 100% for migration tx
+    //               : getRefundPercent(epoch, totalScore);
+    //           return result;
+    //         },
+    //       );
 
-          return refundableTransactions.length > 0
-            ? refundableTransactions
-            : [];
-        })(),
-      );
+    //       return refundableTransactions.length > 0
+    //         ? refundableTransactions
+    //         : [];
+    //     })(),
+    //   );
 
-      // Step 3: Use Promise.all to execute all promises concurrently
-      const result = await Promise.all(promises);
+    //   // Step 3: Use Promise.all to execute all promises concurrently
+    //   const result = await Promise.all(promises);
 
-      // Step 4: Flatten the result and return
-      return result.flat();
-    }),
+    //   // Step 4: Flatten the result and return
+    //   return result.flat();
+    // }),
 
     ...Array.from(AUGUSTUS_SWAPPERS_V6_OMNICHAIN).map(async contractAddress => {
-            const epochNewStyle = epoch - GasRefundV2EpochFlip;
+      const epochNewStyle = epoch - GasRefundV2EpochFlip;
 
-            const lastTimestampProcessed =
-              lastTimestampTxByContract[contractAddress];
+      const lastTimestampProcessed = lastTimestampTxByContract[contractAddress];
 
-            const allStakersTransactionsDuringEpoch =
-              await fetchParaswapV6StakersTransactions({
-                epoch: epochNewStyle,
-                timestampGreaterThan: lastTimestampProcessed,
-                chainId,
-                address: contractAddress,
-              });
+      const allStakersTransactionsDuringEpoch =
+        await fetchParaswapV6StakersTransactions({
+          staking_version: 3,
+          epoch: epochNewStyle,
+          timestampGreaterThan: lastTimestampProcessed,
+          chainId,
+          address: contractAddress,
+        });
 
-            return await processRawTxs(
-              allStakersTransactionsDuringEpoch,
+      return await processRawTxs(
+        allStakersTransactionsDuringEpoch,
         (epoch, totalUserScore) => getRefundPercent(epoch, totalUserScore),
-            );
+      );
     }),
   ]);
 

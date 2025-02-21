@@ -56,7 +56,8 @@ export async function fetchRefundableTransactionsAllChains() {
         'cannot compute refund data for epoch < genesis_epoch',
       );
 
-      for (let epoch = startEpoch; epoch <= getCurrentEpoch(); epoch++) {
+      // TODO: NB: artificially add +1 to startEpoch so that tracker can be tested since fresh epoch
+      for (let epoch = startEpoch + 1; epoch <= getCurrentEpoch(); epoch++) {
         const { startCalcTime, endCalcTime } =
           await resolveEpochCalcTimeInterval(epoch);
 
