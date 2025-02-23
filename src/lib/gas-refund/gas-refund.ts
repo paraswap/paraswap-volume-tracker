@@ -192,6 +192,19 @@ export const getRefundPercentV1 = (stakedAmount: string): number | undefined =>
 const GRP_MIN_REFUND_ALLOWED = 0.25;
 export const GRP_MAX_REFUND_PERCENT = 0.95;
 
+export const grpV3Func = (x: number): number => {
+  const rawRefundPecent = 0.152003 * Math.log(0.000517947 * x);
+
+  const cappedRefundPercent = Math.min(rawRefundPecent, GRP_MAX_REFUND_PERCENT);
+
+  // TODO: if it's less than 0.25, return 0.25 --> for test purposes for now
+  const cappedRefundPercentWithMin = Math.max(
+    cappedRefundPercent,
+    GRP_MIN_REFUND_ALLOWED,
+  );
+  return cappedRefundPercentWithMin;
+};
+
 export const grpV2Func = (x: number): number => {
   const rawRefundPecent = 0.152003 * Math.log(0.000517947 * x);
 
@@ -209,14 +222,6 @@ export const getRefundPercentV2 = (score: string): number => {
   return refundPercent;
 };
 
-
-export const grpV3Func = (x: number): number => {
-  const rawRefundPecent = 0.152003 * Math.log(0.000517947 * x);
-
-  const cappedRefundPercent = Math.min(rawRefundPecent, GRP_MAX_REFUND_PERCENT);
-
-  return cappedRefundPercent;
-};
 export const getRefundPercentV3 = (score: string): number => {
   const scoreNorm = +(BigInt(score) / BigInt(10 ** 18)).toString();
   const refundPercent = grpV3Func(scoreNorm);
