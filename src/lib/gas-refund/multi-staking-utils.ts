@@ -100,6 +100,71 @@ export async function loadTransactionWithByStakeChainData({
   return results;
 }
 
+//NB: running into a problem with null not converting into Bigint most likely means that some of the fetched txs don't have a StakeSnapshot match in the LEFT JOIN above
+// @TODO: adjust draft
+export async function loadTransactionWithByStakeChainData_V3({
+  address,
+  epochFrom,
+  epochTo,
+}: {
+  address: string;
+  epochFrom: number;
+  epochTo: number;
+}): Promise<TransactionWithStakeChainScoreByStakeChain[]> {
+  const rows = await Database.sequelize.query<TransactionWithStakeChainScore>(
+    QUERY,
+    {
+      type: Sequelize.QueryTypes.SELECT,
+      raw: true,
+      replacements: {
+        address,
+        epochFrom,
+        epochTo,
+      },
+    },
+  );
+
+  const withByStakeChain = rows.reduce<
+    Record<string, TransactionWithStakeChainScoreByStakeChain>
+  >((acc, row) => {
+    const {
+      stakeChainId,
+      stakeScore,
+      bptPSPBalance,
+      bptTotalSupply,
+      claimableSePSP1Balance,
+      sePSP1Balance,
+      sePSP2Balance,
+
+      ...originalTransaction
+    } = row;
+    const rowIdx = `${originalTransaction.chainId}-${originalTransaction.hash}`;
+    const accumulatedRow = {
+      ...originalTransaction,
+      ...acc[rowIdx],
+      stakeByChain: {
+        ...acc[rowIdx]?.stakeByChain,
+        [stakeChainId]: {
+          stakeChainId,
+          stakeScore,
+          bptPSPBalance,
+          bptTotalSupply,
+          claimableSePSP1Balance,
+          sePSP1Balance,
+          sePSP2Balance,
+        },
+      },
+    };
+    return {
+      ...acc,
+      [rowIdx]: accumulatedRow,
+    };
+  }, {});
+
+  const results = Object.values(withByStakeChain);
+  return results;
+}
+
 type TransactionWithCaimableByStakeChain =
   TransactionWithStakeChainScoreByStakeChain & {
     claimableByStakeChain: { [chainId: number]: BigNumber };
