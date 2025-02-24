@@ -23,6 +23,7 @@ import { StakingService } from './lib/staking/staking';
 import { assert } from 'ts-essentials';
 import {
   computeAggregatedStakeChainDetails,
+  computeAggregatedStakeChainDetails_V3,
   loadTransactionWithByStakeChainData,
   loadTransactionWithByStakeChainData_V3,
 } from './lib/gas-refund/multi-staking-utils';
@@ -340,7 +341,7 @@ export default class Router {
               epochTo,
             });
 
-            const _data = computeAggregatedStakeChainDetails(transactions);
+            const _data = computeAggregatedStakeChainDetails_V3(transactions);
             const data = showTransactions
               ? _data
               : Object.fromEntries(
