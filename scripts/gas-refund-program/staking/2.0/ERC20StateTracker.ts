@@ -74,7 +74,12 @@ export default class ERC20StateTracker extends AbstractStateTracker {
   }
 
   async loadStates() {
-    await Promise.all([this.loadInitialState(), this.loadStateChanges()]);
+    try {
+      await Promise.all([this.loadInitialState(), this.loadStateChanges()]);
+    } catch (e) {
+      debugger;
+      throw e;
+    }
   }
 
   async loadInitialState() {
@@ -99,7 +104,7 @@ export default class ERC20StateTracker extends AbstractStateTracker {
 
   async loadStateChanges() {
     logger.info(
-      `loadStateChanges: loading psp balance related events for all pools`,
+      `loadStateChanges: loading token ${this.contract.address} balance related events for all pools`,
     );
 
     this.transferEvents = (await queryFilterBatched(
@@ -107,11 +112,11 @@ export default class ERC20StateTracker extends AbstractStateTracker {
       this.contract.filters.Transfer(),
       this.startBlock,
       this.endBlock,
-      { batchSize: QUERY_EVENT_BATCH_SIZE_BY_CHAIN[this.chainId]}
+      { batchSize: QUERY_EVENT_BATCH_SIZE_BY_CHAIN[this.chainId] },
     )) as Transfer[];
 
     logger.info(
-      `loadStateChanges: completed loading ${this.transferEvents.length} psp balance related events for all pools`,
+      `loadStateChanges: completed loading ${this.transferEvents.length} token ${this.contract.address} balance related events for all pools`,
     );
 
     logger.info(`loadStateChanges: loading blockNumToTimestamp`);
@@ -149,7 +154,7 @@ export default class ERC20StateTracker extends AbstractStateTracker {
     });
 
     logger.info(
-      `loadStateChanges: completed handling psp balance related events for all pools`,
+      `loadStateChanges: completed handling token ${this.contract.address} balance related events for all pools`,
     );
   }
 
