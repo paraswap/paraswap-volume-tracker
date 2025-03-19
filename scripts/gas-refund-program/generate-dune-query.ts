@@ -56,7 +56,7 @@ function getContractsByChainId() {
 
 // @TODO: probably should use some tempating engine here
 async function generateDuneQuery() {
-  const targetEpoch = 57;
+  const targetEpoch = 58;
   // const currentEpoch = getCurrentEpoch();
   const { startCalcTime, endCalcTime } = await resolveEpochCalcTimeInterval(
     targetEpoch,
