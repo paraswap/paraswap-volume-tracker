@@ -12,13 +12,17 @@ import {
   GasRefundV2EpochFlip,
   getRefundPercent,
   getMinStake,
+  GasRefundV2PIP55,
 } from '../../../src/lib/gas-refund/gas-refund';
 import { ONE_HOUR_SEC } from '../../../src/lib/utils/helpers';
 import { PriceResolverFn } from '../token-pricing/psp-chaincurrency-pricing';
 import StakesTracker from '../staking/stakes-tracker';
 import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/utils';
 import { isTruthy } from '../../../src/lib/utils';
-import { AUGUSTUS_SWAPPERS_V6_OMNICHAIN } from '../../../src/lib/constants';
+import {
+  AUGUSTUS_SWAPPERS_V6_OMNICHAIN,
+  AUGUSTUS_V5_ADDRESS,
+} from '../../../src/lib/constants';
 import { fetchParaswapV6StakersTransactions } from '../../../src/lib/paraswap-v6-stakers-transactions';
 import { ExtendedCovalentGasRefundTransaction } from '../../../src/types-from-scripts';
 import { GasRefundTransactionDataWithStakeScore, TxProcessorFn } from './types';
@@ -174,7 +178,14 @@ export async function fetchRefundableTransactions({
     epoch,
   });
 
-  const allButV6ContractAddresses = getContractAddresses({ epoch, chainId });
+  let allButV6ContractAddresses = getContractAddresses({ epoch, chainId });
+
+  if (epoch >= GasRefundV2PIP55) {
+    // starting from epoch 56 we no longer refund augustus v5 txs
+    allButV6ContractAddresses = allButV6ContractAddresses.filter(
+      contract => contract !== AUGUSTUS_V5_ADDRESS,
+    );
+  }
 
   const processRawTxs = constructTransactionsProcessor({
     chainId,
@@ -183,7 +194,7 @@ export async function fetchRefundableTransactions({
     resolvePrice,
   });
 
-  const allTxsV5AndV6Merged = await Promise.all([
+  const allTxsAndV6Combined = await Promise.all([
     ...allButV6ContractAddresses.map(async contractAddress => {
       assert(contractAddress, 'contractAddress should be defined');
       const lastTimestampProcessed =
@@ -282,7 +293,7 @@ export async function fetchRefundableTransactions({
         )),
   ]);
 
-  const flattened = allTxsV5AndV6Merged.flat();
+  const flattened = allTxsAndV6Combined.flat();
   const withPatches = await addPatches({
     txs: flattened,
     epoch,

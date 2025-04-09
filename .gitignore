@@ -1,4 +1,5 @@
 .vscode
+/.vscode
 node_modules
 
 yarn-error.log
