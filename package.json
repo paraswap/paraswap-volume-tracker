@@ -33,7 +33,8 @@
     "_copy-indexed-dune-transactions-18": "source .env && /usr/lib/postgresql/16/bin/pg_dump -t '\"DuneTransactions\"' $DUNE_TRANSACTIONS_DATABASE_URL_18 | psql $DATABASE_URL",
     "migrate:up": "source .env && DATABASE_URL=$DATABASE_URL npx sequelize-cli db:migrate # <- executes any new migrations that are not in sequalize meta table yet, sorted alphabetically",
     "migrate:undo": "source .env && DATABASE_URL=$DATABASE_URL npx sequelize-cli db:migrate:undo # <- undoes the last migration from sequalize meta table, sorted alphabetically",
-    "test": "jest"
+    "test": "jest",
+    "generate-data-from-ipfs-folder": "patch-package && NODE_ENV=development ts-node scripts/gas-refund-program/generate-data-from-ipfs-folder.ts"
   },
   "husky": {
     "hooks": {
