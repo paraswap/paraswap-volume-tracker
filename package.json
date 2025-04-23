@@ -54,6 +54,7 @@
     "@types/lodash": "4.14.168",
     "@types/node": "14.14.41",
     "@types/stoppable": "1.1.1",
+    "@types/uuid": "^10.0.0",
     "@types/validator": "13.6.6",
     "husky": "7.0.4",
     "jest": "^27.5.1",
@@ -110,6 +111,7 @@
     "stoppable": "1.1.0",
     "ts-essentials": "^9.1.2",
     "ts-node": "10.4.0",
-    "ts-retry-promise": "^0.6.0"
+    "ts-retry-promise": "^0.6.0",
+    "uuid": "^11.1.0"
   }
 }

@@ -1,10 +1,13 @@
 import { TransactionRequest } from '@ethersproject/providers';
 import { TenderlySimulation } from './TenderlySimulation';
 
+const TENDERLY_ACCOUNT_ID = process.env.TENDERLY_ACCOUNT_ID;
+const TENDERLY_PROJECT = process.env.TENDERLY_PROJECT;
+
 type Simulation = {
   simulationUrls: string[];
-  forkUrl: string;
-  publicForkUrl: string;
+  vnetUrl: string;
+  publicVnetUrl: string;
 };
 export const simulateTxs = async (
   chainId: number,
@@ -27,7 +30,9 @@ export const simulateTxs = async (
   }
   return {
     simulationUrls,
-    forkUrl: ts.forkUrl,
-    publicForkUrl: ts.publicForkUrl,
+    vnetUrl:
+      `https://dashboard.tenderly.co/${TENDERLY_ACCOUNT_ID}/${TENDERLY_PROJECT}/testnet/` +
+      ts.vnetId,
+    publicVnetUrl: `https://dashboard.tenderly.co/explorer/vnet/${ts.vnetPublicId}/transactions`,
   };
 };

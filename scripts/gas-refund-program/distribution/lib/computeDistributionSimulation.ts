@@ -157,12 +157,12 @@ export async function computeDistributionSimulation(
     )),
   ];
 
-  const { simulationUrls, publicForkUrl } = await simulateTxs(
+  const { simulationUrls, publicVnetUrl } = await simulateTxs(
     +chainId,
     simulationsTxs,
     false,
   );
 
-  if (usePublicFork) return publicForkUrl;
+  if (usePublicFork) return publicVnetUrl;
   return simulationUrls.join('\n');
 }

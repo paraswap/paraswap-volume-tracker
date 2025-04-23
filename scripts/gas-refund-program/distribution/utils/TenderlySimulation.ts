@@ -1,15 +1,17 @@
 import { TransactionRequest } from '@ethersproject/providers';
 import axios from 'axios';
+import { BigNumberish } from 'ethers';
+import { assert } from 'ts-essentials';
+import { v4 as uuidv4 } from 'uuid';
 
 const TENDERLY_TOKEN = process.env.TENDERLY_TOKEN;
 const TENDERLY_ACCOUNT_ID = process.env.TENDERLY_ACCOUNT_ID;
 const TENDERLY_PROJECT = process.env.TENDERLY_PROJECT;
-const TENDERLY_FORK_ID = process.env.TENDERLY_FORK_ID;
-const TENDERLY_FORK_LAST_TX_ID = process.env.TENDERLY_FORK_LAST_TX_ID;
+const DISTRIBUTED_EPOCH = process.env.DISTRIBUTED_EPOCH;
 
 export class TenderlySimulation {
-  lastTx: string = '';
-  forkId: string = '';
+  vnetId: string = '';
+  vnetPublicId: string = '';
   maxGasLimit = 80000000;
 
   constructor(private network: Number = 1) {}
@@ -21,19 +23,31 @@ export class TenderlySimulation {
         `TenderlySimulation_setup: TENDERLY_TOKEN not found in the env`,
       );
 
-    if (TENDERLY_FORK_ID) {
-      if (!TENDERLY_FORK_LAST_TX_ID) throw new Error('Always set last tx id');
-      this.forkId = TENDERLY_FORK_ID;
-      this.lastTx = TENDERLY_FORK_LAST_TX_ID;
-      return;
-    }
+    const vnet_name = `distribution-${DISTRIBUTED_EPOCH}-${uuidv4()}`;
 
     try {
       let res = await axios.post(
-        `https://api.tenderly.co/api/v1/account/${TENDERLY_ACCOUNT_ID}/project/${TENDERLY_PROJECT}/fork`,
+        // `https://api.tenderly.co/api/v1/account/${TENDERLY_ACCOUNT_ID}/project/${TENDERLY_PROJECT}/fork`,
+        `https://api.tenderly.co/api/v1/account/${TENDERLY_ACCOUNT_ID}/project/${TENDERLY_PROJECT}/vnets`,
         {
-          network_id: this.network.toString(),
-          shared: true,
+          slug: vnet_name,
+          display_name: vnet_name,
+          fork_config: {
+            network_id: this.network,
+            block_number: 'latest',
+          },
+          virtual_network_config: {
+            chain_config: {
+              chain_id: this.network,
+            },
+          },
+          sync_state_config: {
+            enabled: false,
+          },
+          explorer_page_config: {
+            enabled: true,
+            verification_visibility: 'bytecode',
+          },
         },
         {
           timeout: 20000,
@@ -42,60 +56,53 @@ export class TenderlySimulation {
           },
         },
       );
-      this.forkId = res.data.simulation_fork.id;
-      this.lastTx = res.data.root_transaction.id;
+      this.vnetId = res.data.id;
+      // @ts-ignore TS7031
+      const vnetPublicRpcUrl = res.data.rpcs.find(({ url, name }) => {
+        return name === 'Public RPC';
+      }).url;
+      this.vnetPublicId = vnetPublicRpcUrl.split('/').pop();
+      assert(this.vnetPublicId, 'vnetPublicId not found');
     } catch (e) {
       console.error(`TenderlySimulation_setup:`, e);
       throw e;
     }
   }
 
-  get forkUrl() {
-    return `https://dashboard.tenderly.co/${TENDERLY_ACCOUNT_ID}/${TENDERLY_PROJECT}/fork/${this.forkId}`;
-  }
-
-  get publicForkUrl() {
-    return `https://dashboard.tenderly.co/shared/fork/${this.forkId}/transactions`;
+  get publicVnetUrl() {
+    return `https://dashboard.tenderly.co/${TENDERLY_ACCOUNT_ID}/${TENDERLY_PROJECT}/testnet/${this.vnetPublicId}/transactions`;
   }
 
   async simulate(params: TransactionRequest, isPublic = false) {
     const _params = {
-      from: params.from,
-      to: params.to,
-      save: true,
-      root: this.lastTx,
-      value: params.value || '0',
-      gas: this.maxGasLimit,
-      input: params.data,
-      state_objects: {},
+      callArgs: {
+        from: params.from,
+        to: params.to,
+        gas: `0x${Number(this.maxGasLimit).toString(16)}`,
+        gasPrice: '0x0',
+        value: toHex(params.value),
+        data: params.data,
+      },
     };
     try {
-      const { data } = await axios.post(
-        `https://api.tenderly.co/api/v1/account/${TENDERLY_ACCOUNT_ID}/project/${TENDERLY_PROJECT}/fork/${this.forkId}/simulate`,
-        _params,
-        {
-          timeout: 20 * 1000,
-          headers: {
-            'x-access-key': TENDERLY_TOKEN!,
-          },
+      const url = `https://api.tenderly.co/api/v1/account/${TENDERLY_ACCOUNT_ID}/project/${TENDERLY_PROJECT}/vnets/${this.vnetId}/transactions`;
+      const { data } = await axios.post(url, _params, {
+        timeout: 20 * 1000,
+        headers: {
+          'x-access-key': TENDERLY_TOKEN!,
         },
-      );
-      const lastTx = data.simulation.id;
-      if (data.transaction.status) {
-        this.lastTx = lastTx;
-        const tenderlyUrl = !isPublic
-          ? `https://dashboard.tenderly.co/${TENDERLY_ACCOUNT_ID}/${TENDERLY_PROJECT}/fork/${this.forkId}/simulation/${lastTx}`
-          : `https://dashboard.tenderly.co/public/${TENDERLY_ACCOUNT_ID}/${TENDERLY_PROJECT}/fork-simulation/${lastTx}`;
+      });
+
+      if (data.status === 'success') {
+        const tenderlyUrl = data.public_explorer_url;
         return {
           success: true,
-          gasUsed: data.transaction.gas_used,
+          // gasUsed,
           tenderlyUrl,
           transaction: data.transaction,
         };
       } else {
-        const tenderlyUrl = !isPublic
-          ? `https://dashboard.tenderly.co/${TENDERLY_ACCOUNT_ID}/${TENDERLY_PROJECT}/fork/${this.forkId}/simulation/${lastTx}`
-          : `https://dashboard.tenderly.co/public/${TENDERLY_ACCOUNT_ID}/${TENDERLY_PROJECT}/fork-simulation/${lastTx}`;
+        const tenderlyUrl = data.public_explorer_url;
         return {
           success: false,
           tenderlyUrl,
@@ -110,4 +117,19 @@ export class TenderlySimulation {
       };
     }
   }
+}
+
+function toHex(value?: BigNumberish): string {
+  if (value === undefined) return '0x0';
+
+  if (typeof value === 'string' && value.startsWith('0x')) return value;
+
+  if (typeof value === 'string') {
+    return `0x${parseInt(value).toString(16)}`;
+  }
+
+  if (typeof value === 'number') {
+    return `0x${value.toString(16)}`;
+  }
+  throw new Error('toHex: unsupported type');
 }
