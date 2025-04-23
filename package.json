@@ -34,7 +34,8 @@
     "migrate:up": "source .env && DATABASE_URL=$DATABASE_URL npx sequelize-cli db:migrate # <- executes any new migrations that are not in sequalize meta table yet, sorted alphabetically",
     "migrate:undo": "source .env && DATABASE_URL=$DATABASE_URL npx sequelize-cli db:migrate:undo # <- undoes the last migration from sequalize meta table, sorted alphabetically",
     "test": "jest",
-    "generate-data-from-ipfs-folder": "patch-package && NODE_ENV=development ts-node scripts/gas-refund-program/generate-data-from-ipfs-folder.ts"
+    "generate-data-from-ipfs-folder": "patch-package && NODE_ENV=development ts-node scripts/gas-refund-program/generate-data-from-ipfs-folder.ts",
+    "generate-data-from-ipfs-folder-epoch-59": "patch-package && NODE_ENV=development IPFS_FOLDER_CID=bafybeiglb2l7lludg6n4lroojycfcz26r6cehrxfkhzpbiauetit4ij2rm EPOCH=59 yarn generate-data-from-ipfs-folder"
   },
   "husky": {
     "hooks": {
