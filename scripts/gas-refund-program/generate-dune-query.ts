@@ -56,7 +56,7 @@ function getContractsByChainId() {
 
 // @TODO: probably should use some tempating engine here
 async function generateDuneQuery() {
-  const targetEpoch = 58;
+  const targetEpoch = 59;
   // const currentEpoch = getCurrentEpoch();
   const { startCalcTime, endCalcTime } = await resolveEpochCalcTimeInterval(
     targetEpoch,
@@ -163,6 +163,8 @@ success
     -- 4472438 -- epoch 024-55
     -- 4609884 -- epoch 025-56
     -- 4733819 -- epoch 026-57
+    -- 4874618 -- epoch 027-58
+    -- 4987256 -- epoch 028-59
       query_xxx
   ),  
   ${queries} SELECT * from (\n${unionPart}) ORDER BY block_time DESC
