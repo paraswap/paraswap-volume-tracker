@@ -75,7 +75,14 @@ function constructTransactionsProcessor({
             `could not retrieve psp/chaincurrency same day rate for swap at ${transaction.timestamp}`,
           );
 
-          const currGasUsedChainCur = gasSpentInChainCurrencyWei
+          const currGasUsedChainCur = transaction.txGasUsedUSD // if USD override is available, most likely it's delta -> adjust spent eth and psp to refund based on that
+            ? new BigNumber(
+                new BigNumber(transaction.txGasUsedUSD)
+                  .multipliedBy(10 ** 18)
+                  .dividedBy(currencyRate.chainPrice)
+                  .toFixed(0),
+              )
+            : gasSpentInChainCurrencyWei
             ? new BigNumber(gasSpentInChainCurrencyWei)
             : new BigNumber(txGasUsed).multipliedBy(
                 transaction.txGasPrice.toString(),
@@ -259,24 +266,31 @@ export async function fetchRefundableTransactions({
       return result.flat();
     }),
 
-    ...Array.from(AUGUSTUS_SWAPPERS_V6_OMNICHAIN).map(async contractAddress => {
-      const epochNewStyle = epoch - GasRefundV2EpochFlip;
+    // in this branch v6 txs are sitting together with v5 in global config
+    ...(chainId != 1
+      ? [] // only for chain id=1 take data from metabase
+      : Array.from(AUGUSTUS_SWAPPERS_V6_OMNICHAIN).map(
+          async contractAddress => {
+            const epochNewStyle = epoch - GasRefundV2EpochFlip;
 
-      const lastTimestampProcessed = lastTimestampTxByContract[contractAddress];
+            const lastTimestampProcessed =
+              lastTimestampTxByContract[contractAddress];
 
-      const allStakersTransactionsDuringEpoch =
-        await fetchParaswapV6StakersTransactions({
-          epoch: epochNewStyle,
-          timestampGreaterThan: lastTimestampProcessed,
-          chainId,
-          address: contractAddress,
-        });
+            const allStakersTransactionsDuringEpoch =
+              await fetchParaswapV6StakersTransactions({
+                epoch: epochNewStyle,
+                timestampGreaterThan: lastTimestampProcessed,
+                chainId,
+                address: contractAddress,
+              });
 
-      return await processRawTxs(
-        allStakersTransactionsDuringEpoch,
-        (epoch, totalUserScore) => getRefundPercent(epoch, totalUserScore),
-      );
-    }),
+            return await processRawTxs(
+              allStakersTransactionsDuringEpoch,
+              (epoch, totalUserScore) =>
+                getRefundPercent(epoch, totalUserScore),
+            );
+          },
+        )),
   ]);
 
   const flattened = allTxsAndV6Combined.flat();

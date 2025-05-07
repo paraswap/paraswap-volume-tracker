@@ -35,6 +35,7 @@ const config: Record<number, string> = {
   48: '0',
   49: '0',
   50: '1309139600000000000000000',
+  51: '0',
 };
 // debugger;
 const AURA_REWARDS_START_EPOCH_OLD_STYLE = Math.min(
@@ -320,6 +321,10 @@ async function computeUserRewardWei(
 export async function composeAuraRewards(
   epochOldStyle: number,
 ): Promise<ProgramAgnosticAddressRewards[]> {
+  if (config[epochOldStyle] === '0') {
+    // not distributing aura rewards this time? return empty array
+    return [];
+  }
   const { sePSP2BalancesByUserByChain, totalSupplySePSP2 } =
     await fetchPastEpochData(epochOldStyle - GasRefundV2EpochFlip);
 

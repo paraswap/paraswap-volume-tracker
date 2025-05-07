@@ -11,7 +11,11 @@
  * is resolved, that is the response of the code in this file.
  */
 import { SPSPAddresses } from '../../../src/lib/staking/spsp-helper';
-import { covalentGetTXsForContractV3 } from './txs-covalent';
+import {
+  constructCovalentAddressToTransaction,
+  covalentGetTXsForContractV3,
+  duneToCovalentLike,
+} from './txs-covalent';
 import StakesTracker from '../staking/stakes-tracker';
 import { getSuccessfulSwaps } from './swaps-subgraph';
 import {
@@ -32,6 +36,8 @@ import { getMigrationsTxs } from '../staking/2.0/migrations';
 import { MIGRATION_SEPSP2_100_PERCENT_KEY } from '../staking/2.0/utils';
 import { grp2ConfigByChain } from '../../../src/lib/gas-refund/config';
 import { assert } from 'ts-essentials';
+import { DuneTransaction } from '../../../src/models/DuneTransaction';
+import { Op } from 'sequelize';
 import { fetchTxGasUsed } from '../../../src/lib/fetch-tx-gas-used';
 import { ExtendedCovalentGasRefundTransaction } from '../../../src/types-from-scripts';
 
@@ -89,7 +95,19 @@ export const getContractAddresses = ({
     );
   }
 
-  return contractAddressesByChain[chainId] ?? [AUGUSTUS_V5_ADDRESS];
+  const result = contractAddressesByChain[chainId] ?? [AUGUSTUS_V5_ADDRESS];
+
+  const withoutDelta = [
+    ...result,
+    '0x00000000FdAC7708D0D360BDDc1bc7d097F47439'.toLowerCase(), // augustus 6.0
+    '0x000db803a70511e09da650d4c0506d0000100000'.toLowerCase(), // augustus 6.1
+  ];
+
+  return chainId == 1
+    ? withoutDelta
+    : withoutDelta.concat(
+        '0x6a000f20005980200259b80c5102003040001068'.toLowerCase(),
+      ); // augustus 6.2 -> with delta
 };
 
 export const getAllTXs = async ({
@@ -101,14 +119,27 @@ export const getAllTXs = async ({
   contractAddress,
 }: GetAllTXsInput): Promise<ExtendedCovalentGasRefundTransaction[]> => {
   // fetch swaps and contract (staking pools, safety module) txs
-  if (contractAddress === AUGUSTUS_V5_ADDRESS && chainId !== CHAIN_ID_OPTIMISM)
-    return getSwapTXs({
-      epoch,
-      chainId,
-      startTimestamp,
-      endTimestamp,
-      epochEndTimestamp,
-    });
+  if (
+    contractAddress === AUGUSTUS_V5_ADDRESS &&
+    chainId !== CHAIN_ID_OPTIMISM
+  ) {
+    const swapTxs = (
+      await DuneTransaction.findAll({
+        where: {
+          chainId,
+          to: contractAddress,
+          block_timestamp: {
+            [Op.gt]: startTimestamp,
+            [Op.lte]: endTimestamp,
+          },
+          success: true,
+        },
+      })
+    )
+      .map(duneToCovalentLike)
+      .map(constructCovalentAddressToTransaction(contractAddress, chainId));
+    return swapTxs;
+  }
 
   if (contractAddress === MIGRATION_SEPSP2_100_PERCENT_KEY) {
     return getMigrationsTxs({
@@ -119,13 +150,22 @@ export const getAllTXs = async ({
     });
   }
 
-  return getTransactionForContract({
-    epoch,
-    chainId,
-    startTimestamp,
-    endTimestamp,
-    contractAddress,
-  });
+  const filteredTxs = (
+    await DuneTransaction.findAll({
+      where: {
+        chainId,
+        to: contractAddress,
+        block_timestamp: {
+          [Op.gt]: startTimestamp,
+          [Op.lte]: endTimestamp,
+        },
+      },
+    })
+  )
+    .map(duneToCovalentLike)
+    .map(constructCovalentAddressToTransaction(contractAddress, chainId));
+
+  return filteredTxs;
 };
 
 /**
@@ -140,7 +180,9 @@ type GetSwapTXsInput = {
   endTimestamp: number;
   epochEndTimestamp: number;
 };
-export const getSwapTXs = async ({
+
+// not used if replaced by dune
+const getSwapTXs = async ({
   epoch,
   chainId,
   startTimestamp,
