@@ -1,5 +1,6 @@
 import { assert } from 'ts-essentials';
 import { GRP_V2_SUPPORTED_CHAINS_STAKING } from '../../../../src/lib/gas-refund/gas-refund';
+import { STAKING_CHAIN_IDS_V3 } from '../../../../src/lib/gas-refund/config';
 
 export type BlockTimeBoundary = {
   startTimestamp: number;
@@ -14,9 +15,13 @@ export class AbstractStateTracker {
   endTimestamp: number;
 
   constructor(protected chainId: number) {
+    const stakingChains = new Set([
+      ...GRP_V2_SUPPORTED_CHAINS_STAKING,
+      ...STAKING_CHAIN_IDS_V3,
+    ])
     assert(
-      GRP_V2_SUPPORTED_CHAINS_STAKING.has(chainId),
-      `chainId=${chainId} is not support for staking`,
+      stakingChains.has(chainId),
+      `chainId=${chainId} is not supported for staking`,
     );
   }
 
@@ -42,9 +47,14 @@ export class AbstractStateTracker {
   }
 
   assertTimestampWithinLoadInterval(timestamp: number) {
-    assert(
-      timestamp >= this.startTimestamp && timestamp <= this.endTimestamp,
-      'timestamp is out of range',
-    );
+    try {
+      assert(
+        timestamp >= this.startTimestamp && timestamp <= this.endTimestamp,
+        'timestamp is out of range',
+      );
+    } catch (e) {
+      debugger;
+      throw e;
+    }
   }
 }
