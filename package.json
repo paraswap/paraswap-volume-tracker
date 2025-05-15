@@ -33,7 +33,9 @@
     "_copy-indexed-dune-transactions-18": "source .env && /usr/lib/postgresql/16/bin/pg_dump -t '\"DuneTransactions\"' $DUNE_TRANSACTIONS_DATABASE_URL_18 | psql $DATABASE_URL",
     "migrate:up": "source .env && DATABASE_URL=$DATABASE_URL npx sequelize-cli db:migrate # <- executes any new migrations that are not in sequalize meta table yet, sorted alphabetically",
     "migrate:undo": "source .env && DATABASE_URL=$DATABASE_URL npx sequelize-cli db:migrate:undo # <- undoes the last migration from sequalize meta table, sorted alphabetically",
-    "test": "jest"
+    "test": "jest",
+    "generate-data-from-ipfs-folder": "patch-package && NODE_ENV=development ts-node scripts/gas-refund-program/generate-data-from-ipfs-folder.ts",
+    "generate-data-from-ipfs-folder-epoch-59": "patch-package && NODE_ENV=development IPFS_FOLDER_CID=bafybeiglb2l7lludg6n4lroojycfcz26r6cehrxfkhzpbiauetit4ij2rm EPOCH=59 yarn generate-data-from-ipfs-folder"
   },
   "husky": {
     "hooks": {
@@ -54,6 +56,7 @@
     "@types/lodash": "4.14.168",
     "@types/node": "14.14.41",
     "@types/stoppable": "1.1.1",
+    "@types/uuid": "^10.0.0",
     "@types/validator": "13.6.6",
     "husky": "7.0.4",
     "jest": "^27.5.1",
@@ -110,6 +113,7 @@
     "stoppable": "1.1.0",
     "ts-essentials": "^9.1.2",
     "ts-node": "10.4.0",
-    "ts-retry-promise": "^0.6.0"
+    "ts-retry-promise": "^0.6.0",
+    "uuid": "^11.1.0"
   }
 }
